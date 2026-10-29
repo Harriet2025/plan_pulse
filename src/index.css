@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ivory + Rust + Dusty Rose palette. Values are space-separated RGB so Tailwind can add opacity.
+   A dark theme would override these same variables; nothing else needs to change. */
+:root {
+  --ivory: 250 246 239;       /* #FAF6EF  page background */
+  --soft: 255 252 249;        /* #FFFCF9  cards, modals, inputs */
+  --oat: 232 220 203;         /* #E8DCCB  borders, dividers, progress tracks */
+  --rust: 184 92 56;          /* #B85C38  primary buttons, active nav, key actions */
+  --rust-dark: 154 73 41;     /* #9A4929  hover, and rust used as text (meets 4.5:1 on light) */
+  --blush: 217 169 155;       /* #D9A99B  secondary accents, achievements */
+  --blush-dark: 168 104 90;   /* #A8685A  blush as an icon or text colour */
+  --charcoal: 53 45 41;       /* #352D29  headings and primary text */
+  --muted: 118 104 95;        /* #76685F  secondary text */
+
+  /* Status colours, tuned to sit beside the palette */
+  --success: 63 107 77;       /* sage */
+  --warning: 138 95 15;       /* ochre */
+  --danger: 176 48 40;        /* brick red, clearly different from rust */
+
+  color-scheme: light;
+}
+
+@layer base {
+  html, body { background: rgb(var(--ivory)); color: rgb(var(--charcoal)); }
+  body { @apply font-sans; margin: 0; }
+  button:focus-visible, a:focus-visible { outline: 2px solid rgb(var(--rust)); outline-offset: 2px; }
+}
+
+@layer components {
+  .aura-bg { background: rgb(var(--ivory)); }
+
+  .field {
+    background: rgb(var(--soft)); border: 1px solid rgb(var(--oat)); border-radius: .75rem;
+    padding: .65rem .8rem; width: 100%; color: rgb(var(--charcoal)); font-size: .875rem;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field::placeholder { color: rgb(var(--muted) / .8); }
+  .field:hover { border-color: rgb(var(--blush)); }
+  .field:focus { outline: none; border-color: rgb(var(--rust)); box-shadow: 0 0 0 3px rgb(var(--rust) / .18); }
+  .field:disabled { opacity: .6; cursor: not-allowed; }
+  /* Stop the browser's blue autofill tint from clashing with the palette */
+  .field:-webkit-autofill, .field:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px rgb(var(--soft)) inset;
+    -webkit-text-fill-color: rgb(var(--charcoal));
+    caret-color: rgb(var(--charcoal));
+  }
+
+  /* Radio buttons drawn as segmented pills */
+  .seg input { position: absolute; opacity: 0; }
+  .seg span {
+    display: block; text-align: center; padding: .5rem .25rem; border-radius: .6rem; font-size: .75rem; font-weight: 600; cursor: pointer;
+    border: 1px solid rgb(var(--oat)); background: rgb(var(--soft)); color: rgb(var(--charcoal) / .85);
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .seg span:hover { border-color: rgb(var(--blush)); }
+  .seg input:checked + span { background: rgb(var(--rust)); border-color: rgb(var(--rust)); color: #fff; }
+  .seg input:focus-visible + span { outline: 2px solid rgb(var(--rust)); outline-offset: 2px; }
+
+  /* Navigation tabs (sidebar and phone bar) */
+  .tab { color: rgb(var(--charcoal) / .85); transition: background .2s, color .2s; }
+  .tab:hover { background: rgb(var(--oat) / .6); }
+  .tab[aria-selected="true"] { background: rgb(var(--rust)); color: #fff; }
+  .tab[aria-selected="true"] .tabicon { background: rgb(255 255 255 / .2); color: #fff; }
+
+  /* Small segmented toggles (history filter, sign-in / create account) */
+  .seg-btn { color: rgb(var(--muted)); transition: background .15s, color .15s; }
+  .seg-btn:hover { color: rgb(var(--charcoal)); }
+  .seg-btn[aria-pressed="true"] { background: rgb(var(--rust)); color: #fff; }
+
+  .fab { box-shadow: 0 8px 18px -8px rgb(var(--rust) / .6); }
+
+  .caret::after { content: ''; display: inline-block; width: 2px; height: 1em; margin-left: 2px; vertical-align: -0.12em; background: #fff; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Task text gets a line drawn through it when done */
+  .ttext { font-size: .9rem; line-height: 1.45; color: rgb(var(--charcoal));
+    background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 58%; background-size: 0% 2px;
+    transition: background-size .35s ease, color .3s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+  .ttext[data-done="true"] { color: rgb(var(--muted)); background-size: 100% 2px; }
+
+  .halo { position: absolute; inset: -30%; border-radius: 999px; filter: blur(28px); }
+  .shine::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.5) 50%, transparent 65%); background-size: 250% 100%; animation: shine 2.8s linear infinite; pointer-events: none; }
+  @keyframes shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+}
+
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret::after, .shine::after { animation: none; }
+  .ttext { transition: none; }
+}
