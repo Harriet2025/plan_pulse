@@ -59,7 +59,7 @@ function sync_goal_completion(PDO $pdo, int $goalId, array $progress): string
  */
 function fetch_goals(PDO $pdo, int $userId, string $status = 'ACTIVE', ?int $goalId = null): array
 {
-    $sql = 'SELECT g.id, g.title, g.category_id, g.priority, g.timeframe, g.due_date, g.quote, g.status,
+    $sql = 'SELECT g.id, g.title, g.category_id, g.priority, g.timeframe, g.due_date, g.quote, g.is_private, g.status,
                    g.completed_at, g.created_at, g.updated_at
             FROM goals g
             WHERE g.user_id = ?';
@@ -121,6 +121,7 @@ function fetch_goals(PDO $pdo, int $userId, string $status = 'ACTIVE', ?int $goa
             'timeframe'      => $g['timeframe'],
             'due_date'       => $g['due_date'],
             'quote'          => $g['quote'],
+            'is_private'     => (bool) $g['is_private'],
             'status'         => $g['status'],
             'completed_at'   => $g['completed_at'],
             'created_at'     => $g['created_at'],
@@ -129,6 +130,80 @@ function fetch_goals(PDO $pdo, int $userId, string $status = 'ACTIVE', ?int $goa
             'sub_plans'      => $subs[$id] ?? [],
         ];
     }, $goals);
+}
+
+/** What a goal can be for. A day has no goals, only its own plans (day_plans). */
+const HORIZONS = ['WEEKLY', 'MONTHLY', 'YEARLY'];
+
+/** The last day of the week (Monday to Sunday) / month / year that contains $day, as Y-m-d. */
+function period_end(string $horizon, DateTimeImmutable $day): string
+{
+    return match ($horizon) {
+        'WEEKLY'  => $day->modify('+' . (7 - (int) $day->format('N')) . ' days')->format('Y-m-d'),
+        'MONTHLY' => $day->format('Y-m-t'),
+        'YEARLY'  => $day->format('Y') . '-12-31',
+    };
+}
+
+// ---- Day plans --------------------------------------------------------------------------------------------------
+
+const REPEATS = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
+
+/**
+ * Whether a day plan happens on $day (Y-m-d). Repeating plans run from plan_date to repeat_until; weekly ones on the
+ * weekdays in repeat_days; monthly ones on plan_date's day of the month (or the month's last day when it is shorter).
+ * Mirrors occursOn() in src/lib/utils.js, so keep the two in step.
+ */
+function day_plan_occurs(array $p, string $day): bool
+{
+    $first = (string) $p['plan_date'];
+    if ($day < $first || ($p['repeat_until'] !== null && $day > (string) $p['repeat_until'])) {
+        return false;
+    }
+    $d = new DateTimeImmutable($day);
+    return match ($p['repeat_rule']) {
+        'NONE'    => $day === $first,
+        'DAILY'   => true,
+        'WEEKLY'  => ((int) $p['repeat_days'] & (1 << ((int) $d->format('N') - 1))) !== 0,
+        'MONTHLY' => (int) $d->format('j') === min((int) substr($first, 8, 2), (int) $d->format('t')),
+        default   => false,
+    };
+}
+
+/** A user's day plans with their marks (done / skipped days), as the API sends them. */
+function fetch_day_plans(PDO $pdo, int $userId, ?int $planId = null): array
+{
+    $sql = 'SELECT id, title, plan_date, start_time, duration_min, repeat_rule, repeat_days, repeat_until, is_private FROM day_plans WHERE user_id = ?';
+    $params = [$userId];
+    if ($planId !== null) {
+        $sql .= ' AND id = ?';
+        $params[] = $planId;
+    }
+    $stmt = $pdo->prepare($sql . ' ORDER BY plan_date, start_time IS NULL, start_time, id');
+    $stmt->execute($params);
+    $plans = $stmt->fetchAll();
+    if (!$plans) {
+        return [];
+    }
+    $ids = array_map(fn($p) => (int) $p['id'], $plans);
+    $marks = [];
+    $stmt = $pdo->prepare('SELECT day_plan_id, on_date, state FROM day_plan_marks WHERE day_plan_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
+    $stmt->execute($ids);
+    foreach ($stmt->fetchAll() as $m) {
+        $marks[(int) $m['day_plan_id']][$m['on_date']] = $m['state'];
+    }
+    return array_map(fn($p) => [
+        'id'           => (int) $p['id'],
+        'title'        => $p['title'],
+        'date'         => $p['plan_date'],
+        'start'        => $p['start_time'] !== null ? substr((string) $p['start_time'], 0, 5) : null,
+        'minutes'      => $p['duration_min'] !== null ? (int) $p['duration_min'] : null,
+        'repeat'       => $p['repeat_rule'],
+        'days'         => streak_days_from_mask((int) $p['repeat_days']),   // ISO weekdays, 1 = Monday
+        'until'        => $p['repeat_until'],
+        'private'      => (bool) $p['is_private'],                         // hidden from partners
+        'marks'        => (object) ($marks[(int) $p['id']] ?? []),           // { 'Y-m-d': 'DONE' | 'SKIPPED' }
+    ], $plans);
 }
 
 /** A task's time estimate in minutes: null (or empty) clears it, otherwise 5 to 720. Calls json_error when invalid. */

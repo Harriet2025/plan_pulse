@@ -17,10 +17,20 @@ $path = $dir . '/' . $userId . '.jpg';
 
 // ---------------------------------------------------------------
 // GET /api/avatar.php : the signed-in user's photo
+// GET /api/avatar.php?user=<id> : an accountability partner's photo (only between accepted partners)
 // ---------------------------------------------------------------
 if ($method === 'GET') {
+    $whose = $userId;
+    if (isset($_GET['user']) && (int) $_GET['user'] !== $userId) {
+        require __DIR__ . '/../partners.php';
+        $whose = (int) $_GET['user'];
+        if (!are_partners($pdo, $userId, $whose)) {
+            json_error('No profile photo.', 404);
+        }
+        $path = $dir . '/' . $whose . '.jpg';
+    }
     $stmt = $pdo->prepare('SELECT avatar_updated_at IS NOT NULL FROM users WHERE id = ?');
-    $stmt->execute([$userId]);
+    $stmt->execute([$whose]);
     if (!$stmt->fetchColumn() || !is_file($path)) {
         json_error('No profile photo.', 404);
     }

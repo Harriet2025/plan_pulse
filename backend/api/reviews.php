@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
-require __DIR__ . '/lib.php';
+require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);

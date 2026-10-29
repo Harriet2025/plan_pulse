@@ -2,18 +2,28 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
-require __DIR__ . '/lib.php';
+require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
 $method = require_method('POST', 'PATCH');
 
 // ---------------------------------------------------------------
-// PATCH /api/goals.php   Body: { id, status: "ARCHIVED" | "ACTIVE" }
-// Archives a goal, or restores an archived one (back to COMPLETED if every task was done).
+// PATCH /api/goals.php   Body: { id, status: "ARCHIVED" | "ACTIVE" }  or  { id, is_private: true | false }
+// Archives a goal, or restores an archived one (back to COMPLETED if every task was done), or hides it from partners.
 // ---------------------------------------------------------------
 if ($method === 'PATCH') {
     $in = read_json_body();
+    if (array_key_exists('is_private', $in)) {
+        $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
+        $stmt = $pdo->prepare('UPDATE goals SET is_private = ? WHERE id = ? AND user_id = ?');
+        $stmt->execute([$in['is_private'] ? 1 : 0, $id === false ? 0 : $id, $userId]);
+        $goal = fetch_goals($pdo, $userId, 'ALL', $id === false ? 0 : $id)[0] ?? null;
+        if (!$goal) {
+            json_error('Goal not found.', 404);
+        }
+        json_response(['success' => true, 'goal' => $goal]);
+    }
     $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
     $want = strtoupper((string) ($in['status'] ?? ''));
     if ($id === false || $id === null || !in_array($want, ['ARCHIVED', 'ACTIVE'], true)) {
@@ -52,9 +62,10 @@ if (!in_array($priority, ['HIGH', 'MEDIUM', 'LOW'], true)) {
     json_error('Priority must be HIGH, MEDIUM or LOW.', 422);
 }
 
-$timeframe = strtoupper((string) ($in['timeframe'] ?? 'DAILY'));
-if (!in_array($timeframe, ['DAILY', 'WEEKLY', 'MONTHLY', 'SEMESTER', 'YEARLY'], true)) {
-    json_error('Timeframe must be DAILY, WEEKLY, MONTHLY, SEMESTER or YEARLY.', 422);
+// The horizon: a goal for a week, a month or a year (a day has plans, not goals)
+$timeframe = strtoupper((string) ($in['timeframe'] ?? 'WEEKLY'));
+if (!in_array($timeframe, HORIZONS, true)) {
+    json_error('A goal is for a week, a month or a year (WEEKLY, MONTHLY or YEARLY). Plans for a single day go on the day itself.', 422);
 }
 
 $categoryId = null;
@@ -70,39 +81,46 @@ if (isset($in['category_id']) && $in['category_id'] !== '') {
     }
 }
 
+// The due date places the goal in its period. Without one it is the end of the current period, on the user's clock.
 $dueDate = parse_datetime_or_fail(isset($in['due_date']) ? (string) $in['due_date'] : null, 'due date', 'Y-m-d');
+if ($dueDate === null) {
+    $tz = $pdo->prepare('SELECT timezone FROM users WHERE id = ?');
+    $tz->execute([$userId]);
+    $dueDate = period_end($timeframe, streak_today((string) $tz->fetchColumn()));
+}
 
 $quote = isset($in['quote']) ? trim((string) $in['quote']) : '';
 if (mb_strlen($quote) > 500) {
     json_error('Quote must be 500 characters or fewer.', 422);
 }
 
-$tasks = [];   // each: [text, estimate in minutes or null]
+// The goal's plans: a checklist of the steps that reach it (times belong to day plans, not here)
+$tasks = [];
 foreach ((array) ($in['sub_plans'] ?? []) as $item) {
     $text = trim((string) (is_array($item) ? ($item['task_description'] ?? '') : $item));
     if ($text === '') {
         continue;
     }
     if (mb_strlen($text) > 500) {
-        json_error('Each task must be 500 characters or fewer.', 422);
+        json_error('Each plan must be 500 characters or fewer.', 422);
     }
-    $tasks[] = [$text, parse_estimate(is_array($item) ? ($item['estimate_min'] ?? null) : null)];
+    $tasks[] = $text;
 }
 if (count($tasks) > 50) {
-    json_error('A goal can have at most 50 tasks.', 422);
+    json_error('A goal can have at most 50 plans.', 422);
 }
 
 $pdo->beginTransaction();
 $stmt = $pdo->prepare(
-    'INSERT INTO goals (user_id, title, category_id, priority, timeframe, due_date, quote)
-     VALUES (?, ?, ?, ?, ?, ?, ?)'
+    'INSERT INTO goals (user_id, title, category_id, priority, timeframe, due_date, quote, is_private)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 );
-$stmt->execute([$userId, $title, $categoryId, $priority, $timeframe, $dueDate, $quote !== '' ? $quote : null]);
+$stmt->execute([$userId, $title, $categoryId, $priority, $timeframe, $dueDate, $quote !== '' ? $quote : null, empty($in['is_private']) ? 0 : 1]);
 $goalId = (int) $pdo->lastInsertId();
 
-$ins = $pdo->prepare('INSERT INTO sub_plans (goal_id, task_description, estimate_min) VALUES (?, ?, ?)');
-foreach ($tasks as [$text, $estimate]) {
-    $ins->execute([$goalId, $text, $estimate]);
+$ins = $pdo->prepare('INSERT INTO sub_plans (goal_id, task_description) VALUES (?, ?)');
+foreach ($tasks as $text) {
+    $ins->execute([$goalId, $text]);
 }
 $pdo->commit();
 

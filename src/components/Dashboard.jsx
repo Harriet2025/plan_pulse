@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, BarChart3, BellRing, CalendarClock, Check, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { QUOTES, TEMPLATES, catIcon } from '../lib/constants';
-import { cn, dayLoad, daysUntil, fmtMinutes, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, shortDay, taskTotals } from '../lib/utils';
+import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
+import { cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, shortDay, taskTotals } from '../lib/utils';
 import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
@@ -13,8 +13,8 @@ function Hero({ totals, open }) {
   const first = user.display_name.trim().split(/\s+/)[0];
   const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = activeGoals.length;
-  const sub = !n ? 'Set your first goal and break it into small tasks.'
-    : open ? `${open} task${open === 1 ? '' : 's'} left across ${n} goal${n === 1 ? '' : 's'}.${dated.length ? ` Next deadline: ${dated[0].title}.` : ''}`
+  const sub = !n ? 'Set a goal for this week, month or year, and list the plans that will get you there.'
+    : open ? `${open} plan${open === 1 ? '' : 's'} left across ${n} goal${n === 1 ? '' : 's'}.${dated.length ? ` Next deadline: ${dated[0].title}.` : ''}`
     : 'Everything is done. Add a new goal to keep your streak going.';
 
   return (
@@ -31,7 +31,7 @@ function Hero({ totals, open }) {
             <button type="button" onClick={() => setView('history')} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-5 py-2.5 text-sm font-bold text-white hover:bg-charcoal"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
         </div>
-        <div className="relative h-36 w-36 shrink-0 md:h-44 md:w-44" role="img" aria-label="Overall task progress">
+        <div className="relative h-36 w-36 shrink-0 md:h-44 md:w-44" role="img" aria-label="Overall progress on your goals' plans">
           <Ring pct={totals.pct} track="rgba(255,255,255,.25)" stroke="#fff" />
           <div className="absolute inset-0 grid place-items-center text-center">
             <div><div className="text-3xl font-extrabold tabular-nums text-white md:text-4xl">{totals.pct}%</div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-white">Overall</div></div>
@@ -50,7 +50,7 @@ function StatCards({ totals, open }) {
     { icon: Target, tag: 'Goals', value: activeGoals.length, title: 'Active goals', tile: 'bg-rust',
       foot: activeGoals.length ? `Across ${cats} categor${cats === 1 ? 'y' : 'ies'}` : 'Create your first goal' },
     { icon: ListChecks, tag: 'Tasks', value: open, title: 'Tasks to do', tile: 'bg-success',
-      foot: totals.total ? `${totals.done} done of ${totals.total}` : 'No tasks yet' },
+      foot: totals.total ? `${totals.done} done of ${totals.total}` : 'No plans yet' },
     { icon: TrendingUp, tag: 'Progress', value: `${totals.pct}%`, title: 'Tasks completed', tile: 'bg-blush-dark', bar: totals.pct },
     { icon: CalendarClock, tag: 'Deadlines', value: dated.filter((x) => x.n <= 7).length, title: 'Due this week', tile: 'bg-warning',
       foot: dated.length ? `Next: ${dated[0].g.title}` : 'No deadlines set' },
@@ -105,35 +105,52 @@ const LOAD_UI = {
   rest: { label: 'Rest day', bar: 'bg-blush-dark', pill: 'bg-blush/30 text-charcoal' },
 };
 
-// Today's planned time against the time the user says they really have, with a one-tap way to fix an overloaded day
+// Today's own plans to tick off, how full the day is against the time the user really has, and a fix when it is too much
 function LoadCard() {
-  const { goals, user, openLighten, openCalendarDay } = useApp();
-  const load = dayLoad(goals, user, localDate());
-  const heavy = nextHeavyDay(goals, user, 7);
+  const { dayPlans, user, openLighten, openCalendarDay, openDay, toggleDayPlan } = useApp();
+  const today = localDate();
+  const load = dayLoad(dayPlans, user, today);
+  const heavy = nextHeavyDay(dayPlans, user, 7);
   const ui = LOAD_UI[load.state];
   const pct = load.capacity ? Math.min(100, Math.round((100 * load.planned) / load.capacity)) : load.planned ? 100 : 0;
-  const message = load.tasks.length === 0 ? 'Nothing is planned for today. Give a task a reminder to plan it here.'
+  const message = load.tasks.length === 0 ? 'Nothing left to do today. Add a plan for your day in the Planner.'
     : load.state === 'rest' ? `You have ${fmtMinutes(load.planned)} planned on a rest day. Move it if you would rather rest.`
     : load.state === 'over' ? `That is about ${fmtMinutes(load.over)} more than fits. Moving something to a lighter day would help.`
     : load.state === 'tight' ? 'A full day. Leave some slack for the unexpected.'
-    : load.planned === 0 ? 'Add time estimates (the clock button on a task) to see how full today is.'
+    : load.planned === 0 ? 'Give your plans a time or a length to see how full today is.'
     : `That fits your ${fmtMinutes(load.capacity)} day with ${fmtMinutes(load.free)} to spare.`;
 
   return (
     <section className="rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-labelledby="loadH">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="loadH" className="text-sm font-extrabold text-charcoal">Today’s load</h2>
+        <h2 id="loadH" className="text-sm font-extrabold text-charcoal">Today</h2>
         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold', ui.pill)}><Gauge className="h-3.5 w-3.5" aria-hidden="true" />{ui.label}</span>
       </div>
       <div className="mt-3 flex items-baseline gap-1.5">
         <motion.span key={load.planned} initial={{ scale: 1.15 }} animate={{ scale: 1 }} className="text-3xl font-extrabold tabular-nums text-charcoal">{fmtMinutes(load.planned)}</motion.span>
-        <span className="text-sm font-semibold text-muted">planned{load.capacity > 0 && ` of ${fmtMinutes(load.capacity)}`}</span>
+        <span className="text-sm font-semibold text-muted">to go{load.capacity > 0 && ` of ${fmtMinutes(load.capacity)}`}</span>
       </div>
       <Bar pct={pct} height="h-2.5" className="mt-2.5" fill={ui.bar} label="Time planned today" />
+      {load.tasks.length > 0 && (
+        <ul className="mt-3 grid gap-1" aria-label="Today's plans">
+          {load.tasks.slice(0, 5).map((x) => (
+            <li key={x.plan.id}>
+              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-oat/50">
+                <input type="checkbox" className="h-4 w-4 accent-[#B85C38]" checked={false} onChange={() => toggleDayPlan(x.plan.id, today, true)} />
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-charcoal">{x.plan.title}</span>
+                {x.start && <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted">{fmtSpan(x.start, x.minutes)}</span>}
+              </label>
+            </li>
+          ))}
+          {load.tasks.length > 5 && <li className="px-1.5 text-xs font-semibold text-muted">+{load.tasks.length - 5} more</li>}
+        </ul>
+      )}
       <p className="mt-3 text-sm leading-snug text-muted" aria-live="polite">{message}</p>
-      {load.unestimated > 0 && load.tasks.length > 0 && <p className="mt-1 text-xs text-muted">+{load.unestimated} {load.unestimated === 1 ? 'task has' : 'tasks have'} no time estimate yet.</p>}
+      <button type="button" onClick={() => openDay(today)} className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-rust-dark hover:underline">
+        Plan today hour by hour<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
       {load.state === 'over' && (
-        <button type="button" onClick={() => openLighten(localDate())} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+        <button type="button" onClick={() => openLighten(today)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
           Lighten today<ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       )}
@@ -179,11 +196,11 @@ function WeekStrip() {
 
   const resting = user.rest_today && !user.streak_active_today;
   const [tone, message] = user.streak_active_today ? ['ok', `Done for today. Your ${streak}-day streak is safe.`]
-    : resting ? ['rest', streak > 0 ? 'Today is a rest day. Your streak is safe, and finishing a task still counts.' : 'Today is a rest day. Take it easy, or finish a task to start a streak.']
-    : user.streak_protected ? ['freeze', `A streak freeze is covering you. Finish a task today to keep your ${streak}-day streak.`]
-    : streak > 0 ? ['todo', `Finish one task today to keep your ${streak}-day streak going.`]
+    : resting ? ['rest', streak > 0 ? 'Today is a rest day. Your streak is safe, and finishing a plan still counts.' : 'Today is a rest day. Take it easy, or finish a plan to start a streak.']
+    : user.streak_protected ? ['freeze', `A streak freeze is covering you. Finish a plan today to keep your ${streak}-day streak.`]
+    : streak > 0 ? ['todo', `Finish one plan today to keep your ${streak}-day streak going.`]
     : user.best_streak > 0 ? ['fresh', `Start a new streak today. Your best is ${user.best_streak} days.`]
-    : ['fresh', 'Finish a task to start your streak.'];
+    : ['fresh', 'Finish a plan to start your streak.'];
   const toneClass = { ok: 'bg-success/10 text-success', rest: 'bg-blush/25 text-charcoal', freeze: 'bg-blush/25 text-charcoal', todo: 'bg-rust/10 text-rust-dark', fresh: 'bg-oat/60 text-charcoal' }[tone];
   const ToneIcon = { ok: Check, rest: Moon, freeze: Snowflake, todo: Flame, fresh: Flame }[tone];
 
@@ -304,7 +321,7 @@ function RightRail() {
       <WeekStrip />
       <section className="hidden rounded-3xl border border-oat bg-soft p-5 xl:block" style={cardShadow} aria-labelledby="railH">
         <div className="flex items-center justify-between"><h2 id="railH" className="text-sm font-extrabold text-charcoal">Reminders &amp; deadlines</h2><span className="grid h-8 w-8 place-items-center rounded-lg bg-rust/10 text-rust-dark"><BellRing className="h-4 w-4" aria-hidden="true" /></span></div>
-        <NotifList className="-mx-2 mt-3 grid max-h-72 gap-0.5 overflow-y-auto overflow-x-hidden" empty={<p className="py-6 text-center text-sm text-muted">Nothing due. Tap the bell on a task to set a reminder.</p>} />
+        <NotifList className="-mx-2 mt-3 grid max-h-72 gap-0.5 overflow-y-auto overflow-x-hidden" empty={<p className="py-6 text-center text-sm text-muted">Nothing coming up. Give a plan a time and you get a reminder when it starts.</p>} />
       </section>
       <FocusAreas />
       <QuoteCard />
@@ -313,9 +330,9 @@ function RightRail() {
 }
 
 function GoalsPanel() {
-  const { categories, activeCat, setActiveCat, visibleGoals, activeGoals, search, prio, user, openGoalModal } = useApp();
+  const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, prio, user, openGoalModal } = useApp();
   const cat = categories.find((c) => String(c.id) === String(activeCat));
-  const filtered = !!search.trim() || prio !== 'all';
+  const filtered = !!search.trim() || prio !== 'all' || horizonFilter !== 'all';
   const firstTime = !filtered && !cat && activeGoals.length === 0;
   const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length;
   const pills = [{ id: 'all', name: 'All', color: '#B85C38' }, ...categories];
@@ -323,7 +340,7 @@ function GoalsPanel() {
   const emptyTitle = firstTime ? `Welcome, ${user.display_name.split(' ')[0]}! Let's set your first goal`
     : filtered ? 'No goals match your search' : cat ? `No ${cat.name} goals yet` : 'No goals yet';
   const emptyHint = firstTime ? 'Everything you add here is private to your account. Start from an idea or write your own.'
-    : filtered ? 'Try a different search or priority.' : cat ? `Click New Goal to add one under ${cat.name}.` : 'Click New Goal to set your first goal.';
+    : filtered ? 'Try a different search, priority or period.' : cat ? `Click New Goal to add one under ${cat.name}.` : 'Click New Goal to set your first goal.';
 
   return (
     <section className="min-w-0 rounded-[28px] border border-oat bg-soft/60 p-4 md:p-6" style={glassShadow} aria-labelledby="listHeading">
@@ -334,7 +351,18 @@ function GoalsPanel() {
         </div>
         <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold tabular-nums text-rust-dark shadow-sm">{count} active</span>
       </div>
-      <nav className="mt-4" aria-label="Filter goals by category">
+      <div className="mt-4 inline-grid grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1" role="group" aria-label="Show goals for">
+        {[{ id: 'all', label: 'All' }, ...HORIZONS].map((x) => {
+          const on = horizonFilter === x.id;
+          return (
+            <button key={x.id} type="button" aria-pressed={on} onClick={() => setHorizonFilter(x.id)}
+              className={cn('rounded-xl px-3 py-1.5 text-xs font-extrabold transition-colors duration-200', on ? 'bg-rust text-white shadow-sm' : 'text-charcoal hover:bg-soft/70 hover:text-rust-dark')}>
+              {x.label}
+            </button>
+          );
+        })}
+      </div>
+      <nav className="mt-3" aria-label="Filter goals by category">
         <div className="flex flex-wrap gap-2">
           {pills.map((c) => {
             const on = String(c.id) === String(activeCat);
@@ -368,7 +396,7 @@ function GoalsPanel() {
                 {TEMPLATES.map((t) => (
                   <button key={t.title} type="button" onClick={() => openGoalModal(t)} className="rounded-xl border border-oat bg-soft px-3 py-2.5 text-left hover:border-rust">
                     <span className="block text-sm font-bold text-charcoal">{t.title}</span>
-                    <span className="block text-xs text-muted">{t.cat} &middot; {t.tasks.length} tasks</span>
+                    <span className="block text-xs text-muted">{t.cat} &middot; {t.tasks.length} plans</span>
                   </button>
                 ))}
               </div>

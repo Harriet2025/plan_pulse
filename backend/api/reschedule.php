@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
-require __DIR__ . '/lib.php';
+require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
@@ -14,7 +14,8 @@ $in = read_json_body();
 // Powers the "Catch up" page: move things that slipped, let them go, and undo all of it. Every action is checked
 // against the signed-in user, and the whole batch is applied together or not at all.
 //
-//   { kind: "task", id, op: "move",    to: "YYYY-MM-DDTHH:mm" | null }   new reminder time (null clears it)
+//   { kind: "plan", id, op: "move",    to: "YYYY-MM-DD" }                a one-off day plan to another day
+//   { kind: "plan", id, op: "skip" | "unskip" }                          let a missed day plan go, or bring it back
 //   { kind: "goal", id, op: "move",    to: "YYYY-MM-DD" | null }         new due date (null clears it)
 //   { kind: "goal", id, op: "archive" }                                  let the goal go (it stays in History)
 //   { kind: "goal", id, op: "restore" }                                  bring an archived goal back
@@ -58,14 +59,28 @@ foreach ($actions as $a) {
         json_error('Every action needs a kind, an op and an id.', 422);
     }
 
-    if ($kind === 'task' && $op === 'move') {
-        $stmt = $pdo->prepare('SELECT 1 FROM sub_plans sp JOIN goals g ON g.id = sp.goal_id WHERE sp.id = ? AND g.user_id = ?');
+    if ($kind === 'plan') {
+        // A one-off day plan: move it to another day (it keeps its time), or skip it (let it go), or bring it back
+        $stmt = $pdo->prepare("SELECT plan_date FROM day_plans WHERE id = ? AND user_id = ? AND repeat_rule = 'NONE'");
         $stmt->execute([$id, $userId]);
-        if (!$stmt->fetchColumn()) {
-            json_error('Task not found.', 404);
+        $day = $stmt->fetchColumn();
+        if ($day === false) {
+            json_error('Plan not found.', 404);
         }
-        $pdo->prepare('UPDATE sub_plans SET remind_at = ? WHERE id = ?')
-            ->execute([checked_date($a['to'] ?? null, 'reminder time', 'Y-m-d H:i:s'), $id]);
+        if ($op === 'move') {
+            $to = checked_date($a['to'] ?? null, 'date', 'Y-m-d');
+            if ($to === null) {
+                json_error('A plan needs a day to move to.', 422);
+            }
+            $pdo->prepare('UPDATE day_plans SET plan_date = ? WHERE id = ?')->execute([$to, $id]);
+            $pdo->prepare('DELETE FROM day_plan_marks WHERE day_plan_id = ?')->execute([$id]);   // a fresh, undone day
+        } elseif ($op === 'skip') {
+            $pdo->prepare("INSERT INTO day_plan_marks (day_plan_id, on_date, state) VALUES (?, ?, 'SKIPPED') ON DUPLICATE KEY UPDATE state = 'SKIPPED'")->execute([$id, $day]);
+        } elseif ($op === 'unskip') {
+            $pdo->prepare("DELETE FROM day_plan_marks WHERE day_plan_id = ? AND state = 'SKIPPED'")->execute([$id]);
+        } else {
+            json_error('A plan can be moved, skipped or unskipped.', 422);
+        }
     } elseif ($kind === 'goal' && $op === 'move') {
         if (owns_goal($pdo, $id, $userId) === null) {
             json_error('Goal not found.', 404);
@@ -84,7 +99,7 @@ foreach ($actions as $a) {
         $pdo->prepare("UPDATE goals SET status = 'ACTIVE' WHERE id = ? AND status = 'ARCHIVED'")->execute([$id]);
         sync_goal_completion($pdo, $id, goal_progress($pdo, $id));   // back to COMPLETED if every task was already done
     } else {
-        json_error('Unknown action. Use task/move, goal/move, goal/archive or goal/restore.', 422);
+        json_error('Unknown action. Use plan/move, plan/skip, plan/unskip, goal/move, goal/archive or goal/restore.', 422);
     }
 }
 $pdo->commit();

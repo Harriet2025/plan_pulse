@@ -39,8 +39,8 @@ export function Bar({ pct, track = 'bg-oat', fill = 'bg-rust', fillStyle, height
 }
 
 /** The user's profile photo, or their initial on a dusty-rose circle when they have none (or it fails to load). Size comes from className. */
-export function Avatar({ user, className }) {
-  const url = avatarUrl(user);
+export function Avatar({ user, className, partner = false }) {
+  const url = avatarUrl(user, partner);
   const [failed, setFailed] = useState(null);
   if (url && failed !== url) {
     return <img src={url} alt="" onError={() => setFailed(url)} className={cn('shrink-0 rounded-full bg-oat object-cover', className)} />;

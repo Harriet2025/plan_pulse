@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "api": "C:\\xampp\\php\\php.exe -S 127.0.0.1:8000 -t backend",
+    "api": "C:\\xampp\\php\\php.exe -d upload_max_filesize=55M -d post_max_size=60M -S 127.0.0.1:8000 -t backend",
     "worker": "C:\\xampp\\php\\php.exe backend/worker.php",
     "build": "vite build",
     "preview": "vite preview"

@@ -10,12 +10,14 @@ import HistoryView from './components/HistoryView';
 import SettingsView from './components/SettingsView';
 import CalendarView from './components/CalendarView';
 import CatchUpView from './components/CatchUpView';
+import PlannerView from './components/PlannerView';
+import PartnersView from './components/PartnersView';
 import NewGoalModal from './components/NewGoalModal';
 import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
 import AuthScreen from './components/AuthScreen';
 
-const VIEWS = { active: Dashboard, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
+const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
 
 // The emailed reset link looks like  http://localhost:5173/#reset=<64 hex characters>
 const readResetToken = () => /^#reset=([0-9a-f]{64})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;

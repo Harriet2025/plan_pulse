@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
-require __DIR__ . '/lib.php';
+require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
@@ -66,7 +66,9 @@ if ($method === 'PATCH') {
     }
 
     if ($hasCompleted) {
-        $pdo->prepare('UPDATE sub_plans SET is_completed = ? WHERE id = ?')->execute([$completed ? 1 : 0, $id]);
+        // completed_at feeds the partners' weekly scoreboard; re-ticking a done plan keeps its first time
+        $pdo->prepare('UPDATE sub_plans SET is_completed = ?, completed_at = IF(?, COALESCE(completed_at, NOW()), NULL) WHERE id = ?')
+            ->execute([$completed ? 1 : 0, $completed ? 1 : 0, $id]);
     }
     if ($hasRemind) {
         $pdo->prepare('UPDATE sub_plans SET remind_at = ? WHERE id = ?')->execute([$remindAt, $id]);

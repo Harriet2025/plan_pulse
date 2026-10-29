@@ -7,6 +7,8 @@ declare(strict_types=1);
  * Expects db.php, mailer.php and webpush.php to be loaded already.
  */
 
+require_once __DIR__ . '/api/lib.php';   // day_plan_occurs()
+
 const REMINDER_WINDOW_MINUTES = 15;   // a reminder missed by more than this is not pushed late, it shows up in Catch up instead
 const DIGEST_GRACE_HOURS = 3;         // a "morning" email is not sent hours after its time (for example after the worker was off)
 
@@ -25,8 +27,7 @@ function app_url(): string
 
 function mail_is_configured(): bool
 {
-    $s = app_config()['smtp'] ?? null;
-    return !empty($s['host']) && !empty($s['from']);
+    return smtp_ready(app_config()['smtp'] ?? null);
 }
 
 /** The contact address that goes into push messages, so a push service can reach the operator if something is wrong. */
@@ -38,28 +39,45 @@ function push_subject(): string
 }
 
 /**
- * The tasks that belong to a day: those with a reminder that day, plus tasks with no reminder whose goal is due that day
- * (they have to be done by then). Mirrors plannedFor() in src/lib/utils.js, so keep the two in step.
+ * A user's day plans that happen on $date and are not done or skipped yet, timed ones first in time order.
+ * Mirrors dayLoad() in src/lib/utils.js, so keep the two in step.
  *
- * @return array{tasks:list<array<string,mixed>>,planned:int,unestimated:int}
+ * @return array{tasks:list<array{id:int,title:string,start:?string,minutes:?int}>,planned:int,unestimated:int}
  */
 function plan_for_day(PDO $pdo, int $userId, string $date): array
 {
     $stmt = $pdo->prepare(
-        "SELECT sp.id, sp.task_description, sp.remind_at, sp.estimate_min, g.id AS goal_id, g.title AS goal_title, g.priority
-         FROM sub_plans sp JOIN goals g ON g.id = sp.goal_id
-         WHERE g.user_id = ? AND g.status = 'ACTIVE' AND sp.is_completed = 0
-           AND (DATE(sp.remind_at) = ? OR (sp.remind_at IS NULL AND g.due_date = ?))
-         ORDER BY sp.remind_at IS NULL, sp.remind_at, sp.id"
+        "SELECT dp.id, dp.title, dp.plan_date, dp.start_time, dp.duration_min, dp.repeat_rule, dp.repeat_days, dp.repeat_until
+         FROM day_plans dp LEFT JOIN day_plan_marks m ON m.day_plan_id = dp.id AND m.on_date = ?
+         WHERE dp.user_id = ? AND dp.plan_date <= ? AND m.state IS NULL
+         ORDER BY dp.start_time IS NULL, dp.start_time, dp.id"
     );
-    $stmt->execute([$userId, $date, $date]);
-    $tasks = $stmt->fetchAll();
+    $stmt->execute([$date, $userId, $date]);
+    $tasks = [];
     $planned = 0;
     $unestimated = 0;
-    foreach ($tasks as $t) {
-        $t['estimate_min'] === null ? $unestimated++ : $planned += (int) $t['estimate_min'];
+    foreach ($stmt->fetchAll() as $p) {
+        if (!day_plan_occurs($p, $date)) {
+            continue;
+        }
+        $minutes = $p['duration_min'] !== null ? (int) $p['duration_min'] : null;
+        $minutes === null ? $unestimated++ : $planned += $minutes;
+        $tasks[] = ['id' => (int) $p['id'], 'title' => (string) $p['title'], 'start' => $p['start_time'] !== null ? substr((string) $p['start_time'], 0, 5) : null, 'minutes' => $minutes];
     }
     return ['tasks' => $tasks, 'planned' => $planned, 'unestimated' => $unestimated];
+}
+
+/** "14:00–16:00", or "14:00" without a length. */
+function plan_span(?string $start, ?int $minutes): string
+{
+    if ($start === null) {
+        return '';
+    }
+    if ($minutes === null) {
+        return $start;
+    }
+    $end = (new DateTimeImmutable("2000-01-01 {$start}"))->modify("+{$minutes} minutes")->format('H:i');
+    return "{$start}–{$end}";
 }
 
 /** ok (comfortable), tight (nearly full), over (more than fits), or rest (things planned on a day off). */
@@ -72,15 +90,18 @@ function load_state(int $planned, int $capacity): string
     return $ratio > 1.0 ? 'over' : ($ratio > 0.75 ? 'tight' : 'ok');
 }
 
-/** Goals past their due date plus unfinished tasks whose reminder day has passed: the same rule as the Catch up page. */
+/**
+ * Goals past their due date plus one-off day plans from an earlier day that were not done: the same rule as the
+ * Catch up page. A missed day of a repeating plan does not count, the next one is already coming.
+ */
 function slipped_count(PDO $pdo, int $userId, string $today): int
 {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM goals WHERE user_id = ? AND status = 'ACTIVE' AND due_date < ?");
     $stmt->execute([$userId, $today]);
     $goals = (int) $stmt->fetchColumn();
     $stmt = $pdo->prepare(
-        "SELECT COUNT(*) FROM sub_plans sp JOIN goals g ON g.id = sp.goal_id
-         WHERE g.user_id = ? AND g.status = 'ACTIVE' AND sp.is_completed = 0 AND DATE(sp.remind_at) < ?"
+        "SELECT COUNT(*) FROM day_plans dp LEFT JOIN day_plan_marks m ON m.day_plan_id = dp.id AND m.on_date = dp.plan_date
+         WHERE dp.user_id = ? AND dp.repeat_rule = 'NONE' AND dp.plan_date < ? AND m.state IS NULL"
     );
     $stmt->execute([$userId, $today]);
     return $goals + (int) $stmt->fetchColumn();
@@ -126,22 +147,22 @@ function build_digest(PDO $pdo, int $userId, ?DateTimeImmutable $now = null): ?a
     $streakLine = match (true) {
         $restToday => 'Today is a rest day, so your streak is safe.' . ($streak['count'] > 0 ? " ({$streak['count']} days)" : ''),
         $streak['active_today'] => "You have already kept your {$streak['count']}-day streak today.",
-        $streak['protected'] => "A streak freeze is covering you. Finish one task today to keep your {$streak['count']}-day streak.",
-        $streak['count'] > 0 => "Finish one task today to keep your {$streak['count']}-day streak.",
+        $streak['protected'] => "A streak freeze is covering you. Finish one plan today to keep your {$streak['count']}-day streak.",
+        $streak['count'] > 0 => "Finish one plan today to keep your {$streak['count']}-day streak.",
         (int) $u['best_streak'] > 0 => "Start a new streak today. Your best is {$u['best_streak']} days.",
-        default => 'Finish a task today to start a streak.',
+        default => 'Finish a plan today to start a streak.',
     };
 
     $first = trim(explode(' ', trim((string) $u['display_name']))[0]);
     $subject = match (true) {
-        $n > 0 => "Today: {$n} " . ($n === 1 ? 'task' : 'tasks') . ($plan['planned'] ? ', about ' . fmt_minutes($plan['planned']) : ''),
-        (bool) $goalsDue => 'Today: ' . count($goalsDue) . (count($goalsDue) === 1 ? ' goal is' : ' goals are') . ' due',
+        $n > 0 => "Today: {$n} " . ($n === 1 ? 'plan' : 'plans') . ($plan['planned'] ? ', about ' . fmt_minutes($plan['planned']) : ''),
+        (bool) $goalsDue => 'Today: ' . count($goalsDue) . (count($goalsDue) === 1 ? ' goal ends' : ' goals end'),
         default => 'Your AuraGoal morning',
     };
 
     // Plain text
-    $line = fn(array $t) => '  - ' . ($t['remind_at'] ? substr((string) $t['remind_at'], 11, 5) . '  ' : '') . $t['task_description']
-        . ($t['estimate_min'] !== null ? ' (' . fmt_minutes((int) $t['estimate_min']) . ')' : '') . '  [' . $t['goal_title'] . ']';
+    $line = fn(array $t) => '  - ' . ($t['start'] !== null ? plan_span($t['start'], $t['minutes']) . '  ' : '') . $t['title']
+        . ($t['start'] === null && $t['minutes'] !== null ? ' (' . fmt_minutes($t['minutes']) . ')' : '');
     $text = "Good morning, {$first}.\n\n";
     if ($n) {
         $text .= "TODAY\n" . implode("\n", array_map($line, $plan['tasks'])) . "\n";
@@ -151,13 +172,13 @@ function build_digest(PDO $pdo, int $userId, ?DateTimeImmutable $now = null): ?a
         $text .= "\n";
     }
     if ($goalsDue) {
-        $text .= "DUE TODAY\n" . implode("\n", array_map(fn($g) => "  - {$g}", $goalsDue)) . "\n\n";
+        $text .= "GOALS ENDING TODAY\n" . implode("\n", array_map(fn($g) => "  - {$g}", $goalsDue)) . "\n\n";
     }
     if ($slipped) {
         $text .= "{$slipped} " . ($slipped === 1 ? 'thing slipped' : 'things slipped') . " past its date. Sort " . ($slipped === 1 ? 'it' : 'them') . ' out on the Catch up page: ' . app_url() . "\n\n";
     }
     if ($empty) {
-        $text .= "Nothing is planned for today. A good day to set a goal or give a task a reminder.\n\n";
+        $text .= "Nothing is planned for today yet. Add a few plans for your day in the Planner.\n\n";
     }
     $text .= $streakLine . "\n\nOpen AuraGoal: " . app_url() . "\n\nYou can turn this email off in Settings, under Notifications.";
 
@@ -165,10 +186,10 @@ function build_digest(PDO $pdo, int $userId, ?DateTimeImmutable $now = null): ?a
     $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
     $rows = '';
     foreach ($plan['tasks'] as $t) {
-        $rows .= '<tr><td style="padding:6px 10px 6px 0;color:#76685F;white-space:nowrap;vertical-align:top">' . ($t['remind_at'] ? $e(substr((string) $t['remind_at'], 11, 5)) : '') . '</td>'
-            . '<td style="padding:6px 0"><b>' . $e((string) $t['task_description']) . '</b>'
-            . ($t['estimate_min'] !== null ? ' <span style="color:#76685F">' . $e(fmt_minutes((int) $t['estimate_min'])) . '</span>' : '')
-            . '<br><span style="color:#76685F;font-size:13px">' . $e((string) $t['goal_title']) . '</span></td></tr>';
+        $rows .= '<tr><td style="padding:6px 10px 6px 0;color:#76685F;white-space:nowrap;vertical-align:top">' . ($t['start'] !== null ? $e(plan_span($t['start'], $t['minutes'])) : 'Any time') . '</td>'
+            . '<td style="padding:6px 0"><b>' . $e($t['title']) . '</b>'
+            . ($t['start'] === null && $t['minutes'] !== null ? ' <span style="color:#76685F">' . $e(fmt_minutes($t['minutes'])) . '</span>' : '')
+            . '</td></tr>';
     }
     $section = fn(string $title, string $body) => '<h3 style="margin:22px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#76685F">' . $title . '</h3>' . $body;
     $html = '<div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;color:#352D29;line-height:1.5">'
@@ -176,9 +197,9 @@ function build_digest(PDO $pdo, int $userId, ?DateTimeImmutable $now = null): ?a
         . ($n ? $section('Today', "<table style=\"border-collapse:collapse;font-size:15px\">{$rows}</table>")
             . ($load ? '<p style="margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#F4EDE2">About <b>' . $e(fmt_minutes($plan['planned'])) . '</b> planned'
                 . ($plan['unestimated'] ? ' (+' . $plan['unestimated'] . ' without an estimate)' : '') . '. ' . $e($load) . '</p>' : '') : '')
-        . ($goalsDue ? $section('Due today', '<ul style="margin:0;padding-left:18px">' . implode('', array_map(fn($g) => '<li>' . $e((string) $g) . '</li>', $goalsDue)) . '</ul>') : '')
+        . ($goalsDue ? $section('Goals ending today', '<ul style="margin:0;padding-left:18px">' . implode('', array_map(fn($g) => '<li>' . $e((string) $g) . '</li>', $goalsDue)) . '</ul>') : '')
         . ($slipped ? '<p style="margin:18px 0 0;padding:10px 12px;border-radius:10px;background:#F7E8E3">' . $slipped . ($slipped === 1 ? ' thing slipped' : ' things slipped') . ' past its date. That happens. <a style="color:#9A4929" href="' . $e(app_url()) . '">Sort ' . ($slipped === 1 ? 'it' : 'them') . ' out</a>.</p>' : '')
-        . ($empty ? '<p>Nothing is planned for today. A good day to set a goal or give a task a reminder.</p>' : '')
+        . ($empty ? '<p>Nothing is planned for today yet. Add a few plans for your day in the Planner.</p>' : '')
         . '<p style="margin:18px 0 0">' . $e($streakLine) . '</p>'
         . '<p style="margin:20px 0"><a href="' . $e(app_url()) . '" style="display:inline-block;background:#B85C38;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:bold">Open AuraGoal</a></p>'
         . '<p style="font-size:12px;color:#76685F">You can turn this email off in Settings, under Notifications.</p></div>';
@@ -243,32 +264,36 @@ function worker_tick(PDO $pdo, DateTimeImmutable $now, ?string $pushOverride = n
     // "now" is worked out in their own time zone before comparing.
     $stamp = fn(DateTimeImmutable $d) => $d->format('Y-m-d H:i:s');
 
-    // 1. Task reminders that came due in the last few minutes, for users with a subscribed device
+    // 1. Day plans whose start time came in the last few minutes, for users with a subscribed device.
+    //    A repeating plan reminds on every day it happens; the log keys each one by plan and day.
     $users = $pdo->query('SELECT DISTINCT u.id, u.timezone FROM users u JOIN push_subscriptions ps ON ps.user_id = u.id')->fetchAll();
-    $find = $pdo->prepare(
-        "SELECT sp.id, sp.task_description, sp.remind_at, sp.estimate_min, g.title AS goal_title
-         FROM sub_plans sp JOIN goals g ON g.id = sp.goal_id
-         WHERE g.user_id = ? AND g.status = 'ACTIVE' AND sp.is_completed = 0 AND sp.remind_at <= ? AND sp.remind_at > ?
-         ORDER BY sp.remind_at"
-    );
-    $claim = $pdo->prepare("INSERT IGNORE INTO notification_log (user_id, kind, ref_id, stamp) VALUES (?, 'task', ?, ?)");
+    $claim = $pdo->prepare("INSERT IGNORE INTO notification_log (user_id, kind, ref_id, stamp) VALUES (?, 'plan', ?, ?)");
     $due = [];
     foreach ($users as $u) {
         $local = $now->setTimezone(user_tz($u['timezone']));
-        $find->execute([$u['id'], $stamp($local), $stamp($local->modify('-' . REMINDER_WINDOW_MINUTES . ' minutes'))]);
-        foreach ($find->fetchAll() as $t) {
-            $due[] = $t + ['user_id' => $u['id']];
+        $from = $local->modify('-' . REMINDER_WINDOW_MINUTES . ' minutes');
+        // The window can start before midnight, so look at yesterday too
+        foreach (array_unique([$from->format('Y-m-d'), $local->format('Y-m-d')]) as $day) {
+            foreach (plan_for_day($pdo, (int) $u['id'], $day)['tasks'] as $t) {
+                if ($t['start'] === null) {
+                    continue;
+                }
+                $at = new DateTimeImmutable("{$day} {$t['start']}:00", $local->getTimezone());
+                if ($at <= $local && $at > $from) {
+                    $due[] = $t + ['user_id' => (int) $u['id'], 'stamp' => "{$day} {$t['start']}:00"];
+                }
+            }
         }
     }
     foreach ($due as $t) {
-        $claim->execute([$t['user_id'], $t['id'], $t['remind_at']]);
+        $claim->execute([$t['user_id'], $t['id'], $t['stamp']]);
         if ($claim->rowCount() !== 1) {
             continue;   // already sent
         }
-        $r = push_to_user($pdo, (int) $t['user_id'], [
-            'kind' => 'task', 'title' => mb_strimwidth((string) $t['task_description'], 0, 90, '…'),
-            'body' => $t['goal_title'] . ($t['estimate_min'] !== null ? ' · about ' . fmt_minutes((int) $t['estimate_min']) : ''),
-            'tag' => 'task-' . $t['id'], 'url' => app_url() . '/',
+        $r = push_to_user($pdo, $t['user_id'], [
+            'kind' => 'plan', 'title' => mb_strimwidth($t['title'], 0, 90, '…'),
+            'body' => ($t['minutes'] !== null ? plan_span($t['start'], $t['minutes']) : 'Now') . ' · AuraGoal',
+            'tag' => 'plan-' . $t['id'], 'url' => app_url() . '/',
         ], $pushOverride);
         $stats['reminders'] += $r['sent'];
         $stats['failed'] += $r['failed'];

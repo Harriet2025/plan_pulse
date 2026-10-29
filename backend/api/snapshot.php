@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
-require __DIR__ . '/lib.php';
+require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
@@ -10,8 +10,8 @@ require_method('GET');
 
 // ---------------------------------------------------------------
 // GET /api/snapshot.php
-// Everything the app needs in one request: the profile, every goal (any status) with its tasks,
-// and every badge earned. Reminders, analytics and history are worked out in the browser from this.
+// Everything the app needs in one request: the profile, every goal (any status) with its plans,
+// every day plan with the days it was done, and every badge earned. Reminders, analytics and history are worked out in the browser from this.
 // ---------------------------------------------------------------
 $stmt = $pdo->prepare(
     "SELECT r.id, r.goal_id, g.title AS goal_title, r.completion_percentage, r.reward_badge_tier, r.reviewed_at
@@ -33,5 +33,6 @@ json_response([
     'success' => true,
     'user'    => fetch_user_payload($pdo, $userId),
     'goals'   => fetch_goals($pdo, $userId, 'ALL'),
+    'day_plans' => fetch_day_plans($pdo, $userId),
     'reviews' => $reviews,
 ]);

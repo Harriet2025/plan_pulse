@@ -307,8 +307,8 @@ function PlanningCard() {
         {options.map((m) => <option key={m} value={m}>{fmtMinutes(m)}</option>)}
       </select>
       <ul className="mt-4 grid gap-2 text-sm text-muted">
-        <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>Tell it how long tasks take: use the clock button on a task, or type <b className="text-charcoal">~30m</b> after one when you add it.</span></li>
-        <li className="flex gap-2"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>A day holds the tasks with a reminder that day, plus tasks of a goal that is due that day. Rest days count as zero hours.</span></li>
+        <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>Give your day plans a time (2:00 to 4:00pm) or a length (45 minutes) when you add them in the Planner.</span></li>
+        <li className="flex gap-2"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>A day holds the plans you set for it, repeating ones included. Rest days count as zero hours.</span></li>
       </ul>
       <Notice note={note} />
     </Card>
@@ -385,7 +385,7 @@ function NotificationsCard() {
           <p className="text-xs text-muted">
             {!supported ? 'This browser cannot show notifications while it is closed. Try Chrome, Edge or Firefox.'
               : permission === 'denied' ? 'Notifications are blocked for this site. Allow them in your browser’s site settings, then reload.'
-              : on ? 'A notification appears when a task’s reminder time arrives.' : 'Turn them on to be reminded even with the browser closed.'}
+              : on ? 'A notification appears when a day plan’s start time arrives.' : 'Turn them on to be reminded even with the browser closed.'}
           </p>
         </div>
         {supported && permission !== 'denied' && (on

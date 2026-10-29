@@ -1,6 +1,6 @@
 import { BellRing, CalendarClock, Clock, Calendar } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { daysLabel, fmtShort } from '../lib/utils';
+import { daysLabel, localDate } from '../lib/utils';
 
 function Row({ icon: Icon, tone, title, sub, onClick }) {
   return (
@@ -19,22 +19,30 @@ const Head = ({ children }) => <li className="px-3 pb-1 pt-2 text-[10px] font-bo
 
 export const useNotifCount = () => { const { notif } = useApp(); return notif.due.length + notif.urgent.length; };
 
-/** Due reminders and approaching deadlines. Renders `empty` when there is nothing to show. */
+const dayWord = (key) => {
+  const today = new Date();
+  if (key === localDate(today)) return 'Today';
+  if (key === localDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1))) return 'Tomorrow';
+  return new Date(`${key}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long' });
+};
+
+/** Plans that have started, timed plans coming up, and goals ending soon. Renders `empty` when there is nothing to show. */
 export default function NotifList({ onPick, empty, className }) {
-  const { notif: { due, soon, urgent, later }, openGoal } = useApp();
+  const { notif: { due, soon, urgent, later }, openGoal, openDay } = useApp();
   if (!(due.length || soon.length || urgent.length || later.length)) return empty;
-  const go = (id) => { onPick?.(); openGoal(id); };
+  const goGoal = (id) => { onPick?.(); openGoal(id); };
+  const goDay = (key) => { onPick?.(); openDay(key); };
   const amber = 'bg-warning/15 text-warning';
   const calm = 'bg-oat text-charcoal/80';
 
   return (
     <ul className={className}>
       {(due.length > 0 || urgent.length > 0) && <Head>Needs attention</Head>}
-      {due.map((r) => <Row key={`d${r.sub_plan_id}`} icon={BellRing} tone={amber} title={r.task_description} sub={`${r.goal_title} · reminder ${fmtShort(new Date(r.remind_at))}`} onClick={() => go(r.goal_id)} />)}
-      {urgent.map((d) => <Row key={`u${d.goal_id}`} icon={CalendarClock} tone={d.days_left < 0 ? 'bg-danger/15 text-danger' : amber} title={d.title} sub={daysLabel(d.days_left)} onClick={() => go(d.goal_id)} />)}
+      {due.map((r) => <Row key={`d${r.id}`} icon={BellRing} tone={amber} title={r.title} sub={`Started · ${r.span}`} onClick={() => goDay(r.key)} />)}
+      {urgent.map((d) => <Row key={`u${d.goal_id}`} icon={CalendarClock} tone={d.days_left < 0 ? 'bg-danger/15 text-danger' : amber} title={d.title} sub={daysLabel(d.days_left)} onClick={() => goGoal(d.goal_id)} />)}
       {(soon.length > 0 || later.length > 0) && <Head>Coming up</Head>}
-      {soon.map((r) => <Row key={`s${r.sub_plan_id}`} icon={Clock} tone={calm} title={r.task_description} sub={`${r.goal_title} · ${fmtShort(new Date(r.remind_at))}`} onClick={() => go(r.goal_id)} />)}
-      {later.map((d) => <Row key={`l${d.goal_id}`} icon={Calendar} tone={calm} title={d.title} sub={daysLabel(d.days_left)} onClick={() => go(d.goal_id)} />)}
+      {soon.map((r) => <Row key={`s${r.id}`} icon={Clock} tone={calm} title={r.title} sub={`${dayWord(r.key)} · ${r.span}`} onClick={() => goDay(r.key)} />)}
+      {later.map((d) => <Row key={`l${d.goal_id}`} icon={Calendar} tone={calm} title={d.title} sub={daysLabel(d.days_left)} onClick={() => goGoal(d.goal_id)} />)}
     </ul>
   );
 }

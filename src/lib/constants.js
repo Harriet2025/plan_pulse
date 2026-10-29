@@ -1,24 +1,38 @@
-import { GraduationCap, Briefcase, Church, Sun, CalendarDays, CalendarRange, CalendarCheck, Heart, Shapes, Folder } from 'lucide-react';
+import { GraduationCap, Briefcase, Church, Heart, HeartPulse, Users, Wallet, Shapes, Folder } from 'lucide-react';
 
+// Life areas. Day / Week / Month / Year are not categories: they are a goal's horizon (see HORIZONS below).
+// The ids match the categories table. Muted, earthy hues that sit beside the ivory / rust / rose palette,
+// none of them close to rust (primary) or brick red (danger).
 export const CATEGORIES = [
-  // Muted, earthy hues so category colours sit comfortably beside the ivory / rust / rose palette.
-  // None of them is close to rust (primary) or brick red (danger).
-  { id: 1, name: 'School',   color: '#3F6F9B' },
-  { id: 2, name: 'Work',     color: '#B38A3A' },
-  { id: 3, name: 'Church',   color: '#8A6E9B' },
-  { id: 4, name: 'Daily',    color: '#5F8F6B' },
-  { id: 5, name: 'Weekly',   color: '#6E86B0' },
-  { id: 6, name: 'Monthly',  color: '#B8647D' },
-  { id: 7, name: 'Yearly',   color: '#9A7B4F' },
-  { id: 8, name: 'Personal', color: '#3F8F83' },
-  { id: 9, name: 'Others',   color: '#8A7F76' },
+  { id: 1,  name: 'School',   color: '#3F6F9B' },
+  { id: 2,  name: 'Work',     color: '#B38A3A' },
+  { id: 3,  name: 'Church',   color: '#8A6E9B' },
+  { id: 8,  name: 'Personal', color: '#3F8F83' },
+  { id: 10, name: 'Health',   color: '#5F8F6B' },
+  { id: 11, name: 'Family',   color: '#B8647D' },
+  { id: 12, name: 'Finance',  color: '#9A7B4F' },
+  { id: 9,  name: 'Others',   color: '#8A7F76' },
 ];
 
 export const CAT_ICONS = {
-  School: GraduationCap, Work: Briefcase, Church, Daily: Sun, Weekly: CalendarDays,
-  Monthly: CalendarRange, Yearly: CalendarCheck, Personal: Heart, Others: Shapes,
+  School: GraduationCap, Work: Briefcase, Church, Personal: Heart, Health: HeartPulse, Family: Users, Finance: Wallet, Others: Shapes,
 };
 export const catIcon = (name) => CAT_ICONS[name] || Folder;
+
+/** The Planner's tabs: a day, a week (Monday to Sunday), a month or a year. */
+export const PERIODS = [
+  { id: 'DAILY',   label: 'Day',   this: 'Today',      next: 'Tomorrow',   last: 'Yesterday',  unit: 'day' },
+  { id: 'WEEKLY',  label: 'Week',  this: 'This week',  next: 'Next week',  last: 'Last week',  unit: 'week' },
+  { id: 'MONTHLY', label: 'Month', this: 'This month', next: 'Next month', last: 'Last month', unit: 'month' },
+  { id: 'YEARLY',  label: 'Year',  this: 'This year',  next: 'Next year',  last: 'Last year',  unit: 'year' },
+];
+/** What a goal can be for (goals.timeframe). A day has no goals: it is a list of plans (day plans). */
+export const HORIZONS = PERIODS.filter((p) => p.id !== 'DAILY');
+export const horizonOf = (id) => PERIODS.find((h) => h.id === id) ?? PERIODS[1];
+
+/** How a day plan repeats. */
+export const REPEAT = { NONE: 'Once', DAILY: 'Every day', WEEKLY: 'On certain days', MONTHLY: 'Every month' };
+export const WEEKDAY_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];   // index 0 = ISO weekday 1
 
 export const QUOTES = [
   ['A goal without a plan is just a wish.', 'Antoine de Saint-Exupéry'],
@@ -35,7 +49,6 @@ export const PRIORITY = {
   MEDIUM: { label: 'Medium', card: 'border-warning/45', badge: 'bg-warning/10 text-warning border-warning/40',  bar: 'bg-warning' },
   LOW:    { label: 'Low',    card: 'border-success/45', badge: 'bg-success/10 text-success border-success/40',  bar: 'bg-success' },
 };
-export const TIMEFRAME = { DAILY: 'Daily', WEEKLY: 'Weekly', MONTHLY: 'Monthly', SEMESTER: 'Semester', YEARLY: 'Yearly' };
 
 export const TIERS = {
   1: { name: 'Bronze', emoji: '🥉', min: 50, color: '#cd7f32', glow: 'rgba(205,127,50,.55)', confetti: ['#cd7f32', '#e8a96b', '#B85C38', '#D9A99B', '#E8DCCB'],
@@ -49,9 +62,10 @@ export const tierOf = (pct) => (pct >= 90 ? 3 : pct >= 75 ? 2 : pct >= 50 ? 1 : 
 
 export const TEMPLATES = [
   { title: 'Ace my exams', cat: 'School', timeframe: 'MONTHLY', priority: 'HIGH', tasks: ['Make a study timetable', 'Revise one topic every day', 'Practise past questions', 'Review weak areas'] },
-  { title: 'Get fit this month', cat: 'Personal', timeframe: 'MONTHLY', priority: 'MEDIUM', tasks: ['Walk 20 minutes every day', 'Workout three times a week', 'Drink enough water', 'Sleep before 10pm'] },
+  { title: 'Get fit this month', cat: 'Health', timeframe: 'MONTHLY', priority: 'MEDIUM', tasks: ['Walk 20 minutes every day', 'Workout three times a week', 'Drink enough water', 'Sleep before 10pm'] },
   { title: 'Finish my work project', cat: 'Work', timeframe: 'WEEKLY', priority: 'HIGH', tasks: ['List the deliverables', 'Draft the first version', 'Get feedback', 'Submit the final version'] },
-  { title: 'Daily devotion', cat: 'Church', timeframe: 'DAILY', priority: 'MEDIUM', tasks: ['Read a chapter', 'Pray for ten minutes', 'Write one takeaway'] },
+  { title: 'Grow in my faith this month', cat: 'Church', timeframe: 'MONTHLY', priority: 'MEDIUM', tasks: ['Read a chapter every morning', 'Pray for ten minutes a day', 'Join a Bible study group'] },
+  { title: 'Get a first class this year', cat: 'School', timeframe: 'YEARLY', priority: 'HIGH', tasks: ['Go to class regularly', 'Submit all assignments on time', 'Study hard before every exam'] },
 ];
 
 export const RING = 263.9; // circumference of the r=42 progress rings

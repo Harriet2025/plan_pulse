@@ -117,10 +117,16 @@ function smtp_send(array $cfg, string $to, string $subject, string $text, string
     }
 }
 
+/** SMTP is usable once it has a host and a sender, plus a password when it logs in with a user. */
+function smtp_ready(?array $smtp): bool
+{
+    return !empty($smtp['host']) && !empty($smtp['from']) && (empty($smtp['user']) || !empty($smtp['pass']));
+}
+
 function send_mail(string $to, string $subject, string $text, string $html, ?array $smtp = null): bool
 {
     $smtp = $smtp ?? (app_config()['smtp'] ?? null);
-    if (empty($smtp['host']) || empty($smtp['from'])) {
+    if (!smtp_ready($smtp)) {
         return mail_to_outbox($to, $subject, $text);
     }
     try {

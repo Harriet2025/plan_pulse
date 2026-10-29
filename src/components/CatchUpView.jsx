@@ -1,19 +1,34 @@
 import { forwardRef, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Bell, CalendarDays, CalendarRange, Check, LifeBuoy, Target, Wind } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarDays, CalendarRange, Check, LifeBuoy, Target, Wind } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { cn, localDate, rescheduleOptions, shortDay, spreadByCapacity } from '../lib/utils';
+import { horizonOf } from '../lib/constants';
+import { cn, localDate, periodEnd, rescheduleOptions, shiftPeriod, shortDay, spreadByCapacity } from '../lib/utils';
 import { Bar, cardShadow } from './ui';
 
 // ---- Building the changes. Each helper returns one action for POST /api/reschedule.php ----
-const targetId = (it) => (it.kind === 'goal' ? it.goalId : it.taskId);
-// A task keeps its time of day; a goal only has a date
-const targetFor = (it, date) => (it.kind === 'task' ? `${localDate(date)}T${it.remind.slice(11, 16)}` : localDate(date));
+const targetId = (it) => (it.kind === 'goal' ? it.goalId : it.planId);
+// A plan keeps its time of day, so both move by date
+const targetFor = (_it, date) => localDate(date);
 const moveAction = (it, to) => ({ kind: it.kind, id: targetId(it), op: 'move', to });
-const moveBack = (it) => moveAction(it, it.kind === 'goal' ? it.due_date : it.remind);
-const letGo = (it) => (it.kind === 'goal' ? { kind: 'goal', id: it.goalId, op: 'archive' } : moveAction(it, null));   // a task just loses its reminder
-const letGoBack = (it) => (it.kind === 'goal' ? { kind: 'goal', id: it.goalId, op: 'restore' } : moveBack(it));
+const moveBack = (it) => moveAction(it, it.kind === 'goal' ? it.due_date : it.date);
+// Letting go archives a goal (it stays in History), or skips a missed day plan
+const letGo = (it) => ({ kind: it.kind, id: targetId(it), op: it.kind === 'goal' ? 'archive' : 'skip' });
+const letGoBack = (it) => ({ kind: it.kind, id: targetId(it), op: it.kind === 'goal' ? 'restore' : 'unskip' });
 const shorten = (s, n = 36) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+/**
+ * A goal for a week, month or year moves by whole periods: "This week" or "Next week" (it is then due on that period's
+ * last day). Day plans use the day choices (tomorrow, the weekend, next week).
+ */
+function optionsFor(item, dayOptions) {
+  if (item.kind !== 'goal' || !item.timeframe) return dayOptions;
+  const h = horizonOf(item.timeframe), today = new Date();
+  return [
+    { id: 'this', label: h.this, date: periodEnd(item.timeframe, today) },
+    { id: 'next', label: h.next, date: periodEnd(item.timeframe, shiftPeriod(item.timeframe, today, 1)) },
+  ];
+}
 
 function Chip({ icon: Icon, children, hint, onClick, tone = 'neutral', title, disabled }) {
   const tones = {
@@ -38,14 +53,15 @@ const slippedLabel = (n) => (n === 1 ? 'Slipped yesterday' : `Slipped ${n} days 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const CatchUpCard = forwardRef(function CatchUpCard({ item, options, busy, onMove, onDone, onLetGo, onOpen }, ref) {
   const [picking, setPicking] = useState(false);
-  const isTask = item.kind === 'task';
+  const isPlan = item.kind === 'plan';
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const [value, setValue] = useState(() => targetFor(item, tomorrow));
-  const Icon = isTask ? Bell : Target;
+  const Icon = isPlan ? CalendarClock : Target;
+  const choices = optionsFor(item, options);
 
-  const when = isTask
-    ? `Planned for ${shortDay(new Date(`${item.remind.slice(0, 10)}T00:00:00`))} at ${item.remind.slice(11, 16)}`
-    : `Due ${shortDay(new Date(`${item.due_date}T00:00:00`))}${item.total ? ` · ${item.done} of ${item.total} tasks done` : ''}`;
+  const when = isPlan
+    ? `Planned for ${shortDay(new Date(`${item.date}T00:00:00`))}${item.span ? `, ${item.span}` : ''}`
+    : `${item.timeframe ? `A ${horizonOf(item.timeframe).unit} goal, due` : 'Due'} ${shortDay(new Date(`${item.due_date}T00:00:00`))}${item.total ? ` · ${item.done} of ${item.total} plans done` : ''}`;
 
   const moveTo = (to, label) => { setPicking(false); onMove(item, to, label); };
   const submitPick = (e) => {
@@ -67,25 +83,29 @@ const CatchUpCard = forwardRef(function CatchUpCard({ item, options, busy, onMov
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-muted">{isTask ? 'Task' : 'Goal'}{item.category ? ` · ${item.category}` : ''}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted">{isPlan ? 'Day plan' : 'Goal'}{item.category ? ` · ${item.category}` : ''}</span>
             <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[11px] font-bold text-warning">{slippedLabel(item.daysLate)}</span>
           </div>
           <h3 className="mt-0.5 break-words text-base font-extrabold leading-snug text-charcoal">{item.title}</h3>
-          <p className="mt-0.5 text-sm text-muted">{when}{isTask && <> · from <span className="font-semibold text-charcoal/80">{item.goalTitle}</span></>}</p>
-          {!isTask && item.total > 0 && <Bar pct={Math.round((100 * item.done) / item.total)} height="h-1.5" className="mt-2.5 max-w-xs" fill="bg-blush-dark" label={`${item.title} progress`} />}
+          <p className="mt-0.5 text-sm text-muted">{when}</p>
+          {!isPlan && item.total > 0 && <Bar pct={Math.round((100 * item.done) / item.total)} height="h-1.5" className="mt-2.5 max-w-xs" fill="bg-blush-dark" label={`${item.title} progress`} />}
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-oat pt-3.5">
-        {isTask && <Chip icon={Check} tone="good" onClick={() => onDone(item)} title="Mark this task as finished">I did this</Chip>}
-        {options.map((o) => (
-          <Chip key={o.id} onClick={() => moveTo(targetFor(item, o.date), o.id === 'tomorrow' ? 'tomorrow' : shortDay(o.date))} hint={o.id === 'tomorrow' ? undefined : shortDay(o.date)}>{o.label}</Chip>
-        ))}
+        {isPlan && <Chip icon={Check} tone="good" onClick={() => onDone(item)} title="Mark this plan as done on its day">I did this</Chip>}
+        {choices.map((o) => {
+          const byPeriod = o.id === 'this' || o.id === 'next';
+          return (
+            <Chip key={o.id} onClick={() => moveTo(targetFor(item, o.date), o.id === 'tomorrow' ? 'tomorrow' : byPeriod ? o.label.toLowerCase() : shortDay(o.date))}
+              hint={o.id === 'tomorrow' ? undefined : byPeriod ? `by ${shortDay(o.date)}` : shortDay(o.date)}>{o.label}</Chip>
+          );
+        })}
         <Chip icon={CalendarDays} onClick={() => setPicking((p) => !p)} title="Choose another date">Pick a date</Chip>
-        {!isTask && <Chip icon={ArrowRight} onClick={() => onOpen(item)} title="Open the goal to add or change its tasks">Break it down</Chip>}
+        {!isPlan && <Chip icon={ArrowRight} onClick={() => onOpen(item)} title="Open the goal to add or change its plans">Break it down</Chip>}
         <span className="flex-1" />
         <Chip icon={Wind} tone="quiet" onClick={() => onLetGo(item)}
-          title={isTask ? 'Removes the reminder. The task stays in its goal.' : 'Archives the goal. You can bring it back from History.'}>Let go</Chip>
+          title={isPlan ? 'Leaves it undone on its day, without moving it.' : 'Archives the goal. You can bring it back from History.'}>Let go</Chip>
       </div>
 
       <AnimatePresence initial={false}>
@@ -94,8 +114,8 @@ const CatchUpCard = forwardRef(function CatchUpCard({ item, options, busy, onMov
             onSubmit={submitPick} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"
           >
             <div className="flex flex-wrap items-center gap-2 pt-3">
-              <label className="sr-only" htmlFor={`pick-${item.key}`}>New {isTask ? 'date and time' : 'due date'}</label>
-              <input id={`pick-${item.key}`} className="field !w-auto min-w-0 flex-1 !py-2" type={isTask ? 'datetime-local' : 'date'} value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+              <label className="sr-only" htmlFor={`pick-${item.key}`}>New {isPlan ? 'day' : 'due date'}</label>
+              <input id={`pick-${item.key}`} className="field !w-auto min-w-0 flex-1 !py-2" type="date" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
               <button type="submit" disabled={!value} className="rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60">Move it</button>
               <button type="button" onClick={() => setPicking(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-muted hover:text-charcoal">Cancel</button>
             </div>
@@ -131,7 +151,7 @@ function AllClear({ everSorted }) {
 }
 
 export default function CatchUpView() {
-  const { slipped, user, goals, toggleTask, rescheduleItems, openGoal } = useApp();
+  const { slipped, user, dayPlans, toggleDayPlan, rescheduleItems, openGoal } = useApp();
   const restDays = user.rest_days ?? [];
   const options = rescheduleOptions(restDays);
   const [busyKey, setBusyKey] = useState(null);
@@ -141,14 +161,14 @@ export default function CatchUpView() {
 
   const withBusy = async (key, fn) => { setBusyKey(key); try { await fn(); } finally { setBusyKey(null); } };
   const onMove = (it, to, label) => withBusy(it.key, () => rescheduleItems([moveAction(it, to)], [moveBack(it)], `Moved “${shorten(it.title)}” to ${label}.`));
-  const onLetGo = (it) => withBusy(it.key, () => rescheduleItems([letGo(it)], [letGoBack(it)], it.kind === 'goal' ? `Let go of “${shorten(it.title)}”. It is in History if you want it back.` : `Let go of the reminder for “${shorten(it.title)}”.`));
-  const onDone = (it) => withBusy(it.key, () => toggleTask(it.goalId, it.taskId, true));
+  const onLetGo = (it) => withBusy(it.key, () => rescheduleItems([letGo(it)], [letGoBack(it)], it.kind === 'goal' ? `Let go of “${shorten(it.title)}”. It is in History if you want it back.` : `Let go of “${shorten(it.title)}”.`));
+  const onDone = (it) => withBusy(it.key, () => toggleDayPlan(it.planId, it.date, true));
 
   const moveAll = (dates, label) => rescheduleItems(
     slipped.map((it, i) => moveAction(it, targetFor(it, dates[i]))), slipped.map(moveBack), `Moved ${slipped.length} things to ${label}.`,
   );
   const spread = () => {
-    const dates = spreadByCapacity(slipped, goals, user);   // each work day is filled up to what you can really do
+    const dates = spreadByCapacity(slipped, dayPlans, user);   // each work day is filled up to what you can really do
     const first = shortDay(dates[0]), last = shortDay(dates[dates.length - 1]);
     return moveAll(dates, first === last ? first : `${first} – ${last}`);
   };

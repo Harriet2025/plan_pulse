@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowRight, Bell, CalendarPlus, Check, ChevronLeft, ChevronRight, Gauge, Target } from 'lucide-react';
+import { ArrowRight, CalendarClock, Check, ChevronLeft, ChevronRight, Gauge, ListChecks, Target } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { cn, dayLoad, daysUntil, fmtMinutes, localDate, progressOf } from '../lib/utils';
+import { horizonOf } from '../lib/constants';
+import { clockToMinutes, cn, dayLoad, daysUntil, fmtClock, fmtMinutes, fmtSpan, localDate, plansOn, progressOf } from '../lib/utils';
 import { Bar, cardShadow } from './ui';
 
 const LOAD_FILL = { ok: 'bg-success', tight: 'bg-warning', over: 'bg-danger', rest: 'bg-blush-dark' };
@@ -11,33 +12,36 @@ const LOAD_TEXT = { ok: 'text-success', tight: 'text-warning', over: 'text-dange
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MAX_CHIPS = 3;
 
-/** Every dated thing the user has, grouped by day (YYYY-MM-DD): goals on their due date, tasks on their reminder date. */
-function buildEvents(goals, categories) {
+/**
+ * What each of `days` holds (keyed YYYY-MM-DD): goals on the day they end, and day plans on every day they happen
+ * (repeating ones included).
+ */
+function buildEvents(goals, dayPlans, categories, days) {
   const byDay = new Map();
   const add = (day, ev) => { if (!byDay.has(day)) byDay.set(day, []); byDay.get(day).push(ev); };
   const now = new Date();
+  const keys = new Set(days);
 
   for (const g of goals) {
-    if (g.status === 'ARCHIVED') continue;
+    if (g.status === 'ARCHIVED' || !g.due_date || !keys.has(g.due_date)) continue;
     const cat = categories.find((c) => c.id === g.category_id);
-    const color = cat?.color ?? '#B85C38';
     const completed = g.status === 'COMPLETED';
-    if (g.due_date) {
-      add(g.due_date, {
-        id: `g${g.id}`, kind: 'goal', goalId: g.id, goalActive: !completed, title: g.title, color, done: completed,
-        overdue: !completed && daysUntil(g.due_date) < 0, category: cat?.name, progress: progressOf(g), time: '',
-      });
-    }
-    for (const t of g.sub_plans) {
-      if (!t.remind) continue;
-      add(t.remind.slice(0, 10), {
-        id: `t${t.id}`, kind: 'task', goalId: g.id, goalActive: !completed, title: t.text, goalTitle: g.title, color, done: t.done,
-        overdue: !t.done && new Date(t.remind) < now, category: cat?.name, time: t.remind.slice(11, 16),
+    add(g.due_date, {
+      id: `g${g.id}`, kind: 'goal', goalId: g.id, goalActive: !completed, title: g.title, color: cat?.color ?? '#B85C38', done: completed,
+      overdue: !completed && daysUntil(g.due_date) < 0, category: cat?.name, progress: progressOf(g), time: '', horizon: g.timeframe,
+    });
+  }
+  for (const key of days) {
+    for (const x of plansOn(dayPlans, key)) {
+      const ends = x.start ? new Date(`${key}T00:00:00`).getTime() + (clockToMinutes(x.start) + (x.minutes ?? 0)) * 60000 : new Date(`${key}T23:59:59`).getTime();
+      add(key, {
+        id: `p${x.plan.id}@${key}`, kind: 'plan', title: x.plan.title, color: '#B85C38', done: x.done, overdue: !x.done && ends < now.getTime(),
+        time: x.start ?? '', clock: x.start ? fmtClock(new Date(`${key}T${x.start}`)) : '', span: fmtSpan(x.start, x.minutes), repeats: x.plan.repeat !== 'NONE',
       });
     }
   }
-  // Goals first (they have no time), then tasks in time order
-  for (const list of byDay.values()) list.sort((a, b) => (a.kind === b.kind ? a.time.localeCompare(b.time) : a.kind === 'goal' ? -1 : 1));
+  // Goals first, then plans in time order (any-time plans last)
+  for (const list of byDay.values()) list.sort((a, b) => (a.kind === b.kind ? (a.time || '99').localeCompare(b.time || '99') : a.kind === 'goal' ? -1 : 1));
   return byDay;
 }
 
@@ -57,8 +61,7 @@ function Chip({ ev }) {
       className={cn('flex items-center gap-1 truncate rounded-md border-l-[3px] px-1.5 py-0.5 text-[11px] font-semibold leading-tight', ev.done ? 'text-muted line-through' : ev.overdue ? 'text-danger' : 'text-charcoal')}
       style={chipStyle(ev)}
     >
-      {ev.kind === 'task' && <Bell className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />}
-      <span className="truncate">{ev.time && `${ev.time} `}{ev.title}</span>
+      <span className="truncate">{ev.clock && <span className="font-bold">{ev.clock.replace(/:00(?=\s|$)/, '')} </span>}{ev.title}</span>
     </span>
   );
 }
@@ -99,11 +102,11 @@ function DayCell({ day, inMonth, today, selected, events, load, onSelect }) {
   );
 }
 
-function AgendaItem({ ev, onOpen }) {
-  const Icon = ev.kind === 'goal' ? Target : Bell;
+function AgendaItem({ ev, onOpen, onOpenDay }) {
+  const Icon = ev.kind === 'goal' ? Target : CalendarClock;
   const sub = ev.kind === 'goal'
-    ? `Goal due${ev.category ? ` · ${ev.category}` : ''}${ev.done ? ' · completed' : ` · ${ev.progress}% done`}`
-    : `Reminder${ev.time ? ` at ${ev.time}` : ''} · ${ev.goalTitle}`;
+    ? `${horizonOf(ev.horizon).label} goal ends${ev.category ? ` · ${ev.category}` : ''}${ev.done ? ' · completed' : ` · ${ev.progress}% done`}`
+    : [ev.span || 'Any time', ev.repeats && 'repeats'].filter(Boolean).join(' · ');
   const body = (
     <>
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white" style={{ background: ev.color }}>
@@ -116,13 +119,14 @@ function AgendaItem({ ev, onOpen }) {
     </>
   );
   const cls = 'flex w-full items-center gap-3 rounded-2xl border border-oat bg-ivory p-2.5 text-left';
+  if (ev.kind === 'plan') return <button type="button" onClick={onOpenDay} className={cn(cls, 'transition-colors hover:border-rust')}>{body}</button>;
   return ev.goalActive
     ? <button type="button" onClick={() => onOpen(ev.goalId)} className={cn(cls, 'transition-colors hover:border-rust')}>{body}</button>
     : <div className={cls}>{body}</div>;
 }
 
 export default function CalendarView() {
-  const { goals, categories, user, openGoal, openGoalModal, openLighten, calendarFocus, consumeCalendarFocus } = useApp();
+  const { goals, dayPlans, categories, user, openGoal, openDay, openLighten, calendarFocus, consumeCalendarFocus } = useApp();
   const todayKey = localDate();
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selected, setSelected] = useState(todayKey);
@@ -136,10 +140,10 @@ export default function CalendarView() {
     consumeCalendarFocus();
   }, [calendarFocus, consumeCalendarFocus]);
 
-  const events = useMemo(() => buildEvents(goals, categories), [goals, categories]);
   const weeks = useMemo(() => monthWeeks(cursor.getFullYear(), cursor.getMonth()), [cursor]);
-  const loads = useMemo(() => new Map(weeks.flat().map((d) => [localDate(d), dayLoad(goals, user, localDate(d))])), [weeks, goals, user]);
-  const selectedLoad = loads.get(selected) ?? dayLoad(goals, user, selected);
+  const events = useMemo(() => buildEvents(goals, dayPlans, categories, [...new Set([...weeks.flat().map(localDate), selected])]), [goals, dayPlans, categories, weeks, selected]);
+  const loads = useMemo(() => new Map(weeks.flat().map((d) => [localDate(d), dayLoad(dayPlans, user, localDate(d))])), [weeks, dayPlans, user]);
+  const selectedLoad = loads.get(selected) ?? dayLoad(dayPlans, user, selected);
   const monthName = cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   const dayEvents = events.get(selected) ?? [];
   const selectedDate = new Date(`${selected}T00:00:00`);
@@ -186,7 +190,7 @@ export default function CalendarView() {
 
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-rust" />Goal due</span>
-          <span className="inline-flex items-center gap-1.5"><Bell className="h-3 w-3" aria-hidden="true" />Task reminder</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-blush" /><b className="font-bold text-charcoal">2 PM</b> A plan with a time</span>
           <span className="inline-flex items-center gap-1.5"><span className="grid h-4 w-4 place-items-center rounded-full bg-rust text-[9px] font-bold text-white">{new Date().getDate()}</span>Today</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-1 w-6 overflow-hidden rounded-full bg-oat"><span className="block h-full w-2/3 bg-success" /></span>Time planned (turns red when a day is too full)</span>
         </div>
@@ -211,7 +215,7 @@ export default function CalendarView() {
               {selectedLoad.state === 'over' ? `About ${fmtMinutes(selectedLoad.over)} too much for one day.`
                 : selectedLoad.state === 'rest' ? 'This is a rest day, so anything planned here is extra.'
                 : selectedLoad.state === 'tight' ? 'A full day.' : `${fmtMinutes(selectedLoad.free)} still free.`}
-              {selectedLoad.unestimated > 0 && ` ${selectedLoad.unestimated} ${selectedLoad.unestimated === 1 ? 'task has' : 'tasks have'} no estimate.`}
+              {selectedLoad.unestimated > 0 && ` ${selectedLoad.unestimated} ${selectedLoad.unestimated === 1 ? 'plan has' : 'plans have'} no length.`}
             </p>
             {selectedLoad.state === 'over' && (
               <button type="button" onClick={() => openLighten(selected)} className="mt-2.5 inline-flex items-center gap-1.5 text-sm font-extrabold text-rust-dark hover:underline">
@@ -225,7 +229,7 @@ export default function CalendarView() {
           <AnimatePresence mode="popLayout" initial={false}>
             {dayEvents.map((ev) => (
               <motion.div key={ev.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-                <AgendaItem ev={ev} onOpen={openGoal} />
+                <AgendaItem ev={ev} onOpen={openGoal} onOpenDay={() => openDay(selected)} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -236,12 +240,12 @@ export default function CalendarView() {
           )}
         </div>
 
-        <button type="button" onClick={() => openGoalModal({ due: selected })}
+        <button type="button" onClick={() => openDay(selected)}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
-          <CalendarPlus className="h-4 w-4" aria-hidden="true" />Add a goal due this day
+          <ListChecks className="h-4 w-4" aria-hidden="true" />Plan this day
         </button>
         <p className="mt-3 text-xs leading-relaxed text-muted">
-          Goals show on their due date. A task shows on the day you set its reminder (use the bell on any task).
+          Week, month and year goals show on the day they end. Your day plans show on every day they happen.
         </p>
       </aside>
     </div>

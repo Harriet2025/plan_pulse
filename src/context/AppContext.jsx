@@ -3,7 +3,7 @@ import * as api from '../api';
 import { CATEGORIES, TIERS, tierOf } from '../lib/constants';
 import { playSound, setSoundEnabled } from '../lib/sound';
 import { pushFlag } from '../lib/push';
-import { daysUntil } from '../lib/utils';
+import { addDays, daysUntil, fmtSpan, localDate, plansOn } from '../lib/utils';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -26,10 +26,13 @@ export function AppProvider({ children }) {
   const [booted, setBooted] = useState(false);
   const [user, setUser] = useState(null);
   const [goals, setGoals] = useState([]);      // every goal the user has, any status
+  const [dayPlans, setDayPlans] = useState([]); // the user's day plans (stand-alone, can repeat), with done / skipped days
   const [reviews, setReviews] = useState([]);  // every badge earned
 
-  const [view, setView] = useState('active');  // active | categories | history
+  // A push about a partner's message opens the app at #partners
+  const [view, setView] = useState(() => (window.location.hash === '#partners' ? 'partners' : 'active'));
   const [activeCat, setActiveCat] = useState('all');
+  const [horizonFilter, setHorizonFilter] = useState('all');   // all, or WEEKLY / MONTHLY / YEARLY
   const [search, setSearch] = useState('');
   const [prio, setPrio] = useState('all');
   const [soundOn, setSoundOn] = useState(true);
@@ -37,19 +40,21 @@ export function AppProvider({ children }) {
   const [goalModal, setGoalModal] = useState(null);   // null, or { draft } when the New Goal sheet is open
   const [lighten, setLighten] = useState(null);       // null, or { date } when the "lighten this day" panel is open
   const [calendarFocus, setCalendarFocus] = useState(null); // asks the calendar to show a particular day
+  const [plannerAt, setPlannerAt] = useState(null);   // the Planner's tab and period: { horizon, key }, null = today
   const [freshId, setFreshId] = useState(null);       // newly created goal opens expanded
   const [focusReq, setFocusReq] = useState(null);     // ask a card to scroll into view and open
   const [linger, setLinger] = useState(() => new Set()); // just-completed goals stay in the feed for a moment
   const [toastMsg, setToastMsg] = useState(null);
   const [rewardQueue, setRewardQueue] = useState([]);
   const [now, setNow] = useState(() => new Date());
+  const [partners, setPartners] = useState({ partners: [], incoming: [], outgoing: [] });   // accountability partners and invites
 
   useEffect(() => setSoundEnabled(soundOn), [soundOn]);
 
   // ---- Data
   const refresh = useCallback(async () => {
     const s = await api.snapshot();
-    setUser(s.user); setGoals(s.goals); setReviews(s.reviews);
+    setUser(s.user); setGoals(s.goals); setDayPlans(s.dayPlans); setReviews(s.reviews);
     // Tell the server this browser's time zone, so reminders, the morning email and streak days follow the user's
     // clock (the server's own clock can be in a different zone)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -95,7 +100,7 @@ export function AppProvider({ children }) {
   };
   const signOut = async () => {
     await api.logout();
-    setUser(null); setGoals([]); setReviews([]); setRewardQueue([]); setGoalModal(null); setLighten(null);
+    setUser(null); setGoals([]); setDayPlans([]); setReviews([]); setPartners({ partners: [], incoming: [], outgoing: [] }); setRewardQueue([]); setGoalModal(null); setLighten(null);
   };
 
   // ---- Profile. These throw, so the settings forms can show the server's message next to the field.
@@ -109,7 +114,8 @@ export function AppProvider({ children }) {
   const createGoal = async (input) => {
     const g = await api.createGoal(input);
     await refresh();
-    setFreshId(g.id); setView('active'); setGoalModal(null);
+    setFreshId(g.id); setGoalModal(null);
+    setView((v) => (v === 'planner' ? v : 'active'));   // a goal made in the Planner stays there, in its period
     toast('Goal saved.');
   };
 
@@ -154,14 +160,55 @@ export function AppProvider({ children }) {
     return true;
   });
 
-  const addTask = (goalId, text, estimate = null) => run(async () => { await api.addTask(goalId, text, estimate); await refresh(); playSound('check'); return true; });
-  /** Minutes (5 to 720), or null to remove the estimate. */
-  const setEstimate = (taskId, minutes) => run(async () => { await api.setEstimate(taskId, minutes); await refresh(); return true; });
-  const setReminder = (goalId, taskId, value) => run(async () => {
-    await api.setReminder(goalId, taskId, value);
+  const addTask = (goalId, text) => run(async () => { await api.addTask(goalId, text); await refresh(); playSound('check'); return true; });
+
+  // ---- Day plans. Each returns true when it worked.
+  const addDayPlan = (fields) => run(async () => { await api.createDayPlan(fields); await refresh(); playSound('check'); toast('Added to your day.'); return true; });
+  const editDayPlan = (id, fields) => run(async () => { await api.updateDayPlan(id, fields); await refresh(); toast('Plan updated.'); return true; });
+  /** Ticks one day of a plan off (or back on). Finishing one keeps the streak going, like a goal's plan. */
+  const toggleDayPlan = (id, date, done) => run(async () => {
+    const res = await api.markDayPlan(id, date, done ? 'DONE' : null);
+    playSound(done ? 'check' : 'uncheck');
+    streakMessages(res.streak).forEach((m, i) => setTimeout(() => toast(m), i * 3000));
     await refresh();
-    toast(value ? 'Reminder set.' : 'Reminder removed.');
+    return true;
   });
+  /** Takes one day out of a repeating plan; the rest of the series stays. Offers Undo. */
+  const skipDayPlan = (id, date) => run(async () => {
+    await api.markDayPlan(id, date, 'SKIPPED');
+    await refresh();
+    toast('Removed from this day.', { action: { label: 'Undo', onClick: () => run(async () => { await api.markDayPlan(id, date, null); await refresh(); }) } });
+    return true;
+  });
+  const deleteDayPlan = (id) => run(async () => { await api.deleteDayPlan(id); await refresh(); toast('Plan deleted.'); return true; });
+
+  /** Hides a goal from partners, or shares it again. */
+  const setGoalPrivate = (id, isPrivate) => run(async () => {
+    await api.setGoalPrivate(id, isPrivate);
+    await refresh();
+    toast(isPrivate ? 'Private: your partners cannot see this goal.' : 'Shared with your partners again.');
+    return true;
+  });
+
+  // ---- Accountability partners
+  const refreshPartners = useCallback(async () => {
+    try { setPartners(await api.getPartners()); } catch (e) { if (e.auth) setUser(null); }
+  }, []);
+  /** invite ({ email }), accept / decline / remove ({ id }). Returns the server's message, or undefined on failure. */
+  const partnerAction = (action, fields) => run(async () => {
+    const r = await api.partnerAction(action, fields);
+    setPartners({ partners: r.partners, incoming: r.incoming, outgoing: r.outgoing });
+    return r.message ?? true;
+  });
+  // The list (and its unread counts) stays fresh while the app is open
+  useEffect(() => {
+    if (!user) return undefined;
+    refreshPartners();
+    const t = setInterval(refreshPartners, 20000);
+    return () => clearInterval(t);
+  }, [user?.id, refreshPartners]); // eslint-disable-line react-hooks/exhaustive-deps
+  const unreadTotal = partners.partners.reduce((n, p) => n + p.unread, 0) + partners.incoming.length;
+
   const archiveGoal = (id) => run(async () => { await api.setGoalStatus(id, 'ARCHIVED'); await refresh(); toast('Archived. You can restore it from History.'); });
   const restoreGoal = (id) => run(async () => {
     const g = await api.setGoalStatus(id, 'ACTIVE');
@@ -176,37 +223,39 @@ export function AppProvider({ children }) {
     const q = search.trim().toLowerCase();
     return activeGoals.filter((g) => {
       if (activeCat !== 'all' && g.category_id !== Number(activeCat)) return false;
+      if (horizonFilter !== 'all' && g.timeframe !== horizonFilter) return false;
       if (prio !== 'all' && g.priority !== prio) return false;
       if (q && !(`${g.title} ${g.sub_plans.map((t) => t.text).join(' ')}`).toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [activeGoals, activeCat, search, prio]);
+  }, [activeGoals, activeCat, horizonFilter, search, prio]);
 
-  // Things that slipped: goals past their due date and unfinished tasks whose reminder day has passed.
-  // Earlier today does not count, so the Catch up page never nags about the current day.
+  // Things that slipped: goals past their due date, and one-off day plans from an earlier day that were not done.
+  // A missed day of a repeating plan does not count (the next one is already coming), and today never does.
   const slipped = useMemo(() => {
     const items = [];
     for (const g of goals) {
-      if (g.status !== 'ACTIVE') continue;
-      const cat = CATEGORIES.find((c) => c.id === g.category_id);
-      const common = { goalId: g.id, color: cat?.color ?? '#B85C38', category: cat?.name };
-      if (g.due_date && daysUntil(g.due_date) < 0) {
-        // `weight` is how many minutes this adds to a day (the tasks that have to be done by the new due date)
-        const left = g.sub_plans.filter((t) => !t.done && !t.remind).reduce((n, t) => n + (t.estimate ?? 30), 0);
-        items.push({ ...common, key: `g${g.id}`, kind: 'goal', title: g.title, due_date: g.due_date, daysLate: -daysUntil(g.due_date), done: g.sub_plans.filter((t) => t.done).length, total: g.sub_plans.length, weight: left || 30 });
-      }
-      for (const t of g.sub_plans) {
-        if (t.done || !t.remind || daysUntil(t.remind.slice(0, 10)) >= 0) continue;
-        items.push({ ...common, key: `t${t.id}`, kind: 'task', taskId: t.id, title: t.text, goalTitle: g.title, remind: t.remind, daysLate: -daysUntil(t.remind.slice(0, 10)), estimate: t.estimate, weight: t.estimate ?? 30 });
-      }
+      if (g.status !== 'ACTIVE' || !g.due_date || daysUntil(g.due_date) >= 0) continue;
+      const cat = CATEGORIES.find((x) => x.id === g.category_id);
+      items.push({
+        key: `g${g.id}`, kind: 'goal', goalId: g.id, color: cat?.color ?? '#B85C38', category: cat?.name, title: g.title, timeframe: g.timeframe,
+        due_date: g.due_date, daysLate: -daysUntil(g.due_date), done: g.sub_plans.filter((t) => t.done).length, total: g.sub_plans.length, weight: 30,
+      });
     }
-    return items.sort((a, b) => b.daysLate - a.daysLate || a.key.localeCompare(b.key));
-  }, [goals, now]);
+    for (const p of dayPlans) {
+      if (p.repeat !== 'NONE' || p.marks[p.date] || daysUntil(p.date) >= 0) continue;
+      items.push({
+        key: `p${p.id}`, kind: 'plan', planId: p.id, color: '#B85C38', title: p.title, date: p.date, start: p.start, minutes: p.minutes,
+        span: fmtSpan(p.start, p.minutes), daysLate: -daysUntil(p.date), weight: p.minutes ?? 30,
+      });
+    }
+    return items.sort((x, y) => y.daysLate - x.daysLate || x.key.localeCompare(y.key));
+  }, [goals, dayPlans, now]);
 
   // Rewards shown in the header exclude badges still waiting to be claimed
   const rewardsTotal = Math.max(0, reviews.length - rewardQueue.length);
 
-  // ---- Notifications: task reminders within a week, goals due within 3 days
+  // ---- Notifications: timed day plans today and in the next two days, goals ending within 3 days
   useEffect(() => {
     if (!user) return;
     const t = setInterval(() => setNow(new Date()), 30000);
@@ -214,58 +263,63 @@ export function AppProvider({ children }) {
   }, [user]);
 
   const notif = useMemo(() => {
-    const open = goals.filter((g) => g.status === 'ACTIVE');
-    const horizon = now.getTime() + 7 * 86400000;
-    const reminders = open
-      .flatMap((g) => g.sub_plans
-        .filter((t) => !t.done && t.remind && new Date(t.remind).getTime() <= horizon)
-        .map((t) => ({ sub_plan_id: t.id, goal_id: g.id, goal_title: g.title, task_description: t.text, remind_at: t.remind })))
-      .sort((a, b) => new Date(a.remind_at) - new Date(b.remind_at));
-    const deadlines = open
-      .filter((g) => g.due_date)
+    const today = localDate(now);
+    const timed = [0, 1, 2].flatMap((n) => {
+      const key = localDate(addDays(now, n));
+      return plansOn(dayPlans, key).filter((x) => x.start && !x.done).map((x) => ({
+        id: `${x.plan.id}@${key}`, plan_id: x.plan.id, title: x.plan.title, key, at: new Date(`${key}T${x.start}`), span: fmtSpan(x.start, x.minutes),
+      }));
+    });
+    const deadlines = goals
+      .filter((g) => g.status === 'ACTIVE' && g.due_date)
       .map((g) => ({ goal_id: g.id, title: g.title, due_date: g.due_date, days_left: daysUntil(g.due_date) }))
-      .filter((d) => d.days_left <= 3)
-      .sort((a, b) => a.days_left - b.days_left);
+      .filter((x) => x.days_left <= 3)
+      .sort((x, y) => x.days_left - y.days_left);
     return {
-      due: reminders.filter((r) => new Date(r.remind_at) <= now),
-      soon: reminders.filter((r) => new Date(r.remind_at) > now),
-      urgent: deadlines.filter((d) => d.days_left <= 1),
-      later: deadlines.filter((d) => d.days_left > 1),
+      due: timed.filter((r) => r.key === today && r.at <= now),   // started and not ticked off yet
+      soon: timed.filter((r) => r.at > now),
+      urgent: deadlines.filter((x) => x.days_left <= 1),
+      later: deadlines.filter((x) => x.days_left > 1),
     };
-  }, [goals, now]);
+  }, [goals, dayPlans, now]);
 
   // Alert once per reminder (remembered in this browser) when its time arrives
   const alerted = useRef(false);
   useEffect(() => {
     if (!user) { alerted.current = false; return; }
     const seen = getNotified();
-    const fresh = notif.due.filter((r) => !seen.has(`${r.sub_plan_id}@${r.remind_at}`));
+    // Only plans that started in the last 15 minutes: opening the app in the evening does not ring for the morning
+    const fresh = notif.due.filter((r) => now - r.at < 15 * 60000 && !seen.has(r.id));
     if (!fresh.length) return;
-    fresh.forEach((r) => seen.add(`${r.sub_plan_id}@${r.remind_at}`));
+    fresh.forEach((r) => seen.add(r.id));
     saveNotified(seen);
     playSound('bell');
-    toast(fresh.length === 1 ? `Reminder: ${fresh[0].task_description}` : `${fresh.length} reminders are due`);
+    toast(fresh.length === 1 ? `Time for: ${fresh[0].title}` : `${fresh.length} plans are starting`);
     // A device that gets server pushes shows its own notification, so the page skips it to avoid a double
     if ('Notification' in window && Notification.permission === 'granted' && !pushFlag.get()) {
-      fresh.slice(0, 3).forEach((r) => { try { new Notification('AuraGoal reminder', { body: `${r.task_description} (${r.goal_title})` }); } catch { /* ignore */ } });
+      fresh.slice(0, 3).forEach((r) => { try { new Notification(r.title, { body: `${r.span} · AuraGoal` }); } catch { /* ignore */ } });
     }
-  }, [notif.due, user, toast]);
+  }, [notif.due, user, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openGoal = (id) => {
     if (!activeGoals.some((g) => g.id === id)) { toast('That goal is not in your active list.'); return; }
-    setSearch(''); setPrio('all'); setActiveCat('all'); setView('active');
+    setSearch(''); setPrio('all'); setActiveCat('all'); setHorizonFilter('all'); setView('active');
     setFocusReq({ id, n: Date.now() });
   };
 
   const value = {
     booted, bootError, boot, user, goals, reviews, categories: CATEGORIES,
-    view, setView, activeCat, setActiveCat, search, setSearch, prio, setPrio,
+    view, setView, activeCat, setActiveCat, horizonFilter, setHorizonFilter, search, setSearch, prio, setPrio,
     soundOn, setSoundOn, goalModal, openGoalModal: (draft = null) => setGoalModal({ draft }), closeGoalModal: () => setGoalModal(null),
     freshId, focusReq, consumeFocus: () => setFocusReq(null), openGoal,
     lighten, openLighten: (date) => setLighten({ date }), closeLighten: () => setLighten(null),
     calendarFocus, consumeCalendarFocus: () => setCalendarFocus(null),
     openCalendarDay: (key) => { setView('calendar'); setCalendarFocus({ key, n: Date.now() }); },
-    setEstimate,
+    plannerAt, setPlannerAt,
+    openPlanner: (horizon, key) => { setPlannerAt({ horizon, key }); setView('planner'); },
+    openDay: (key) => { setPlannerAt({ horizon: 'DAILY', key }); setView('planner'); },
+    partners, refreshPartners, setPartners, partnerAction, unreadTotal, setGoalPrivate,
+    dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan,
     activeGoals, visibleGoals, rewardsTotal, notif, now, slipped, rescheduleItems,
     toastMsg, toast, dismissToast, rewardQueue, claimReward: () => {
       const item = rewardQueue[0];
@@ -274,7 +328,7 @@ export function AppProvider({ children }) {
       toast(`${TIERS[item.rank].name} badge saved. Rewards: ${reviews.length - rewardQueue.length + 1}`);
     },
     updateProfile, uploadAvatar, removeAvatar,
-    signIn, signOut, createGoal, toggleTask, addTask, setReminder, archiveGoal, restoreGoal,
+    signIn, signOut, createGoal, toggleTask, addTask, archiveGoal, restoreGoal,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

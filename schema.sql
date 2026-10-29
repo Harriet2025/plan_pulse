@@ -7,9 +7,14 @@ CREATE DATABASE IF NOT EXISTS auragoal
 USE auragoal;
 
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS partner_shares;
+DROP TABLE IF EXISTS partner_messages;
+DROP TABLE IF EXISTS partnerships;
 DROP TABLE IF EXISTS notification_log;
 DROP TABLE IF EXISTS push_subscriptions;
 DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS day_plan_marks;
+DROP TABLE IF EXISTS day_plans;
 DROP TABLE IF EXISTS reviews;
 DROP TABLE IF EXISTS sub_plans;
 DROP TABLE IF EXISTS goals;
@@ -62,9 +67,10 @@ CREATE TABLE goals (
   title       VARCHAR(255) NOT NULL,
   category_id INT UNSIGNED NULL,
   priority    ENUM('HIGH','MEDIUM','LOW') NOT NULL DEFAULT 'MEDIUM',
-  timeframe   ENUM('DAILY','WEEKLY','MONTHLY','SEMESTER','YEARLY') NOT NULL DEFAULT 'DAILY',
-  due_date    DATE NULL,
+  timeframe   ENUM('WEEKLY','MONTHLY','YEARLY') NOT NULL DEFAULT 'WEEKLY',  -- the horizon: a goal for a week, month or year
+  due_date    DATE NULL,                                 -- places the goal in its period (the week, month or year containing it)
   quote       VARCHAR(500) NULL,                         -- motivational quote
+  is_private  TINYINT(1) NOT NULL DEFAULT 0,             -- hidden from accountability partners
   status      ENUM('ACTIVE','COMPLETED','ARCHIVED') NOT NULL DEFAULT 'ACTIVE',
   completed_at TIMESTAMP NULL DEFAULT NULL,              -- set when every sub-plan is done
   created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -89,8 +95,9 @@ CREATE TABLE sub_plans (
   goal_id          INT UNSIGNED NOT NULL,
   task_description VARCHAR(500) NOT NULL,
   is_completed     TINYINT(1)   NOT NULL DEFAULT 0,
-  remind_at        DATETIME     NULL,
-  estimate_min     SMALLINT UNSIGNED NULL,              -- how long the task should take, in minutes
+  completed_at     DATETIME     NULL,                   -- when it was ticked, for the partners' weekly scoreboard
+  remind_at        DATETIME     NULL,                   -- unused since migration 009 (times live on day_plans)
+  estimate_min     SMALLINT UNSIGNED NULL,              -- unused since migration 009
   PRIMARY KEY (id),
   KEY idx_sub_plans_goal (goal_id, is_completed),
   KEY idx_sub_plans_remind (remind_at),
@@ -98,6 +105,36 @@ CREATE TABLE sub_plans (
     FOREIGN KEY (goal_id) REFERENCES goals (id)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT chk_sub_plans_completed CHECK (is_completed IN (0, 1))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------
+-- day_plans (a day's own plans; they do not belong to a goal)
+-- ---------------------------------------------------------------
+CREATE TABLE day_plans (
+  id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id      INT UNSIGNED NOT NULL,
+  title        VARCHAR(255) NOT NULL,
+  plan_date    DATE         NOT NULL,                  -- the day, or the first day of a repeating plan
+  start_time   TIME         NULL,                      -- NULL = any time that day
+  duration_min SMALLINT UNSIGNED NULL,                 -- how long it takes, 5 to 720 minutes
+  repeat_rule  ENUM('NONE','DAILY','WEEKLY','MONTHLY') NOT NULL DEFAULT 'NONE',
+  repeat_days  TINYINT UNSIGNED NOT NULL DEFAULT 0,    -- WEEKLY: bit 0 = Monday ... bit 6 = Sunday
+  repeat_until DATE         NULL,                      -- last day a repeating plan happens; NULL = no end
+  is_private   TINYINT(1)   NOT NULL DEFAULT 0,        -- hidden from accountability partners
+  created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_day_plans_user_date (user_id, plan_date),
+  CONSTRAINT fk_day_plans_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Which days a plan was done, or skipped (one day of a repeating plan)
+CREATE TABLE day_plan_marks (
+  day_plan_id INT UNSIGNED NOT NULL,
+  on_date     DATE         NOT NULL,
+  state       ENUM('DONE','SKIPPED') NOT NULL,
+  marked_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (day_plan_id, on_date),
+  CONSTRAINT fk_day_plan_marks_plan FOREIGN KEY (day_plan_id) REFERENCES day_plans (id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------
@@ -170,15 +207,66 @@ CREATE TABLE notification_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------
+-- Accountability partners: an invite to an email address, accepted by whoever has it; then a shared chat
+-- ---------------------------------------------------------------
+CREATE TABLE partnerships (
+  id              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  inviter_id      INT UNSIGNED NOT NULL,
+  invitee_email   VARCHAR(255) NOT NULL,              -- as typed (lower case); matched when that person signs in
+  invitee_id      INT UNSIGNED NULL,                  -- set when the invite is accepted
+  status          ENUM('PENDING','ACCEPTED') NOT NULL DEFAULT 'PENDING',
+  inviter_read_id INT UNSIGNED NOT NULL DEFAULT 0,     -- the last message each side has seen, for unread counts
+  invitee_read_id INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  accepted_at     TIMESTAMP    NULL DEFAULT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_partnership_invite (inviter_id, invitee_email),
+  KEY idx_partnership_email (invitee_email),
+  KEY idx_partnership_invitee (invitee_id),
+  CONSTRAINT fk_partnership_inviter FOREIGN KEY (inviter_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_partnership_invitee FOREIGN KEY (invitee_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE partner_messages (
+  id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  partnership_id INT UNSIGNED NOT NULL,
+  sender_id      INT UNSIGNED NOT NULL,
+  kind           ENUM('TEXT','CHEER','NUDGE','IMAGE','VIDEO') NOT NULL DEFAULT 'TEXT',
+  body           VARCHAR(1000) NOT NULL,             -- the text, or the cheer's emoji
+  ref_goal_id    INT UNSIGNED NULL,                  -- the goal a cheer is for
+  media_file     VARCHAR(80)  NULL,                  -- a photo or video: its file name inside storage/chat/<partnership id>/
+  media_mime     VARCHAR(40)  NULL,
+  media_w        SMALLINT UNSIGNED NULL,             -- image size, so the chat keeps its place while it loads
+  media_h        SMALLINT UNSIGNED NULL,
+  created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_messages_partnership (partnership_id, id),
+  KEY idx_messages_sender (sender_id, created_at),
+  CONSTRAINT fk_messages_partnership FOREIGN KEY (partnership_id) REFERENCES partnerships (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_messages_sender FOREIGN KEY (sender_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_messages_goal FOREIGN KEY (ref_goal_id) REFERENCES goals (id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Which of the owner's categories a partner may see (category_id 0 = the owner's day plans). Nothing until chosen.
+CREATE TABLE partner_shares (
+  partnership_id INT UNSIGNED NOT NULL,
+  owner_id       INT UNSIGNED NOT NULL,
+  category_id    INT UNSIGNED NOT NULL,
+  PRIMARY KEY (partnership_id, owner_id, category_id),
+  CONSTRAINT fk_shares_partnership FOREIGN KEY (partnership_id) REFERENCES partnerships (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_shares_owner FOREIGN KEY (owner_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------
 -- Default categories
 -- ---------------------------------------------------------------
-INSERT INTO categories (name, color_code) VALUES
-  ('School',   '#3B82F6'),
-  ('Work',     '#F59E0B'),
-  ('Church',   '#8B5CF6'),
-  ('Daily',    '#10B981'),
-  ('Weekly',   '#06B6D4'),
-  ('Monthly',  '#EC4899'),
-  ('Yearly',   '#EF4444'),
-  ('Personal', '#14B8A6'),
-  ('Others',   '#6B7280');
+-- Life areas only (the ids match src/lib/constants.js). Day / Week / Month / Year are horizons, not categories.
+INSERT INTO categories (id, name, color_code) VALUES
+  (1,  'School',   '#3F6F9B'),
+  (2,  'Work',     '#B38A3A'),
+  (3,  'Church',   '#8A6E9B'),
+  (8,  'Personal', '#3F8F83'),
+  (9,  'Others',   '#8A7F76'),
+  (10, 'Health',   '#5F8F6B'),
+  (11, 'Family',   '#B8647D'),
+  (12, 'Finance',  '#9A7B4F');

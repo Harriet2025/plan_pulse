@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import NotifList, { useNotifCount } from './NotifList';
 import { cardShadow } from './ui';
 
-const TITLES = { active: 'Dashboard', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
+const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
 const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal/80 hover:border-rust';
 
 function NotificationBell() {
@@ -50,7 +50,7 @@ function NotificationBell() {
             </div>
             <NotifList
               className="grid max-h-[26rem] gap-1 overflow-y-auto overflow-x-hidden p-2" onPick={() => setOpen(false)}
-              empty={<p className="px-4 py-8 text-center text-sm text-muted">You're all caught up. Set a reminder on any task with its bell icon.</p>}
+              empty={<p className="px-4 py-8 text-center text-sm text-muted">You're all caught up. Give a day plan a time and you get a reminder when it starts.</p>}
             />
           </motion.div>
         )}
