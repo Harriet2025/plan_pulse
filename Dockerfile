@@ -19,10 +19,13 @@ RUN { \
       echo 'log_errors=On'; \
     } > /usr/local/etc/php/conf.d/auragoal.ini
 
-# Only backend/api is reachable from the web; the rest of backend/ (helpers, worker, installer) is not
+# Only backend/api is reachable from the web; the rest of backend/ (helpers, worker, installer) is not.
+# /api/auth and /api/auth.php both work (the website calls them without .php, which some hosts block).
 RUN { \
       echo '<VirtualHost *:${PORT}>'; \
       echo '  DocumentRoot /app/backend'; \
+      echo '  RewriteEngine On'; \
+      echo '  RewriteRule ^/api/([A-Za-z_]+)$ /api/$1.php [L]'; \
       echo '  <Directory /app/backend>'; \
       echo '    Require all denied'; \
       echo '    AllowOverride None'; \
@@ -34,6 +37,7 @@ RUN { \
       echo '  CustomLog /dev/stdout combined'; \
       echo '</VirtualHost>'; \
     } > /etc/apache2/sites-available/000-default.conf \
+ && a2enmod rewrite \
  && echo 'Listen ${PORT}' > /etc/apache2/ports.conf \
  && echo 'ServerTokens Prod' >> /etc/apache2/apache2.conf \
  && echo 'ServerSignature Off' >> /etc/apache2/apache2.conf

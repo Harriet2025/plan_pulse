@@ -6,36 +6,40 @@
 
 const BASE = '/api';
 
+/**
+ * The address of an endpoint, without ".php": "auth.php?x=1" -> "/api/auth?x=1". Hosts such as Vercel block any
+ * address ending in .php, so the extension is added back where PHP runs: by the Vite proxy in development
+ * (vite.config.js) and by the forwarding rule in production (vercel.json).
+ */
+const endpoint = (path) => `${BASE}/${path.replace(/\.php(?=\?|$)/, '')}`;
+
+// On someone's own computer the fix is to start the PHP server; on a website, its back end is not reachable
+const onLaptop = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const UNREACHABLE = onLaptop
+  ? "Can't reach the PHP server. Open a terminal in the project folder, run npm run api, then press Try again."
+  : "Can't reach the AuraGoal server right now. Please try again in a little while.";
+
 async function request(path, { method = 'GET', body } = {}) {
   // FormData (file uploads) sets its own multipart Content-Type; everything else is JSON
   const isForm = typeof FormData !== 'undefined' && body instanceof FormData;
   let res;
   try {
-    res = await fetch(`${BASE}/${path}`, {
+    res = await fetch(endpoint(path), {
       method,
       credentials: 'same-origin', // sends the login session cookie
       headers: { Accept: 'application/json', ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
     });
   } catch {
-    throw Object.assign(new Error("Can't reach the server. Start the PHP server with npm run api, then try again."), { network: true });
+    throw Object.assign(new Error(onLaptop ? UNREACHABLE : "Can't reach the AuraGoal server. Check your internet connection and try again."), { network: true });
   }
 
   let data = null;
   try { data = await res.json(); } catch { /* not JSON */ }
-  // Our PHP answers { success, error: "message" }. Anything else (for example a host's own
-  // { error: { code, message } } when there is no PHP behind /api) means the AuraGoal server was not reached.
-  if (data && (typeof data.error === 'object' || (!('success' in data) && !res.ok))) {
-    throw Object.assign(new Error(res.status === 404
-      ? "This website can't reach the AuraGoal server. Its PHP back end and database need to be online too."
-      : `The server sent an unexpected response (HTTP ${res.status}).`), { network: true, status: res.status });
-  }
-  if (!data) {
-    // No JSON back almost always means the dev proxy could not reach PHP (it answers 500 or 502 itself)
-    const msg = res.status >= 500
-      ? "Can't reach the PHP server. Open a terminal in the project folder, run npm run api, then press Try again."
-      : `The server sent an unexpected response (HTTP ${res.status}).`;
-    throw Object.assign(new Error(msg), { network: true, status: res.status });
+  // Our PHP always answers JSON with `success`. No JSON, or someone else's JSON (a host's own { error: { code } },
+  // a firewall's "Forbidden"), means the AuraGoal server itself was not reached.
+  if (!data || typeof data !== 'object' || typeof data.error === 'object' || (!('success' in data) && !res.ok)) {
+    throw Object.assign(new Error(UNREACHABLE), { network: true, status: res.status });
   }
   if (!res.ok || data.success === false) {
     throw Object.assign(new Error(data.error || `Request failed (HTTP ${res.status}).`), { status: res.status, auth: !!data.auth_required });
@@ -108,7 +112,7 @@ export async function deleteAvatar() {
  * `partner` asks for an accountability partner's photo (the server only serves it between partners).
  */
 export const avatarUrl = (user, partner = false) =>
-  user?.avatar_v ? `${BASE}/avatar.php?${partner ? `user=${user.id}&` : ''}v=${user.avatar_v}` : null;
+  user?.avatar_v ? endpoint(`avatar.php?${partner ? `user=${user.id}&` : ''}v=${user.avatar_v}`) : null;
 
 // ---- Reads -------------------------------------------------------------
 
@@ -217,7 +221,7 @@ export async function sendMessage(partnershipId, action, fields = {}, after = 0)
 }
 
 /** A partner chat photo or video's URL (the server only serves it to the two partners). */
-export const chatMediaUrl = (media) => `${BASE}/${media.url}`;
+export const chatMediaUrl = (media) => endpoint(media.url);
 
 /**
  * Sends a photo or video (with an optional caption) to a partner. `onProgress(0..1)` reports the upload.
@@ -229,7 +233,7 @@ export function sendMedia(partnershipId, file, caption = '', after = 0, onProgre
     form.append('p', partnershipId); form.append('action', 'media'); form.append('caption', caption); form.append('after', after);
     form.append('file', file, file.name || 'upload');
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${BASE}/messages.php`);
+    xhr.open('POST', endpoint('messages.php'));
     xhr.withCredentials = true;
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
