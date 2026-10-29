@@ -27,6 +27,12 @@ Open **http://localhost:5173**. Vite forwards `/api/*` to the PHP server, so the
 
 `npm run api` uses XAMPP's PHP at `C:\xampp\php\php.exe`. The `php` on your PATH (`C:\php`) is misconfigured: its `php.ini` points at extension files that do not exist, so it cannot load `pdo_mysql`.
 
+## Putting it online (Vercel + Railway)
+
+The React front end is on **Vercel**; the PHP API, MySQL, stored files and the reminder worker run on **Railway** from the `Dockerfile` in this folder. Vercel forwards `/api/*` to Railway (`vercel.json`), so the browser sees one website and logins work everywhere.
+
+On Railway: deploy this GitHub repo (it builds the `Dockerfile`), add a **MySQL** database, add a **volume** mounted at `/app/storage` (photos, videos, sessions, push keys), and set these variables on the app service: `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` (as references to the MySQL service), `APP_URL` (the Vercel address) and, for email, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. On first start `backend/install.php` creates the tables in the empty database. Without a `config.local.php`, all settings come from these variables (`env_config()` in `backend/db.php`).
+
 ## Forgotten passwords and email
 
 "Forgot password?" on the sign-in screen emails a one-time link that lasts 60 minutes (at most 3 per account per hour). Only a hash of the link's token is stored.

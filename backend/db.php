@@ -83,7 +83,13 @@ function start_session(): void
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
-    $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    // HTTPS directly, or behind a proxy that did the HTTPS (Railway, and Vercel in front of it)
+    $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+    // Keep sessions with the app's storage when it has one, so a redeploy does not sign everyone out
+    $sessions = dirname(__DIR__) . '/storage/sessions';
+    if ((is_dir($sessions) || @mkdir($sessions, 0700, true)) && is_writable($sessions)) {
+        ini_set('session.save_path', $sessions);
+    }
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
     ini_set('session.gc_maxlifetime', (string) SESSION_LIFETIME);
@@ -193,7 +199,33 @@ function app_config(): array
 {
     static $cfg = null;
     if ($cfg === null) {
-        $cfg = is_file(__DIR__ . '/config.local.php') ? (array) require __DIR__ . '/config.local.php' : [];
+        $cfg = is_file(__DIR__ . '/config.local.php') ? (array) require __DIR__ . '/config.local.php' : env_config();
+    }
+    return $cfg;
+}
+
+/**
+ * The same settings from environment variables, for a server with no config.local.php (such as Railway).
+ * The database uses AURAGOAL_DB_* or, failing that, the MYSQL* variables Railway's MySQL service provides.
+ * Email is set up with SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS and SMTP_FROM.
+ */
+function env_config(): array
+{
+    $env = fn(string ...$names) => array_reduce($names, fn($found, $n) => $found ?? (getenv($n) !== false && getenv($n) !== '' ? getenv($n) : null), null);
+    $cfg = array_filter([
+        'host'    => $env('AURAGOAL_DB_HOST', 'MYSQLHOST'),
+        'port'    => $env('AURAGOAL_DB_PORT', 'MYSQLPORT'),
+        'name'    => $env('AURAGOAL_DB_NAME', 'MYSQLDATABASE'),
+        'user'    => $env('AURAGOAL_DB_USER', 'MYSQLUSER'),
+        'pass'    => $env('AURAGOAL_DB_PASS', 'MYSQLPASSWORD'),
+        'app_url' => $env('APP_URL'),
+    ], fn($v) => $v !== null);
+    if ($env('SMTP_HOST')) {
+        $cfg['smtp'] = [
+            'host' => $env('SMTP_HOST'), 'port' => (int) ($env('SMTP_PORT') ?? 587), 'secure' => $env('SMTP_SECURE') ?? 'tls',
+            'user' => $env('SMTP_USER'), 'pass' => $env('SMTP_PASS'), 'from' => $env('SMTP_FROM') ?? $env('SMTP_USER'),
+            'from_name' => $env('SMTP_FROM_NAME') ?? 'AuraGoal',
+        ];
     }
     return $cfg;
 }
