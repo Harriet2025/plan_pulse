@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 require __DIR__ . '/../db.php';
+require __DIR__ . '/../mailer.php';
+require __DIR__ . '/../webpush.php';
+require __DIR__ . '/../notify.php';
 require __DIR__ . '/../partners.php';
 
 $pdo = get_db();
@@ -14,12 +17,33 @@ $method = require_method('GET', 'POST');
 // invites they sent that are still waiting.
 //
 // POST /api/partners.php
-//   { action: "invite",  email }    invite someone (they accept it when they sign in with that email)
+//   { action: "invite",  email }    invite someone: they get an email (and a push, if they use AuraGoal already)
+//                                   with a link that opens the invite; they accept it signed in with that email
 //   { action: "accept",  id }       accept an invite sent to you
 //   { action: "decline", id }       decline it, or cancel one you sent
 //   { action: "remove",  id }       stop being partners (the chat is deleted for both)
 //   { action: "share",   id, categories: [ids], day_plans: bool }   what this partner may see of yours
 // ---------------------------------------------------------------
+
+/** Emails (and pushes to) a person; a mail or push failure never undoes what was just saved. True when the email went out. */
+function tell_user(PDO $pdo, string $to, ?int $userId, string $subject, array $mail, array $push): bool
+{
+    $sent = false;
+    try {
+        // Without SMTP, send_mail() writes the message to storage/mail.log instead, which is not "sent"
+        $sent = send_mail($to, $subject, $mail[0], $mail[1]) && mail_is_configured();
+    } catch (Throwable $e) {
+        error_log('[AuraGoal] partner email failed: ' . $e->getMessage());
+    }
+    if ($userId) {
+        try {
+            push_to_user($pdo, $userId, ['kind' => 'chat'] + $push);
+        } catch (Throwable $e) {
+            error_log('[AuraGoal] partner push failed: ' . $e->getMessage());
+        }
+    }
+    return $sent;
+}
 
 function partners_payload(PDO $pdo, int $userId): array
 {
@@ -106,7 +130,18 @@ if ($action === 'invite') {
         json_error('You have already invited this person, or you are partners already.', 409);
     }
     $pdo->prepare('INSERT INTO partnerships (inviter_id, invitee_email) VALUES (?, ?)')->execute([$userId, $email]);
-    json_response(['success' => true, 'message' => 'Invite sent. When they sign in to AuraGoal with that email, they can accept it.'] + partners_payload($pdo, $userId), 201);
+
+    // The link opens AuraGoal on the invite with their email filled in ("#" keeps it out of server logs)
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+    $stmt->execute([$email]);
+    $theirId = ($found = $stmt->fetchColumn()) ? (int) $found : null;
+    $from = (string) partner_profile($pdo, $userId)['display_name'];
+    $link = app_url() . '/#invite=' . rawurlencode($email) . ($theirId ? '&account=1' : '');
+    $emailed = tell_user($pdo, $email, $theirId, "{$from} invited you to be accountability partners", invite_email($from, $email, (bool) $theirId, $link),
+        ['title' => "{$from} wants to be your accountability partner", 'body' => 'Open Partners to accept.', 'tag' => 'invite', 'url' => app_url() . '/#partners']);
+    $message = $emailed ? "Invite emailed to {$email}. They accept it from the link, or in Partners when they sign in."
+        : "Invite saved. Email isn't set up on this server yet, so tell them to sign in to AuraGoal with {$email} to accept it.";
+    json_response(['success' => true, 'message' => $message] + partners_payload($pdo, $userId), 201);
 }
 
 $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
@@ -132,7 +167,14 @@ if ($action === 'accept') {
         json_error('You are already partners.', 409);
     }
     $pdo->prepare("UPDATE partnerships SET status = 'ACCEPTED', invitee_id = ?, accepted_at = NOW() WHERE id = ?")->execute([$userId, $id]);
-    json_response(['success' => true, 'message' => 'You are now accountability partners.'] + partners_payload($pdo, $userId));
+
+    // Let the inviter know, so they can choose what to share
+    $inviter = (int) $mine['inviter_id'];
+    $me = (string) partner_profile($pdo, $userId)['display_name'];
+    tell_user($pdo, user_email($pdo, $inviter), $inviter, "{$me} accepted your AuraGoal invite",
+        accepted_email((string) partner_profile($pdo, $inviter)['display_name'], $me, app_url() . '/#partners'),
+        ['title' => "{$me} accepted your invite 🎉", 'body' => "Choose what {$me} can see of yours.", 'tag' => 'partner-' . $id, 'url' => app_url() . '/#partners']);
+    json_response(['success' => true, 'message' => 'You are partners now. Choose what they can see of yours.', 'accepted' => (int) $id] + partners_payload($pdo, $userId));
 }
 
 if ($action === 'share') {

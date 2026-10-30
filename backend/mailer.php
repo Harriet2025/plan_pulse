@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * Sends email for AuraGoal (password-reset links).
+ * Sends email for AuraGoal (password-reset links and partner invites).
  *
  *   send_mail($to, $subject, $plainText, $html): bool
  *
@@ -153,4 +153,35 @@ function reset_email(string $name, string $link, int $minutes): array
         . "<p><a href=\"{$l}\" style=\"display:inline-block;background:#B85C38;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold\">Reset my password</a></p>"
         . "<p style=\"font-size:13px;color:#76685F\">The link works once and expires in {$minutes} minutes. If you did not ask for this, ignore this email; your password has not changed.</p></div>";
     return [$text, $html];
+}
+
+/** A short email with one button: [text, html]. $lines are plain paragraphs before the button. */
+function button_email(string $name, array $lines, string $button, string $link, string $footer): array
+{
+    $text = "Hi {$name},\n\n" . implode("\n\n", $lines) . "\n\n{$button}: {$link}\n\n{$footer}\n\nAuraGoal";
+    $e = fn(string $s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    $html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#352D29">'
+        . '<h2 style="color:#B85C38;margin:0 0 16px">AuraGoal</h2><p>Hi ' . $e($name) . ',</p>'
+        . implode('', array_map(fn($l) => '<p>' . $e($l) . '</p>', $lines))
+        . '<p><a href="' . $e($link) . '" style="display:inline-block;background:#B85C38;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold">' . $e($button) . '</a></p>'
+        . '<p style="font-size:13px;color:#76685F">' . $e($footer) . '</p></div>';
+    return [$text, $html];
+}
+
+/** The partner invite: $hasAccount picks "sign in" or "create an account" with the invited address. */
+function invite_email(string $from, string $to, bool $hasAccount, string $link): array
+{
+    return button_email('there', [
+        "{$from} invited you to be their accountability partner on AuraGoal. Partners see the goals and plans they choose to share, chat, cheer each other on and keep a chat streak going.",
+        $hasAccount ? "Sign in with {$to} to accept." : "Create a free account with {$to} to accept. It takes a minute.",
+    ], $hasAccount ? 'Accept the invite' : 'Join and accept', $link, "If you don't know {$from}, ignore this email; nothing happens unless you accept.");
+}
+
+/** Tells the inviter their invite was accepted, so they can choose what to share. */
+function accepted_email(string $name, string $partner, string $link): array
+{
+    return button_email($name, [
+        "{$partner} accepted your invite. You are accountability partners now.",
+        "Choose which of your categories {$partner} can see; they see nothing of yours until you do.",
+    ], 'Choose what to share', $link, 'You can change what you share, or remove a partner, at any time in Partners.');
 }

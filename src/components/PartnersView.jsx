@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, ImagePlus, Lock, Messa
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { catIcon, horizonOf } from '../lib/constants';
-import { cn, fmtSpan, parseDay, periodLabel } from '../lib/utils';
+import { cn, fmtSpan, parseDay, periodLabel, readInvite } from '../lib/utils';
 import { Avatar, Bar, cardShadow } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
@@ -44,7 +44,7 @@ function InviteForm() {
   return (
     <form onSubmit={submit} className="rounded-3xl border border-oat bg-soft p-4" style={cardShadow}>
       <p className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><UserPlus className="h-4 w-4 text-rust-dark" aria-hidden="true" />Invite a partner</p>
-      <p className="mt-1 text-xs text-muted">They accept it when they sign in to AuraGoal with this email. Up to 5 partners.</p>
+      <p className="mt-1 text-xs text-muted">We email them a link to accept. Up to 5 partners.</p>
       <div className="mt-3 flex gap-2">
         <label className="sr-only" htmlFor="partnerEmail">Their email</label>
         <input id="partnerEmail" type="email" required maxLength={255} className="field !py-2" placeholder="friend@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
@@ -54,7 +54,7 @@ function InviteForm() {
   );
 }
 
-function Invites() {
+function Invites({ onAccepted }) {
   const { partners: { incoming, outgoing }, partnerAction, toast } = useApp();
   if (!incoming.length && !outgoing.length) return null;
   return (
@@ -69,7 +69,7 @@ function Invites() {
             </div>
           </div>
           <div className="mt-2.5 flex gap-2">
-            <button type="button" onClick={async () => { const m = await partnerAction('accept', { id: i.id }); if (m) toast(typeof m === 'string' ? m : 'You are partners now.'); }}
+            <button type="button" onClick={async () => { const m = await partnerAction('accept', { id: i.id }); if (m) { toast(typeof m === 'string' ? m : 'You are partners now.'); onAccepted?.(i.id); } }}
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust py-2 text-xs font-extrabold text-white hover:bg-rust-dark"><Check className="h-3.5 w-3.5" aria-hidden="true" />Accept</button>
             <button type="button" onClick={() => partnerAction('decline', { id: i.id })} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Decline</button>
           </div>
@@ -538,10 +538,14 @@ function PartnerPanel({ entry, onBack }) {
 // ---------------------------------------------------------------------------------------------------------------
 
 export default function PartnersView() {
-  const { partners: { partners }, refreshPartners } = useApp();
+  const { partners: { partners }, refreshPartners, user, toast } = useApp();
   const [selected, setSelected] = useState(null);
   useEffect(() => { refreshPartners(); }, [refreshPartners]);
-  useEffect(() => { if (window.location.hash === '#partners') window.history.replaceState(null, '', window.location.pathname + window.location.search); }, []);
+  useEffect(() => {
+    const invite = readInvite();
+    if (invite && invite.email.toLowerCase() !== user.email.toLowerCase()) toast(`That invite was sent to ${invite.email}. Sign out and sign in with that email to accept it.`);
+    if (invite || window.location.hash === '#partners') window.history.replaceState(null, '', window.location.pathname + window.location.search);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // On wide screens the first partner opens straight away
   useEffect(() => {
     if (selected && !partners.some((p) => p.id === selected)) setSelected(null);
@@ -563,7 +567,7 @@ export default function PartnersView() {
             <li className="flex items-center gap-2"><Crown className="h-4 w-4" aria-hidden="true" />A weekly race of plans done</li>
           </ul>
         </section>
-        <Invites />
+        <Invites onAccepted={setSelected} />
         <InviteForm />
       </div>
     );
@@ -573,7 +577,7 @@ export default function PartnersView() {
     <div className="grid items-start gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
       <aside className={cn('grid gap-4', entry && 'hidden lg:grid')} aria-label="Partners and invites">
         <PartnerList selected={selected} onSelect={setSelected} />
-        <Invites />
+        <Invites onAccepted={setSelected} />
         <InviteForm />
       </aside>
       {/* No exit animations or `layout` here: they would keep App's page transition from finishing */}

@@ -412,3 +412,10 @@ export function computeAnalytics(goals, allCategories = []) {
     categories,
   };
 }
+
+/** The partner invite in an emailed link (#invite=<their email>[&account=1]), or null. */
+export function readInvite() {
+  const m = /^#invite=([^&]+)(&account=1)?$/.exec(window.location.hash);
+  if (!m) return null;
+  try { return { email: decodeURIComponent(m[1]), account: Boolean(m[2]) }; } catch { return null; }
+}

@@ -3,7 +3,7 @@ import * as api from '../api';
 import { CATEGORIES, TIERS, tierOf } from '../lib/constants';
 import { playSound, setSoundEnabled } from '../lib/sound';
 import { pushFlag } from '../lib/push';
-import { addDays, daysUntil, fmtSpan, localDate, plansOn } from '../lib/utils';
+import { addDays, daysUntil, fmtSpan, localDate, plansOn, readInvite } from '../lib/utils';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -40,8 +40,8 @@ export function AppProvider({ children }) {
   const setFocus = (f) => { setFocusState(f); try { f ? localStorage.setItem('auragoal.focus', JSON.stringify(f)) : localStorage.removeItem('auragoal.focus'); } catch { /* ignore */ } };   // a goal just completed: its reflection opens after the badge
   const [reviews, setReviews] = useState([]);  // every badge earned
 
-  // A push about a partner's message opens the app at #partners
-  const [view, setView] = useState(() => (window.location.hash === '#partners' ? 'partners' : 'active'));
+  // A push about a partner's message opens the app at #partners, and an emailed invite at #invite=...
+  const [view, setView] = useState(() => (window.location.hash === '#partners' || readInvite() ? 'partners' : 'active'));
   const [activeCat, setActiveCat] = useState('all');
   const [horizonFilter, setHorizonFilter] = useState('all');   // all, or WEEKLY / MONTHLY / YEARLY
   const [search, setSearch] = useState('');
@@ -107,9 +107,10 @@ export function AppProvider({ children }) {
 
   // ---- Auth
   const signIn = async (mode, fields) => {
+    const invited = readInvite();   // read first: Partners clears the link as soon as it opens
     const u = mode === 'signup' ? await api.signup(fields) : await api.login(fields);
     await refresh();
-    setView('active'); setActiveCat('all'); setSearch(''); setPrio('all');
+    setView(invited ? 'partners' : 'active'); setActiveCat('all'); setSearch(''); setPrio('all');
     toast(mode === 'signup' ? `Welcome, ${u.display_name}!` : `Welcome back, ${u.display_name}.`);
   };
   const signOut = async () => {

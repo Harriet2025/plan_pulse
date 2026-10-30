@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, BellRing, Check, Eye, EyeOff, LayoutDashboard, ListChecks, Mail, RefreshCw, TriangleAlert, Trophy } from 'lucide-react';
+import { ArrowLeft, BellRing, Check, Eye, EyeOff, LayoutDashboard, ListChecks, Mail, RefreshCw, TriangleAlert, Trophy, Users } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
+import { readInvite } from '../lib/utils';
 import { LinenTexture, Logo, cardShadow } from './ui';
 
 const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted';
@@ -23,12 +24,14 @@ const COPY = {
 // mode: signup | login | forgot | reset.  resetToken comes from the emailed link (#reset=...).
 export default function AuthScreen({ resetToken = null, onResetDone }) {
   const { signIn, bootError, boot, user, toast } = useApp();   // `user` is set when someone who is already signed in opens a reset link
+  const [invite] = useState(readInvite);   // opened from a partner invite email: their email is filled in
   const [mode, setMode] = useState(() => {
     if (resetToken) return 'reset';
+    if (invite) return invite.account ? 'login' : 'signup';
     try { return localStorage.getItem('auragoal.hasAccount') ? 'login' : 'signup'; } catch { return 'signup'; }
   });
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(invite?.email ?? '');
   const [password, setPassword] = useState('');
   const [again, setAgain] = useState('');
   const [show, setShow] = useState(false);
@@ -132,6 +135,13 @@ export default function AuthScreen({ resetToken = null, onResetDone }) {
 
             <h2 id="authTitle" className="text-2xl font-extrabold tracking-tight text-charcoal">{title}</h2>
             <p className="mt-1 text-sm text-muted">{subtitle}</p>
+
+            {invite && (mode === 'login' || mode === 'signup') && (
+              <p className="mt-4 flex items-start gap-2 rounded-xl border border-rust/30 bg-rust/5 px-3 py-2 text-sm text-charcoal" role="status">
+                <Users className="mt-0.5 h-4 w-4 shrink-0 text-rust-dark" aria-hidden="true" />
+                <span>You have a partner invite. {mode === 'signup' ? 'Create your account' : 'Sign in'} with <b>{invite.email}</b> to accept it.</span>
+              </p>
+            )}
 
             {notice && mode !== 'forgot' && (
               <p className="mt-4 flex items-start gap-2 rounded-xl border border-success/40 bg-success/10 px-3 py-2 text-sm text-success" role="status">
