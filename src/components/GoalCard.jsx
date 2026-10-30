@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
+import { BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PRIORITY, catIcon } from '../lib/constants';
 import { dueInfo, goalPeriodLabel, progressOf } from '../lib/utils';
@@ -56,9 +56,9 @@ function TaskItem({ goal, task }) {
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwardedRef) {
-  const { categories, freshId, focusReq, consumeFocus, addTask, archiveGoal, deleteGoal, setGoalPrivate, partners, openGoalEditor, openReflection, journal } = useApp();
+  const { categories, freshId, focusReq, consumeFocus, addTask, deleteGoal, setGoalPrivate, partners, openGoalEditor, openReflection, journal } = useApp();
   const hasPartners = partners.partners.length > 0;
-  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, archive...
+  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, reflect, private, delete
   const [showAll, setShowAll] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -181,7 +181,6 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
                   title={g.is_private ? 'Share this goal with your partners again' : 'Hide this goal from your partners'} className={tool}>
                   {g.is_private ? <><Users className="h-3.5 w-3.5" aria-hidden="true" />Share with partners</> : <><Lock className="h-3.5 w-3.5" aria-hidden="true" />{hasPartners ? 'Make private' : 'Private'}</>}
                 </button>
-                <TwoTapButton onConfirm={() => archiveGoal(g.id)} icon={Archive} label="Archive this goal (it stays in History)" confirmText="Tap again to archive" className={tool}>Archive goal</TwoTapButton>
                 <TwoTapButton onConfirm={() => deleteGoal(g.id)} icon={Trash2} label="Delete this goal and its plans for good" confirmText="Tap again to delete for good"
                   className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-danger/10 hover:text-danger">Delete goal</TwoTapButton>
               </div>

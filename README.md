@@ -57,7 +57,7 @@ The **Planner** page has Day, Week, Month and Year tabs with ‹ › to move bet
 
 ## Deleting and reviewing
 
-- **Delete** a goal's plan with the 🗑 next to it, or a whole goal with **Delete goal** on its card (or from History). Both ask for a second tap, and deleting is for good; **Archive** keeps a goal in History instead.
+- **Delete** a goal's plan with the 🗑 next to it, or a whole goal with **Delete goal** on its card (or from History). Both ask for a second tap, and deleting is for good.
 - **Review** any day, week, month or year from the Planner (**Review this week**, also for past periods): everything planned in it (that period's goals with their plans, plus each day's plans up to today) with a tick box on each, so you can mark what you really completed, and your score. When a week, month or year ends, the dashboard offers to review it.
 
 ## Editing, your own categories, reflections and the journal
