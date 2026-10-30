@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { avatarUrl } from '../api';
@@ -80,5 +80,32 @@ export function Logo({ size = 'h-10 w-10', icon = 'h-5 w-5', text = 'text-xl', o
       </div>
       <span className={cn('font-extrabold tracking-tight', onDark ? 'text-white' : 'text-charcoal', text)}>Aura<span className={onDark ? '' : 'text-rust-dark'}>Goal</span></span>
     </div>
+  );
+}
+
+/**
+ * A button that needs two taps: the first asks "Tap again to …", the second does it. It resets after 3 seconds,
+ * so a stray tap never deletes anything.
+ */
+export function TwoTapButton({ onConfirm, children, confirmText, icon: Icon, className, armedClassName = 'bg-danger/10 text-danger', label }) {
+  const [armed, setArmed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (!armed) return undefined;
+    const t = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(t);
+  }, [armed]);
+  const tap = async () => {
+    if (!armed) { setArmed(true); return; }
+    setBusy(true);
+    await onConfirm();
+    setBusy(false); setArmed(false);
+  };
+  return (
+    <button type="button" onClick={tap} disabled={busy} aria-label={armed ? confirmText : label} title={armed ? undefined : label}
+      className={cn('inline-flex items-center gap-1.5 transition-colors disabled:opacity-60', className, armed && armedClassName)}>
+      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />}
+      {armed ? <span>{confirmText}</span> : children}
+    </button>
   );
 }

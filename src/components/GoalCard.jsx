@@ -1,19 +1,19 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, CalendarClock, CalendarRange, ChevronDown, Lock, Plus, Users } from 'lucide-react';
+import { Archive, CalendarClock, CalendarRange, ChevronDown, Lock, Plus, Trash2, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PRIORITY, catIcon } from '../lib/constants';
 import { dueInfo, goalPeriodLabel, progressOf } from '../lib/utils';
-import { Bar, cardShadow } from './ui';
+import { Bar, TwoTapButton, cardShadow } from './ui';
 
 const collapse = { initial: { height: 0, opacity: 0 }, animate: { height: 'auto', opacity: 1 }, exit: { height: 0, opacity: 0 }, transition: { duration: 0.3, ease: [0.2, 0.8, 0.2, 1] } };
 
 /** One of a goal's plans: a step towards it that you tick off once it is done. */
 function TaskItem({ goal, task }) {
-  const { toggleTask } = useApp();
+  const { toggleTask, deleteTask } = useApp();
   return (
-    <li>
-      <label className="relative flex cursor-pointer items-start gap-3 rounded-xl px-2 py-[.55rem] hover:bg-oat/50">
+    <li className="group flex items-start">
+      <label className="relative flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl px-2 py-[.55rem] hover:bg-oat/50">
         <input type="checkbox" className="peer sr-only" checked={task.done} onChange={(e) => toggleTask(goal.id, task.id, e.target.checked)} />
         <motion.span
           animate={task.done ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={{ duration: 0.35 }}
@@ -25,13 +25,17 @@ function TaskItem({ goal, task }) {
         </motion.span>
         <span className="ttext min-w-0 flex-1" data-done={task.done}>{task.text}</span>
       </label>
+      {/* Shows on hover or focus with a mouse; always there on a touch screen */}
+      <TwoTapButton onConfirm={() => deleteTask(task.id)} icon={Trash2} label={`Delete the plan "${task.text}"`} confirmText="Delete?"
+        className="mt-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-muted opacity-0 hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+        armedClassName="!opacity-100 bg-danger/10 text-danger" />
     </li>
   );
 }
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwardedRef) {
-  const { categories, freshId, focusReq, consumeFocus, addTask, archiveGoal, setGoalPrivate, partners } = useApp();
+  const { categories, freshId, focusReq, consumeFocus, addTask, archiveGoal, deleteGoal, setGoalPrivate, partners } = useApp();
   const hasPartners = partners.partners.length > 0;
   const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);
   const [text, setText] = useState('');
@@ -140,6 +144,8 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
                   className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-oat/60 ${armed ? 'text-danger' : 'text-muted hover:text-charcoal'}`}>
                   <Archive className="h-3.5 w-3.5" aria-hidden="true" /><span>{armed ? 'Tap again to archive' : 'Archive goal'}</span>
                 </button>
+                <TwoTapButton onConfirm={() => deleteGoal(g.id)} icon={Trash2} label="Delete this goal and its plans for good" confirmText="Tap again to delete for good"
+                  className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-danger/10 hover:text-danger">Delete goal</TwoTapButton>
               </div>
             </div>
           </motion.div>

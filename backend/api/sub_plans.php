@@ -6,8 +6,25 @@ require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
-$method = require_method('PATCH', 'POST');
+$method = require_method('PATCH', 'POST', 'DELETE');
 $in = read_json_body();
+
+// ---------------------------------------------------------------
+// DELETE /api/sub_plans.php   Body: { id }
+// Removes one plan from its goal. The goal's progress (and COMPLETED status) is worked out again.
+// ---------------------------------------------------------------
+if ($method === 'DELETE') {
+    $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
+    $stmt = $pdo->prepare('SELECT sp.goal_id FROM sub_plans sp JOIN goals g ON g.id = sp.goal_id WHERE sp.id = ? AND g.user_id = ?');
+    $stmt->execute([$id === false ? 0 : $id, $userId]);
+    $goalId = $stmt->fetchColumn();
+    if ($goalId === false) {
+        json_error('Plan not found.', 404);
+    }
+    $pdo->prepare('DELETE FROM sub_plans WHERE id = ?')->execute([$id]);
+    $progress = goal_progress($pdo, (int) $goalId);
+    json_response(['success' => true, 'goal_id' => (int) $goalId, 'goal_status' => sync_goal_completion($pdo, (int) $goalId, $progress), 'progress' => $progress]);
+}
 
 /** @param ?array $streak the result of touch_streak(), or null when this request did not finish a task */
 function sub_plan_payload(PDO $pdo, int $subPlanId, int $goalId, ?array $streak = null): array

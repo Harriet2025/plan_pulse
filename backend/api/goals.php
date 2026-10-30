@@ -6,7 +6,22 @@ require_once __DIR__ . '/lib.php';
 
 $pdo = get_db();
 $userId = current_user_id($pdo);
-$method = require_method('POST', 'PATCH');
+$method = require_method('POST', 'PATCH', 'DELETE');
+
+// ---------------------------------------------------------------
+// DELETE /api/goals.php   Body: { id }
+// Deletes a goal for good, with its plans and badges. (Archive keeps it in History instead.)
+// ---------------------------------------------------------------
+if ($method === 'DELETE') {
+    $in = read_json_body();
+    $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
+    $stmt = $pdo->prepare('DELETE FROM goals WHERE id = ? AND user_id = ?');
+    $stmt->execute([$id === false ? 0 : $id, $userId]);
+    if ($stmt->rowCount() !== 1) {
+        json_error('Goal not found.', 404);
+    }
+    json_response(['success' => true]);
+}
 
 // ---------------------------------------------------------------
 // PATCH /api/goals.php   Body: { id, status: "ARCHIVED" | "ACTIVE" }  or  { id, is_private: true | false }

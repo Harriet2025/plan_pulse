@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarCheck, CalendarDays, CalendarRange, CalendarSearch, ChevronLeft, ChevronRight, Clock, Pencil, Plus, Repeat, Sun, Trash2, Undo2, X } from 'lucide-react';
+import { CalendarCheck, CalendarDays, CalendarRange, CalendarSearch, ChevronLeft, ClipboardCheck, ListChecks, ChevronRight, Clock, Pencil, Plus, Repeat, Sun, Trash2, Undo2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PERIODS, PRIORITY, REPEAT, WEEKDAY_SHORT, horizonOf } from '../lib/constants';
 import {
@@ -8,6 +8,7 @@ import {
   periodEnd, periodKey, periodLabel, periodPhrase, periodRange, periodStart, plansOn, progressOf, repeatText, shiftPeriod, splitTaskLine, taskTotals,
 } from '../lib/utils';
 import GoalCard from './GoalCard';
+import ReviewPanel from './ReviewPanel';
 import { Bar, cardShadow } from './ui';
 
 const PERIOD_ICON = { DAILY: Sun, WEEKLY: CalendarDays, MONTHLY: CalendarRange, YEARLY: CalendarCheck };
@@ -443,7 +444,8 @@ export default function PlannerView() {
   const { goals, dayPlans, now, plannerAt, setPlannerAt, openGoalModal, openCalendarDay } = useApp();
   const horizon = plannerAt?.horizon ?? 'DAILY';
   const anchor = parseDay(plannerAt?.key ?? localDate(now));
-  const go = (hz, d) => setPlannerAt({ horizon: hz, key: localDate(d) });
+  const review = !!plannerAt?.review;   // looking back at the period, ticking what got done
+  const go = (hz, d, rev = review) => setPlannerAt({ horizon: hz, key: localDate(d), review: rev });
   const h = horizonOf(horizon);
   const key = localDate(anchor);
   const isCurrent = periodKey(horizon, anchor) === periodKey(horizon, now);
@@ -493,18 +495,25 @@ export default function PlannerView() {
             <p className="text-sm font-semibold text-charcoal">{summary}</p>
             {totals?.total > 0 && <Bar pct={totals.pct} height="h-2" className="mt-2 max-w-md" label={`Plans done for ${periodLabel(horizon, anchor, now)}`} />}
           </div>
-          {horizon !== 'DAILY' && (
+          <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => go(horizon, anchor, !review)} aria-pressed={review}
+            className={cn('inline-flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition-colors', review ? 'border-rust bg-rust/10 text-rust-dark' : 'border-oat bg-ivory text-charcoal hover:border-rust')}>
+            {review ? <><ListChecks className="h-4 w-4" aria-hidden="true" />Back to planning</> : <><ClipboardCheck className="h-4 w-4" aria-hidden="true" />Review {isCurrent ? (horizon === 'DAILY' ? 'today' : `this ${h.unit}`) : periodPhrase(periodLabel(horizon, anchor, now))}</>}
+          </button>
+          {horizon !== 'DAILY' && !review && (
             <button type="button" onClick={() => openGoalModal({ timeframe: horizon, anchor: isPast ? localDate(now) : key })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-dark">
               <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />Goal for {isCurrent ? `this ${h.unit}` : periodPhrase(periodLabel(horizon, anchor, now))}
             </button>
           )}
+          </div>
         </div>
       </section>
 
       {/* Keyed, so a new tab or period fades in. No exit animation on purpose: a nested exit keeps App's own page
           transition from finishing, and the next page never appears. */}
-      <motion.div key={`${horizon}:${periodKey(horizon, anchor)}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-        {horizon === 'DAILY' ? <DayView dayKey={key} /> : <GoalsView horizon={horizon} anchor={anchor} now={now} />}
+      <motion.div key={`${horizon}:${periodKey(horizon, anchor)}:${review}`} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+        {review ? <ReviewPanel horizon={horizon} anchor={anchor} />
+          : horizon === 'DAILY' ? <DayView dayKey={key} /> : <GoalsView horizon={horizon} anchor={anchor} now={now} />}
       </motion.div>
     </div>
   );

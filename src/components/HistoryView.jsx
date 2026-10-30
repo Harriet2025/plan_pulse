@@ -1,10 +1,10 @@
 import { forwardRef, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, CheckCircle2, Clock, RotateCcw } from 'lucide-react';
+import { Archive, CheckCircle2, Clock, RotateCcw, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TIERS, catIcon } from '../lib/constants';
 import { cn, computeAnalytics, fmtWhen, progressOf } from '../lib/utils';
-import { Bar, Ring } from './ui';
+import { Bar, Ring, TwoTapButton } from './ui';
 
 const panel = 'mt-3 rounded-2xl border border-oat bg-soft p-5';
 const H2 = ({ children, id }) => <h2 id={id} className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal/80">{children}</h2>;
@@ -89,7 +89,7 @@ function BadgeGallery({ reviews }) {
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
-  const { restoreGoal, categories } = useApp();
+  const { restoreGoal, deleteGoal, categories } = useApp();
   const done = g.status === 'COMPLETED';
   const T = g.best_tier_rank ? TIERS[Math.min(3, g.best_tier_rank)] : null;
   const cat = categories.find((c) => c.id === g.category_id);
@@ -114,13 +114,17 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
       <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted"><Clock className="h-3.5 w-3.5" aria-hidden="true" />{when}</p>
       <div className="mt-3 flex items-center gap-3">
         <Bar pct={progressOf(g)} height="h-1.5" className="flex-1" fill={done ? 'bg-success' : 'bg-blush'} label={`${g.title} progress`} />
-        <span className="text-xs font-semibold tabular-nums text-muted">{tasks}/{g.sub_plans.length} tasks</span>
+        <span className="text-xs font-semibold tabular-nums text-muted">{tasks}/{g.sub_plans.length} plans</span>
       </div>
-      {g.status === 'ARCHIVED' && (
-        <button type="button" onClick={() => restoreGoal(g.id)} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-oat bg-oat px-3 py-1.5 text-xs font-bold text-charcoal hover:border-rust">
-          <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Restore
-        </button>
-      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {g.status === 'ARCHIVED' && (
+          <button type="button" onClick={() => restoreGoal(g.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-oat bg-oat px-3 py-1.5 text-xs font-bold text-charcoal hover:border-rust">
+            <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Restore
+          </button>
+        )}
+        <TwoTapButton onConfirm={() => deleteGoal(g.id)} icon={Trash2} label={`Delete "${g.title}" for good`} confirmText="Tap again to delete for good"
+          className="ml-auto rounded-lg px-2.5 py-1.5 text-xs font-bold text-muted hover:bg-danger/10 hover:text-danger">Delete</TwoTapButton>
+      </div>
     </motion.article>
   );
 });

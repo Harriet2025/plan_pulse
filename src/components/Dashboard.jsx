@@ -1,12 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart3, BellRing, CalendarClock, Check, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
-import { cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, shortDay, taskTotals } from '../lib/utils';
+import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
 import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
+
+const REVIEWED_KEY = 'auragoal.reviewed';
+const getReviewed = () => { try { return new Set(JSON.parse(localStorage.getItem(REVIEWED_KEY) || '[]')); } catch { return new Set(); } };
+const addReviewed = (id) => { try { localStorage.setItem(REVIEWED_KEY, JSON.stringify([...getReviewed(), id].slice(-60))); } catch { /* ignore */ } };
+
+/**
+ * The period worth reviewing right now, if any: the year, month or week that ends today, or the one that ended in
+ * the last two days (bigger periods first). Ones already opened or dismissed are skipped.
+ */
+function reviewDue(today, seen) {
+  const words = { YEARLY: 'year', MONTHLY: 'month', WEEKLY: 'week' };
+  for (const h of ['YEARLY', 'MONTHLY', 'WEEKLY']) {
+    const endsToday = localDate(periodEnd(h, today)) === localDate(today);
+    const prev = shiftPeriod(h, today, -1);
+    const justEnded = [1, 2].some((n) => localDate(periodEnd(h, prev)) === localDate(addDays(today, -n)));
+    const target = endsToday ? today : justEnded ? prev : null;
+    if (!target) continue;
+    const id = `${h}:${periodKey(h, target)}`;
+    if (seen.has(id)) continue;
+    return { id, horizon: h, key: localDate(target), text: endsToday ? `Your ${words[h]} ends today. Take a minute to review it.` : `Last ${words[h]} is over. How did it go?` };
+  }
+  return null;
+}
+
+function ReviewNudge() {
+  const { goals, dayPlans, now, setPlannerAt, setView } = useApp();
+  const [seen, setSeen] = useState(getReviewed);
+  const due = reviewDue(now, seen);
+  if (!due || (!goals.length && !dayPlans.length)) return null;
+  const done = () => { addReviewed(due.id); setSeen(getReviewed()); };
+  return (
+    <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-blush/60 bg-blush/15 p-4" aria-label="Review">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /></span>
+      <p className="min-w-0 flex-1 text-sm font-semibold text-charcoal">{due.text} <span className="font-normal text-muted">Tick off what you managed and see your score.</span></p>
+      <button type="button" onClick={() => { done(); setPlannerAt({ horizon: due.horizon, key: due.key, review: true }); setView('planner'); }}
+        className="inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+      <button type="button" onClick={done} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not now</button>
+    </motion.section>
+  );
+}
 
 function Hero({ totals, open }) {
   const { user, activeGoals, setView, openGoalModal } = useApp();
@@ -415,6 +455,7 @@ export default function Dashboard() {
   return (
     <div className="grid gap-6">
       <Hero totals={totals} open={open} />
+      <ReviewNudge />
       <CatchUpBanner />
       <StatCards totals={totals} open={open} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">

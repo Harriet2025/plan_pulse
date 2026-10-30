@@ -192,6 +192,15 @@ export async function deleteDayPlan(id) {
   await dayPlanCall({ action: 'delete', id });
 }
 
+/** Deletes a goal for good, with its plans and badges. */
+export async function deleteGoal(goalId) {
+  await request('goals.php', { method: 'DELETE', body: { id: goalId } });
+}
+/** Removes one plan from a goal. Returns the goal's new status (it can become COMPLETED when the rest are done). */
+export async function deleteTask(taskId) {
+  return request('sub_plans.php', { method: 'DELETE', body: { id: taskId } });
+}
+
 /** Hides a goal from accountability partners, or shares it again. */
 export async function setGoalPrivate(goalId, isPrivate) {
   return fromGoal((await request('goals.php', { method: 'PATCH', body: { id: goalId, is_private: isPrivate } })).goal);

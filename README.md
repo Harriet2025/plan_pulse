@@ -55,6 +55,11 @@ The **Planner** page has Day, Week, Month and Year tabs with ‹ › to move bet
 - **Week:** the seven days with how full each one is (tap one to open it), and the week's goals with their plans.
 - **Month / Year:** the period's goals, plus the smaller goals inside it, so you can see what builds towards the big one.
 
+## Deleting and reviewing
+
+- **Delete** a goal's plan with the 🗑 next to it, or a whole goal with **Delete goal** on its card (or from History). Both ask for a second tap, and deleting is for good; **Archive** keeps a goal in History instead.
+- **Review** any day, week, month or year from the Planner (**Review this week**, also for past periods): everything planned in it (that period's goals with their plans, plus each day's plans up to today) with a tick box on each, so you can mark what you really completed, and your score. When a week, month or year ends, the dashboard offers to review it.
+
 ## Accountability partners
 
 The **Partners** page lets you invite up to 5 people by email. An invite waits until someone signs in with that email and accepts it, so the invite box never reveals who has an account (and inviting someone who already invited you just accepts theirs). Partners can:

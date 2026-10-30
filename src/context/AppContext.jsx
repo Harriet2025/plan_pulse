@@ -209,6 +209,16 @@ export function AppProvider({ children }) {
   }, [user?.id, refreshPartners]); // eslint-disable-line react-hooks/exhaustive-deps
   const unreadTotal = partners.partners.reduce((n, p) => n + p.unread, 0) + partners.incoming.length;
 
+  /** Deletes a goal for good (the card asks twice first). */
+  const deleteGoal = (id) => run(async () => { await api.deleteGoal(id); await refresh(); toast('Goal deleted.'); return true; });
+  /** Removes one plan from a goal. */
+  const deleteTask = (taskId) => run(async () => {
+    const r = await api.deleteTask(taskId);
+    await refresh();
+    toast(r.goal_status === 'COMPLETED' ? 'Plan removed. Every plan left is done, so the goal is complete!' : 'Plan removed.');
+    return true;
+  });
+
   const archiveGoal = (id) => run(async () => { await api.setGoalStatus(id, 'ARCHIVED'); await refresh(); toast('Archived. You can restore it from History.'); });
   const restoreGoal = (id) => run(async () => {
     const g = await api.setGoalStatus(id, 'ACTIVE');
@@ -328,7 +338,7 @@ export function AppProvider({ children }) {
       toast(`${TIERS[item.rank].name} badge saved. Rewards: ${reviews.length - rewardQueue.length + 1}`);
     },
     updateProfile, uploadAvatar, removeAvatar,
-    signIn, signOut, createGoal, toggleTask, addTask, archiveGoal, restoreGoal,
+    signIn, signOut, createGoal, toggleTask, addTask, archiveGoal, deleteGoal, deleteTask, restoreGoal,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
