@@ -16,6 +16,7 @@ import JournalView from './components/JournalView';
 import ReflectionModal from './components/ReflectionModal';
 import NextTaskModal from './components/NextTaskModal';
 import FocusTimer from './components/FocusTimer';
+import AppStatus from './components/AppStatus';
 import NewGoalModal from './components/NewGoalModal';
 import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
@@ -61,6 +62,7 @@ export default function App() {
       </div>
 
       <BottomNav />
+      <AppStatus />
 
       <AnimatePresence>{goalModal && <NewGoalModal key="goal" />}</AnimatePresence>
       <AnimatePresence>{lighten && <LightenModal key="lighten" />}</AnimatePresence>

@@ -7,6 +7,7 @@ import { prepareAvatar } from '../lib/image';
 import { currentSubscription, disablePush, enablePush, endpointKey, pushFlag, pushPermission } from '../lib/push';
 import { cn, fmtMinutes } from '../lib/utils';
 import { Avatar, Bar, cardShadow } from './ui';
+import { InstallCard } from './AppStatus';
 
 const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted';
 const primary = 'rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:cursor-not-allowed disabled:opacity-60';
@@ -444,7 +445,8 @@ function NotificationsCard() {
 
 export default function SettingsView() {
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
+    <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
+      <InstallCard />
       <PhotoCard />
       <StreakCard />
       <PlanningCard />

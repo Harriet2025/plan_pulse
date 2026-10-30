@@ -42,7 +42,8 @@ async function request(path, { method = 'GET', body } = {}) {
     throw Object.assign(new Error(UNREACHABLE), { network: true, status: res.status });
   }
   if (!res.ok || data.success === false) {
-    throw Object.assign(new Error(data.error || `Request failed (HTTP ${res.status}).`), { status: res.status, auth: !!data.auth_required });
+    // `offline` comes from the service worker when there is no connection (public/sw.js)
+    throw Object.assign(new Error(data.error || `Request failed (HTTP ${res.status}).`), { status: res.status, auth: !!data.auth_required, network: !!data.offline });
   }
   return data;
 }

@@ -7,6 +7,7 @@ import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestD
 import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
+import { InstallNudge } from './AppStatus';
 
 const REVIEWED_KEY = 'auragoal.reviewed';
 const getReviewed = () => { try { return new Set(JSON.parse(localStorage.getItem(REVIEWED_KEY) || '[]')); } catch { return new Set(); } };
@@ -457,6 +458,7 @@ export default function Dashboard() {
     <div className="grid gap-6">
       <Hero totals={totals} open={open} />
       <ReviewNudge />
+      <InstallNudge />
       <CatchUpBanner />
       <StatCards totals={totals} open={open} />
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">

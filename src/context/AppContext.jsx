@@ -31,7 +31,9 @@ export function AppProvider({ children }) {
   const [journal, setJournal] = useState([]);    // private notes and reflections
   const [reflectGoal, setReflectGoal] = useState(null);   // the goal whose reflection is open, or null
   const [pendingReflect, setPendingReflect] = useState(null);
-  const [nextOpen, setNextOpen] = useState(false);   // the "What should I do now?" window
+  const [nextOpen, setNextOpen] = useState(false);
+  const [syncedAt, setSyncedAt] = useState(null);
+  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));   // the "What should I do now?" window
   // The task being worked on with the focus timer: { id, kind, title, context, minutes, endsAt, ref }. Kept in this
   // browser so a reload does not lose it.
   const [focus, setFocusState] = useState(() => { try { return JSON.parse(localStorage.getItem('auragoal.focus') || 'null'); } catch { return null; } });
@@ -64,7 +66,9 @@ export function AppProvider({ children }) {
   const refresh = useCallback(async () => {
     const s = await api.snapshot();
     setUser(s.user); setGoals(s.goals); setDayPlans(s.dayPlans); setReviews(s.reviews); setJournal(s.journal);
-    if (s.categories) setCategories(s.categories);
+    setSyncedAt(new Date());   // when the data on screen was last fetched (shown while offline)
+    // Built-in categories keep the palette's colours (src/lib/constants.js); personal ones use the colour the user picked
+    if (s.categories) setCategories(s.categories.map((c) => (c.personal ? c : { ...c, color: CATEGORIES.find((k) => k.id === c.id)?.color ?? c.color })));
     // Tell the server this browser's time zone, so reminders, the morning email and streak days follow the user's
     // clock (the server's own clock can be in a different zone)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -295,6 +299,20 @@ export function AppProvider({ children }) {
     return items.sort((x, y) => y.daysLate - x.daysLate || x.key.localeCompare(y.key));
   }, [goals, dayPlans, categories, now]);
 
+  // Connection: nothing is cached on the device, so when it comes back (or when the app is reopened after a while,
+  // for example an installed app brought back from the background) the data is fetched fresh, never left stale.
+  useEffect(() => {
+    const goOnline = () => { setOnline(true); if (user) refresh().then(() => toast('Back online. Everything is up to date.')).catch(() => {}); };
+    const goOffline = () => setOnline(false);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && user && navigator.onLine && (!syncedAt || Date.now() - syncedAt.getTime() > 60000)) refresh().catch(() => {});
+    };
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); document.removeEventListener('visibilitychange', onVisible); };
+  }, [user, syncedAt, refresh, toast]);
+
   // A just-completed goal's reflection opens once the badge pop-up (if any) is out of the way
   useEffect(() => {
     if (!pendingReflect || rewardQueue.length || reflectGoal || goalModal) return undefined;
@@ -358,7 +376,7 @@ export function AppProvider({ children }) {
   };
 
   const value = {
-    booted, bootError, boot, user, goals, reviews, categories,
+    booted, bootError, boot, user, goals, reviews, categories, online, syncedAt, refresh,
     createCategory, updateCategory, deleteCategory, updateGoal, renameTask, setTaskEstimate,
     nextOpen, openNext: () => setNextOpen(true), closeNext: () => setNextOpen(false), focus, setFocus,
     journal, saveJournal, deleteJournal, reflectGoal, openReflection: (id) => setReflectGoal(id), closeReflection: () => setReflectGoal(null),

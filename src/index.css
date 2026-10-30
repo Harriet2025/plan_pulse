@@ -32,6 +32,10 @@
 @layer components {
   .aura-bg { background: rgb(var(--ivory)); }
 
+  /* Phones: 16px text in fields, so iOS does not zoom the page when one is tapped */
+  @media (max-width: 640px) { .field { font-size: 16px !important; } }
+  /* Installed on a phone with a notch or rounded corners: keep content inside the safe area */
+  body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
   .field {
     background: rgb(var(--soft)); border: 1px solid rgb(var(--oat)); border-radius: .75rem;
     padding: .65rem .8rem; width: 100%; color: rgb(var(--charcoal)); font-size: .875rem;

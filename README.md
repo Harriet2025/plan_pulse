@@ -33,6 +33,22 @@ The React front end is on **Vercel**; the PHP API, MySQL, stored files and the r
 
 On Railway: deploy this GitHub repo (it builds the `Dockerfile`), add a **MySQL** database, add a **volume** mounted at `/app/storage` (photos, videos, sessions, push keys), and set these variables on the app service: `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` (as references to the MySQL service), `APP_URL` (the Vercel address) and, for email, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. On first start `backend/install.php` creates the tables in the empty database. Without a `config.local.php`, all settings come from these variables (`env_config()` in `backend/db.php`).
 
+## Installable app (PWA) and offline
+
+AuraGoal is a Progressive Web App: on a phone, tablet or computer it can be installed and opened from the home screen, full screen, like an app (Chrome / Edge / Android: the **Install** button in Settings or the browser's install icon; iPhone and iPad: Safari's Share button, then **Add to Home Screen**).
+
+- `public/manifest.webmanifest`: name, colours, and the icons in `public/icons/` (192, 512, a maskable 512, and an Apple touch icon).
+- `public/sw.js`, the service worker:
+  - **Cached:** the app's own files (built code and styles under `/assets/`, icons, the manifest, fonts and `offline.html`).
+  - **Never cached:** anything under `/api/` (accounts, sign-in, goals, plans, messages, photos), so no personal data is stored on the device and nothing old is shown as current. Without a connection those calls answer "offline" (503).
+  - **Opening offline:** pages are fetched fresh; with no connection, `public/offline.html` is shown.
+  - **Updates:** a new version is offered with an **Update** message, never forced mid-use.
+  - **Push:** the service worker also shows push reminders, only on devices where the user turned notifications on.
+- **In the app:**
+  - **Losing the connection:** a strip says you are offline, when the screen was last updated, and that changes can't be saved yet.
+  - **Coming back:** when the connection returns, or the app is reopened after a while, the data is fetched fresh.
+- **Testing locally:** the service worker only caches the built app, so test with `npm run build` then `npx vite preview` (http://localhost:4173, with `npm run api` running). Installing needs HTTPS or localhost, which Vercel provides.
+
 ## Forgotten passwords and email
 
 "Forgot password?" on the sign-in screen emails a one-time link that lasts 60 minutes (at most 3 per account per hour). Only a hash of the link's token is stored.
