@@ -39,6 +39,7 @@ RUN { \
     } > /usr/local/etc/php/conf.d/auragoal.ini
 
 # The site: the built app at /, the API at /api. Nothing else in /app is reachable from the web.
+# Apache's own "/icons/" folder is switched off, so /icons/ serves the app's icons (the install needs them).
 # Caching: the app's fingerprinted files are cached for a year; index.html and sw.js are always checked again, so a
 # new version reaches phones on their next visit.
 RUN { \
@@ -74,6 +75,7 @@ RUN { \
       echo '</VirtualHost>'; \
     } > /etc/apache2/sites-available/000-default.conf \
  && a2enmod rewrite headers \
+ && sed -i 's|^\(\s*Alias /icons/\)|#\1|' /etc/apache2/mods-available/alias.conf \
  && echo 'Listen ${PORT}' > /etc/apache2/ports.conf \
  && echo 'ServerTokens Prod' >> /etc/apache2/apache2.conf \
  && echo 'ServerSignature Off' >> /etc/apache2/apache2.conf
