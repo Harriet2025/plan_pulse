@@ -34,5 +34,7 @@ json_response([
     'user'    => fetch_user_payload($pdo, $userId),
     'goals'   => fetch_goals($pdo, $userId, 'ALL'),
     'day_plans' => fetch_day_plans($pdo, $userId),
+    'categories' => fetch_categories($pdo, $userId),   // built-in plus the user's own
+    'journal'   => fetch_journal($pdo, $userId),
     'reviews' => $reviews,
 ]);

@@ -1,6 +1,6 @@
 import { forwardRef, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, CheckCircle2, Clock, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive, BookHeart, CheckCircle2, Clock, RotateCcw, Trash2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { TIERS, catIcon } from '../lib/constants';
 import { cn, computeAnalytics, fmtWhen, progressOf } from '../lib/utils';
@@ -89,7 +89,8 @@ function BadgeGallery({ reviews }) {
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
-  const { restoreGoal, deleteGoal, categories } = useApp();
+  const { restoreGoal, deleteGoal, categories, journal, openReflection } = useApp();
+  const reflected = journal.some((e) => e.kind === 'GOAL' && e.goal_id === g.id);
   const done = g.status === 'COMPLETED';
   const T = g.best_tier_rank ? TIERS[Math.min(3, g.best_tier_rank)] : null;
   const cat = categories.find((c) => c.id === g.category_id);
@@ -117,6 +118,11 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
         <span className="text-xs font-semibold tabular-nums text-muted">{tasks}/{g.sub_plans.length} plans</span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        {done && (
+          <button type="button" onClick={() => openReflection(g.id)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold', reflected ? 'border border-oat bg-oat text-charcoal hover:border-rust' : 'bg-success text-white hover:opacity-90')}>
+            <BookHeart className="h-3.5 w-3.5" aria-hidden="true" />{reflected ? 'Read reflection' : 'Write a reflection'}
+          </button>
+        )}
         {g.status === 'ARCHIVED' && (
           <button type="button" onClick={() => restoreGoal(g.id)} className="inline-flex items-center gap-1.5 rounded-lg border border-oat bg-oat px-3 py-1.5 text-xs font-bold text-charcoal hover:border-rust">
             <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />Restore
@@ -130,9 +136,9 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
 });
 
 export default function HistoryView() {
-  const { goals, reviews } = useApp();
+  const { goals, reviews, categories } = useApp();
   const [filter, setFilter] = useState('all');
-  const analytics = useMemo(() => computeAnalytics(goals), [goals]);
+  const analytics = useMemo(() => computeAnalytics(goals, categories), [goals, categories]);
   const past = goals
     .filter((g) => g.status !== 'ACTIVE')
     .sort((a, b) => new Date(b.completed_at || b.updated_at) - new Date(a.completed_at || a.updated_at));

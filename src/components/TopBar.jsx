@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import NotifList, { useNotifCount } from './NotifList';
 import { cardShadow } from './ui';
 
-const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
+const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', journal: 'Journal', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
 const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal/80 hover:border-rust';
 
 function NotificationBell() {

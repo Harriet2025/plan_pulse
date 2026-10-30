@@ -1,4 +1,4 @@
-import { CATEGORIES, horizonOf } from './constants';
+import { horizonOf } from './constants';
 
 export const cn = (...parts) => parts.filter(Boolean).join(' ');
 
@@ -380,10 +380,10 @@ export function taskTotals(goals) {
 }
 
 /** Completion stats overall and by category across every goal the user has (any status). */
-export function computeAnalytics(goals) {
+export function computeAnalytics(goals, allCategories = []) {
   const groups = new Map();
   for (const g of goals) {
-    const cat = CATEGORIES.find((c) => c.id === g.category_id);
+    const cat = allCategories.find((c) => c.id === g.category_id);
     const key = cat ? cat.id : 'none';
     if (!groups.has(key)) {
       groups.set(key, { id: cat?.id ?? null, name: cat?.name ?? 'Uncategorized', color: cat?.color ?? '#8A7F76', goals: [] });

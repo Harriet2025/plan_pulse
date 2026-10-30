@@ -1,13 +1,14 @@
-import { Target, ListChecks, BarChart3, LifeBuoy, Settings, Users } from 'lucide-react';
+import { Target, ListChecks, BookOpen, LifeBuoy, Settings, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-// Six fit on a phone: Categories is in the dashboard's filters, and the Calendar opens from the Planner
+// Six fit on a phone: Categories is in the dashboard's filters, the Calendar opens from the Planner, and History
+// from the Journal page (and the dashboard's "View progress")
 const ITEMS = [
   { id: 'active', label: 'Active', icon: Target },
   { id: 'planner', label: 'Planner', icon: ListChecks },
   { id: 'partners', label: 'Partners', icon: Users },
   { id: 'catchup', label: 'Catch up', icon: LifeBuoy },
-  { id: 'history', label: 'History', icon: BarChart3 },
+  { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 

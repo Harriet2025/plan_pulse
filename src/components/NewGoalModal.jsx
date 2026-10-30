@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarCheck, CalendarDays, CalendarRange, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import CategoryForm from './CategoryForm';
 import { HORIZONS } from '../lib/constants';
 import { cn, localDate, parseDay, periodEnd, periodKey, periodLabel, periodPhrase as phrase, periodRange, periodStart, shiftPeriod } from '../lib/utils';
 
@@ -66,19 +67,21 @@ function PeriodPicker({ horizon, anchor, setAnchor }) {
 }
 
 export default function NewGoalModal() {
-  const { goalModal, closeGoalModal, createGoal, categories, activeCat } = useApp();
+  const { goalModal, closeGoalModal, createGoal, updateGoal, setGoalPrivate, createCategory, categories, activeCat } = useApp();
   // Captured once: during the exit animation the context's goalModal is already null
   const [draft] = useState(() => goalModal?.draft ?? null);
+  const editing = draft?.edit ?? null;   // the goal being edited, or null for a new goal
   const startCat = draft?.cat ? categories.find((c) => c.name === draft.cat)?.id : activeCat !== 'all' ? Number(activeCat) : categories[0].id;
 
-  const [horizon, setHorizon] = useState(HORIZONS.some((h) => h.id === draft?.timeframe) ? draft.timeframe : 'WEEKLY');
-  const [anchor, setAnchor] = useState(draft?.anchor ?? localDate());   // any day inside the chosen period
-  const [due, setDue] = useState('');   // '' = the end of the period
-  const [title, setTitle] = useState(draft?.title ?? '');
-  const [category, setCategory] = useState(startCat ?? categories[0].id);
-  const [priority, setPriority] = useState(draft?.priority ?? 'MEDIUM');
-  const [quote, setQuote] = useState('');
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [horizon, setHorizon] = useState(editing?.timeframe ?? (HORIZONS.some((h) => h.id === draft?.timeframe) ? draft.timeframe : 'WEEKLY'));
+  const [anchor, setAnchor] = useState(editing?.due_date ?? draft?.anchor ?? localDate());   // any day inside the chosen period
+  const [due, setDue] = useState(editing?.due_date ?? '');   // '' = the end of the period
+  const [title, setTitle] = useState(editing?.title ?? draft?.title ?? '');
+  const [category, setCategory] = useState(editing ? editing.category_id ?? 9 : startCat ?? categories[0].id);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [priority, setPriority] = useState(editing?.priority ?? draft?.priority ?? 'MEDIUM');
+  const [quote, setQuote] = useState(editing?.quote ?? '');
+  const [isPrivate, setIsPrivate] = useState(editing?.is_private ?? false);
   const [tasks, setTasks] = useState(draft?.tasks?.join('\n') ?? '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -101,7 +104,12 @@ export default function NewGoalModal() {
     e.preventDefault();
     setError(''); setSaving(true);
     try {
-      await createGoal({ title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote, tasks: plans, is_private: isPrivate });
+      if (editing) {
+        if (isPrivate !== editing.is_private) await setGoalPrivate(editing.id, isPrivate);
+        await updateGoal(editing.id, { title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote });
+      } else {
+        await createGoal({ title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote, tasks: plans, is_private: isPrivate });
+      }
     } catch (ex) {
       setError(ex.message); setSaving(false);
     }
@@ -119,7 +127,7 @@ export default function NewGoalModal() {
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-oat" />
           <div className="flex items-center justify-between">
-            <h2 id="modalTitle" className="text-lg font-extrabold text-charcoal">New goal</h2>
+            <h2 id="modalTitle" className="text-lg font-extrabold text-charcoal">{editing ? 'Edit goal' : 'New goal'}</h2>
             <button type="button" onClick={closeGoalModal} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-oat/60"><X className="h-5 w-5" aria-hidden="true" /></button>
           </div>
 
@@ -149,6 +157,9 @@ export default function NewGoalModal() {
               <input id="gTitle" className="field" type="text" maxLength={255} required autoFocus placeholder={PLACEHOLDER[horizon]} value={title} onChange={(e) => setTitle(e.target.value)} />
             </div>
 
+            {editing ? (
+              <p className="rounded-xl bg-oat/50 px-3 py-2 text-xs text-muted">To add, rename, tick or delete this goal's plans, use the goal card. Plans stay as they are when you save here.</p>
+            ) : (
             <div>
               <label htmlFor="gTasks" className={label}>Plans to reach it <span className="normal-case tracking-normal text-muted">(one per line)</span></label>
               <textarea id="gTasks" className="field" rows={4} placeholder={PLAN_HINT[horizon]} value={tasks} onChange={(e) => setTasks(e.target.value)} />
@@ -156,12 +167,20 @@ export default function NewGoalModal() {
                 {plans.length ? `${plans.length} plan${plans.length === 1 ? '' : 's'}. ` : ''}Tick each one off as you do it; the goal is complete when every plan is done.
               </p>
             </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
                 <label htmlFor="gCategory" className={label}>Area of life</label>
-                <select id="gCategory" className="field" value={category} onChange={(e) => setCategory(Number(e.target.value))}>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <select id="gCategory" className="field" value={addingCategory ? 'new' : category}
+                  onChange={(e) => { if (e.target.value === 'new') setAddingCategory(true); else { setAddingCategory(false); setCategory(Number(e.target.value)); } }}>
+                  {categories.filter((c) => !c.personal).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {categories.some((c) => c.personal) && (
+                    <optgroup label="Your categories">
+                      {categories.filter((c) => c.personal).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </optgroup>
+                  )}
+                  <option value="new">+ New category…</option>
                 </select>
               </div>
               <div className="min-w-0">
@@ -169,6 +188,10 @@ export default function NewGoalModal() {
                 <input id="gDue" className="field" type="date" value={dueDate} min={first} max={last} onChange={(e) => setDue(e.target.value)} />
               </div>
             </div>
+            {addingCategory && (
+              <CategoryForm compact saveLabel="Add and use it" onCancel={() => setAddingCategory(false)}
+                onSave={async (name, color) => { const id = await createCategory(name, color); if (id) { setCategory(id); setAddingCategory(false); } }} />
+            )}
             <Seg name="Priority" cols="grid-cols-3" value={priority} onChange={setPriority} options={[['HIGH', 'High'], ['MEDIUM', 'Medium'], ['LOW', 'Low']]} />
             <div>
               <label htmlFor="gQuote" className={label}>Your motivating quote <span className="normal-case tracking-normal text-muted">(optional)</span></label>
@@ -182,7 +205,7 @@ export default function NewGoalModal() {
 
           {error && <p className="mt-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{error}</p>}
           <button type="submit" disabled={saving} className="mt-5 w-full rounded-xl bg-rust py-3 text-sm font-extrabold text-white active:scale-[.99] disabled:opacity-60">
-            {saving ? 'Saving…' : `Set goal for ${phrase(periodName)}`}
+            {saving ? 'Saving…' : editing ? 'Save changes' : `Set goal for ${phrase(periodName)}`}
           </button>
         </motion.form>
       </div>

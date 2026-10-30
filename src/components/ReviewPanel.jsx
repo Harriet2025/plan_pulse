@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { horizonOf } from '../lib/constants';
 import { addDays, cn, fmtSpan, localDate, parseDay, periodEnd, periodLabel, periodPhrase, periodStart, plansOn, repeatText } from '../lib/utils';
 import { Bar, Ring, cardShadow } from './ui';
+import { EntryCard, NoteEditor, PeriodReflection } from './JournalParts';
 
 const RANK = { DAILY: 0, WEEKLY: 1, MONTHLY: 2, YEARLY: 3 };
 const HORIZON_ICON = { WEEKLY: CalendarDays, MONTHLY: CalendarRange, YEARLY: CalendarCheck };
@@ -82,7 +83,7 @@ function Group({ title, items, defaultOpen, onToggle, showDay }) {
  * really completed, even after the period is over.
  */
 export default function ReviewPanel({ horizon, anchor }) {
-  const { goals, dayPlans, toggleTask, toggleDayPlan, now } = useApp();
+  const { goals, dayPlans, toggleTask, toggleDayPlan, now, journal } = useApp();
   const [show, setShow] = useState('all');   // all | todo | done
   const from = localDate(periodStart(horizon, anchor)), to = localDate(periodEnd(horizon, anchor));
   const today = localDate(now);
@@ -195,6 +196,17 @@ export default function ReviewPanel({ horizon, anchor }) {
           Nothing to review for {name} yet. Plans for the day and goals for the {horizon === 'DAILY' ? 'day' : horizonOf(horizon).unit} show up here.
         </p>
       )}
+
+      {/* Your journal for this period: the reflection on it, and the notes and goal reflections written in it */}
+      <section className="grid gap-3" aria-label="Journal">
+        <h3 className="text-sm font-extrabold text-charcoal">Journal</h3>
+        {horizon === 'DAILY'
+          ? <div className="rounded-2xl border border-oat bg-soft p-4"><p className="mb-2 text-sm font-extrabold text-charcoal">A note about {name}</p><NoteEditor defaultDate={from} /></div>
+          : <PeriodReflection key={`${horizon}:${from}`} horizon={horizon} periodStartKey={from} label={name} />}
+        {journal
+          .filter((e) => e.kind !== 'REVIEW' && (e.kind === 'GOAL' ? periodGoals.some((g) => g.id === e.goal_id) : e.date >= from && e.date <= to))
+          .map((e) => <EntryCard key={e.id} entry={e} />)}
+      </section>
     </div>
   );
 }

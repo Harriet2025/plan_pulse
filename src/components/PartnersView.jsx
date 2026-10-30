@@ -414,7 +414,7 @@ function TheirGoals({ entry, view, onCheered }) {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {view.goals.map((g) => {
-        const cat = categories.find((c) => c.id === g.category_id);
+        const cat = g.category ?? categories.find((c) => c.id === g.category_id);   // their own category, with its name and colour
         const done = g.plans.filter((x) => x.done).length, pct = g.plans.length ? Math.round((100 * done) / g.plans.length) : 0;
         return (
           <article key={g.id} className="rounded-2xl border border-oat bg-soft p-4" style={cardShadow}>

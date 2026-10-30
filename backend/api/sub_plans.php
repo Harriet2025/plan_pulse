@@ -60,10 +60,11 @@ if ($method === 'PATCH') {
     $hasCompleted = array_key_exists('is_completed', $in);
     $hasRemind = array_key_exists('remind_at', $in);
     $hasEstimate = array_key_exists('estimate_min', $in);
+    $hasText = array_key_exists('task_description', $in);
     $completed = $hasCompleted
         ? filter_var($in['is_completed'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)
         : null;
-    if ($id === false || $id === null || (!$hasCompleted && !$hasRemind && !$hasEstimate) || ($hasCompleted && $completed === null)) {
+    if ($id === false || $id === null || (!$hasCompleted && !$hasRemind && !$hasEstimate && !$hasText) || ($hasCompleted && $completed === null)) {
         json_error('id and is_completed (0 or 1), remind_at and/or estimate_min are required.', 422);
     }
     $estimate = $hasEstimate ? parse_estimate($in['estimate_min']) : null;
@@ -92,6 +93,13 @@ if ($method === 'PATCH') {
     }
     if ($hasEstimate) {
         $pdo->prepare('UPDATE sub_plans SET estimate_min = ? WHERE id = ?')->execute([$estimate, $id]);
+    }
+    if ($hasText) {   // renaming a plan
+        $text = trim((string) $in['task_description']);
+        if ($text === '' || mb_strlen($text) > 500) {
+            json_error('A plan is 1 to 500 characters.', 422);
+        }
+        $pdo->prepare('UPDATE sub_plans SET task_description = ? WHERE id = ?')->execute([$text, $id]);
     }
     $streak = $completed ? touch_streak($pdo, $userId) : null;   // finishing a task counts as an active day
     json_response(sub_plan_payload($pdo, $id, (int) $goalId, $streak));

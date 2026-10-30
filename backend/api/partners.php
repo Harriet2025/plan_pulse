@@ -141,8 +141,8 @@ if ($action === 'share') {
     }
     $ids = array_values(array_unique(array_map('intval', (array) ($in['categories'] ?? []))));
     if ($ids) {
-        $stmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')');
-        $stmt->execute($ids);
+        $stmt = $pdo->prepare('SELECT COUNT(*) FROM categories WHERE id IN (' . implode(',', array_fill(0, count($ids), '?')) . ') AND (user_id IS NULL OR user_id = ?)');
+        $stmt->execute([...$ids, $userId]);
         if ((int) $stmt->fetchColumn() !== count($ids)) {
             json_error('Unknown category.', 422);
         }

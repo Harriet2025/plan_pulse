@@ -25,10 +25,47 @@ if ($method === 'DELETE') {
 
 // ---------------------------------------------------------------
 // PATCH /api/goals.php   Body: { id, status: "ARCHIVED" | "ACTIVE" }  or  { id, is_private: true | false }
-// Archives a goal, or restores an archived one (back to COMPLETED if every task was done), or hides it from partners.
+//                        or  { id, edit: { title?, category_id?, priority?, timeframe?, due_date?, quote? } }
+// Archives a goal, or restores an archived one (back to COMPLETED if every task was done), hides it from partners,
+// or edits it.
 // ---------------------------------------------------------------
 if ($method === 'PATCH') {
     $in = read_json_body();
+    if (isset($in['edit']) && is_array($in['edit'])) {
+        $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
+        $current = fetch_goals($pdo, $userId, 'ALL', $id === false ? 0 : $id)[0] ?? null;
+        if (!$current) {
+            json_error('Goal not found.', 404);
+        }
+        $e = $in['edit'];
+        $title = array_key_exists('title', $e) ? trim((string) $e['title']) : $current['title'];
+        if ($title === '' || mb_strlen($title) > 255) {
+            json_error('Title is required and must be 255 characters or fewer.', 422);
+        }
+        $priority = array_key_exists('priority', $e) ? strtoupper((string) $e['priority']) : $current['priority'];
+        if (!in_array($priority, ['HIGH', 'MEDIUM', 'LOW'], true)) {
+            json_error('Priority must be HIGH, MEDIUM or LOW.', 422);
+        }
+        $timeframe = array_key_exists('timeframe', $e) ? strtoupper((string) $e['timeframe']) : $current['timeframe'];
+        if (!in_array($timeframe, HORIZONS, true)) {
+            json_error('A goal is for a week, a month or a year.', 422);
+        }
+        $categoryId = $current['category_id'];
+        if (array_key_exists('category_id', $e)) {
+            $categoryId = filter_var($e['category_id'], FILTER_VALIDATE_INT);
+            if ($categoryId === false || !category_usable($pdo, $userId, $categoryId)) {
+                json_error('Category not found.', 422);
+            }
+        }
+        $dueDate = array_key_exists('due_date', $e) ? parse_datetime_or_fail((string) $e['due_date'], 'due date', 'Y-m-d') : $current['due_date'];
+        $quote = array_key_exists('quote', $e) ? trim((string) $e['quote']) : (string) $current['quote'];
+        if (mb_strlen($quote) > 500) {
+            json_error('Quote must be 500 characters or fewer.', 422);
+        }
+        $pdo->prepare('UPDATE goals SET title = ?, priority = ?, timeframe = ?, category_id = ?, due_date = ?, quote = ? WHERE id = ? AND user_id = ?')
+            ->execute([$title, $priority, $timeframe, $categoryId, $dueDate, $quote !== '' ? $quote : null, $id, $userId]);
+        json_response(['success' => true, 'goal' => fetch_goals($pdo, $userId, 'ALL', $id)[0]]);
+    }
     if (array_key_exists('is_private', $in)) {
         $id = filter_var($in['id'] ?? null, FILTER_VALIDATE_INT);
         $stmt = $pdo->prepare('UPDATE goals SET is_private = ? WHERE id = ? AND user_id = ?');
@@ -89,9 +126,7 @@ if (isset($in['category_id']) && $in['category_id'] !== '') {
     if ($categoryId === false) {
         json_error('Invalid category.', 422);
     }
-    $stmt = $pdo->prepare('SELECT 1 FROM categories WHERE id = ?');
-    $stmt->execute([$categoryId]);
-    if (!$stmt->fetchColumn()) {
+    if (!category_usable($pdo, $userId, $categoryId)) {   // a built-in category, or one of the user's own
         json_error('Category not found.', 422);
     }
 }

@@ -1,19 +1,40 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Archive, CalendarClock, CalendarRange, ChevronDown, Lock, Plus, Trash2, Users } from 'lucide-react';
+import { Archive, BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PRIORITY, catIcon } from '../lib/constants';
 import { dueInfo, goalPeriodLabel, progressOf } from '../lib/utils';
 import { Bar, TwoTapButton, cardShadow } from './ui';
 
 const collapse = { initial: { height: 0, opacity: 0 }, animate: { height: 'auto', opacity: 1 }, exit: { height: 0, opacity: 0 }, transition: { duration: 0.3, ease: [0.2, 0.8, 0.2, 1] } };
+const SHOWN = 6;   // plans listed before "Show all"
 
-/** One of a goal's plans: a step towards it that you tick off once it is done. */
+/** One of a goal's plans: tick it when it is done, rename it, or delete it. */
 function TaskItem({ goal, task }) {
-  const { toggleTask, deleteTask } = useApp();
+  const { toggleTask, deleteTask, renameTask } = useApp();
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(task.text);
+  const save = async () => {
+    const t = text.trim();
+    if (!t || t === task.text) { setEditing(false); setText(task.text); return; }
+    if (await renameTask(task.id, t)) setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <li className="flex items-center gap-2 px-1 py-1">
+        <label className="sr-only" htmlFor={`rn-${task.id}`}>Rename plan</label>
+        <input id={`rn-${task.id}`} className="field !py-1.5" maxLength={500} value={text} autoFocus onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') { setEditing(false); setText(task.text); } }} />
+        <button type="button" onClick={save} aria-label="Save the new name" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rust text-white hover:bg-rust-dark"><Check className="h-4 w-4" aria-hidden="true" /></button>
+        <button type="button" onClick={() => { setEditing(false); setText(task.text); }} aria-label="Cancel" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-oat/60"><X className="h-4 w-4" aria-hidden="true" /></button>
+      </li>
+    );
+  }
+  const quiet = 'shrink-0 rounded-lg p-1.5 text-muted opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100';
   return (
     <li className="group flex items-start">
-      <label className="relative flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl px-2 py-[.55rem] hover:bg-oat/50">
+      <label className="relative flex min-w-0 flex-1 cursor-pointer items-start gap-3 rounded-xl px-2 py-[.5rem] hover:bg-oat/50">
         <input type="checkbox" className="peer sr-only" checked={task.done} onChange={(e) => toggleTask(goal.id, task.id, e.target.checked)} />
         <motion.span
           animate={task.done ? { scale: [1, 1.25, 1] } : { scale: 1 }} transition={{ duration: 0.35 }}
@@ -25,22 +46,22 @@ function TaskItem({ goal, task }) {
         </motion.span>
         <span className="ttext min-w-0 flex-1" data-done={task.done}>{task.text}</span>
       </label>
-      {/* Shows on hover or focus with a mouse; always there on a touch screen */}
+      {/* These show on hover or focus with a mouse, and are always there on a touch screen */}
+      <button type="button" onClick={() => setEditing(true)} aria-label={`Rename the plan "${task.text}"`} className={`${quiet} mt-1 hover:bg-oat/60 hover:text-charcoal`}><Pencil className="h-3.5 w-3.5" aria-hidden="true" /></button>
       <TwoTapButton onConfirm={() => deleteTask(task.id)} icon={Trash2} label={`Delete the plan "${task.text}"`} confirmText="Delete?"
-        className="mt-1 shrink-0 rounded-lg px-2 py-1.5 text-xs font-bold text-muted opacity-0 hover:bg-danger/10 hover:text-danger focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
-        armedClassName="!opacity-100 bg-danger/10 text-danger" />
+        className={`${quiet} mt-1 px-2 text-xs font-bold hover:bg-danger/10 hover:text-danger`} armedClassName="!opacity-100 bg-danger/10 text-danger" />
     </li>
   );
 }
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwardedRef) {
-  const { categories, freshId, focusReq, consumeFocus, addTask, archiveGoal, deleteGoal, setGoalPrivate, partners } = useApp();
+  const { categories, freshId, focusReq, consumeFocus, addTask, archiveGoal, deleteGoal, setGoalPrivate, partners, openGoalEditor, openReflection, journal } = useApp();
   const hasPartners = partners.partners.length > 0;
-  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);
+  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, archive...
+  const [showAll, setShowAll] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [armed, setArmed] = useState(false);
   const ref = useRef(null);
   const setRef = (node) => {   // keep our own ref (for scrolling) and hand the node to AnimatePresence too
     ref.current = node;
@@ -55,6 +76,8 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
   const pct = progressOf(g);
   const done = g.sub_plans.filter((t) => t.done).length;
   const due = dueInfo(g.due_date);
+  const reflection = journal.find((e) => e.kind === 'GOAL' && e.goal_id === g.id);
+  const plans = showAll ? g.sub_plans : g.sub_plans.slice(0, SHOWN);
 
   // Jump here from a notification: open the card, scroll to it and flash an outline
   useEffect(() => {
@@ -67,12 +90,6 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
     consumeFocus();
   }, [focusReq, g.id, consumeFocus]);
 
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(false), 3000);
-    return () => clearTimeout(t);
-  }, [armed]);
-
   const submitTask = async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
@@ -80,6 +97,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
     if (await addTask(g.id, text.trim())) setText('');
     setBusy(false);
   };
+  const tool = 'inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-oat/60 hover:text-charcoal';
 
   return (
     <motion.article
@@ -89,8 +107,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
       className={`relative overflow-hidden rounded-3xl border-2 bg-soft ${p.card}`}
       style={cardShadow}
     >
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={`panel-${g.id}`}
-        className="relative block w-full p-4 pb-3 text-left" style={{ background: `${color}14` }}>
+      <div className="relative p-4 pb-3" style={{ background: `${color}14` }}>
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white" style={{ background: color }}>
             <CatIcon className="h-5 w-5" aria-hidden="true" />
@@ -104,16 +121,17 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
             </div>
             <h3 className="mt-1 break-words text-lg font-extrabold leading-snug text-charcoal">{g.title}</h3>
           </div>
-          <motion.span animate={{ rotate: open ? 180 : 0 }} className="mt-1 shrink-0 text-muted"><ChevronDown className="h-5 w-5" aria-hidden="true" /></motion.span>
+          <button type="button" onClick={() => openGoalEditor(g)} aria-label={`Edit the goal "${g.title}"`} title="Edit goal"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-soft hover:text-charcoal"><Pencil className="h-4 w-4" aria-hidden="true" /></button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted shadow-sm" title="The period this goal is for"><CalendarRange className="h-3 w-3" aria-hidden="true" />{goalPeriodLabel(g)}</span>
           <span className={`inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold shadow-sm ${due.cls}`}><CalendarClock className="h-3 w-3" aria-hidden="true" />{due.text}</span>
           {g.is_private && <span className="inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted shadow-sm" title="Your partners cannot see this goal"><Lock className="h-3 w-3" aria-hidden="true" />Private</span>}
         </div>
-      </button>
+      </div>
 
-      <div className="px-4 pb-4 pt-1">
+      <div className="px-4 pt-2">
         <div className="flex items-baseline justify-between text-xs">
           <motion.span key={pct} initial={{ scale: 1.15 }} animate={{ scale: 1 }} className="origin-left font-extrabold tabular-nums text-charcoal">{pct}% Completed</motion.span>
           <span className="font-semibold tabular-nums text-muted">{done}/{g.sub_plans.length} plans done</span>
@@ -121,29 +139,49 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
         <Bar pct={pct} height="h-2.5" className="mt-2" fill={p.bar} label={`Progress for ${g.title}`} />
       </div>
 
+      {/* The plans, always in view, each with a box to tick */}
+      <div className="px-2 pb-1 pt-2">
+        {g.quote && <p className="px-2 pb-1 text-xs italic text-muted">&ldquo;{g.quote}&rdquo;</p>}
+        {g.sub_plans.length === 0
+          ? <p className="px-2 py-1 text-sm text-muted">No plans yet. Open <b>More</b> to add the steps that reach this goal.</p>
+          : <ul className="grid gap-0.5" aria-label={`Plans for ${g.title}`}>{plans.map((t) => <TaskItem key={t.id} goal={g} task={t} />)}</ul>}
+        {g.sub_plans.length > SHOWN && (
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="px-2 py-1 text-xs font-bold text-rust-dark hover:underline">
+            {showAll ? 'Show fewer' : `Show all ${g.sub_plans.length} plans`}
+          </button>
+        )}
+      </div>
+
+      {g.status === 'COMPLETED' && (
+        <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success">
+          <BookHeart className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{reflection ? 'You wrote a reflection on this goal.' : 'Done! How did it go? Capture it while it is fresh.'}</span>
+          <button type="button" onClick={() => openReflection(g.id)} className="rounded-lg bg-success px-2.5 py-1 text-[11px] font-extrabold text-white hover:opacity-90">{reflection ? 'Read' : 'Reflect'}</button>
+        </div>
+      )}
+
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={`panel-${g.id}`}
+        className="flex w-full items-center justify-center gap-1 border-t border-oat/70 py-1.5 text-[11px] font-bold text-muted hover:bg-oat/40 hover:text-charcoal">
+        {open ? 'Less' : 'More'}<motion.span animate={{ rotate: open ? 180 : 0 }}><ChevronDown className="h-3.5 w-3.5" aria-hidden="true" /></motion.span>
+      </button>
+
       <AnimatePresence initial={false}>
         {open && (
           <motion.div id={`panel-${g.id}`} {...collapse} className="overflow-hidden">
             <div className="border-t border-oat bg-oat/40 px-2 pb-3 pt-2">
-              {g.quote && <p className="px-2 pb-2 pt-1 text-xs italic text-muted">&ldquo;{g.quote}&rdquo;</p>}
-              <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Plans to reach it</p>
-              {g.sub_plans.length === 0 && <p className="px-2 pb-1 text-sm text-muted">No plans yet. What will you do to reach this goal?</p>}
-              <ul className="grid gap-0.5">{g.sub_plans.map((t) => <TaskItem key={t.id} goal={g} task={t} />)}</ul>
-              <form className="mt-2 flex gap-2 px-2" onSubmit={submitTask}>
+              <form className="flex gap-2 px-2" onSubmit={submitTask}>
                 <label className="sr-only" htmlFor={`nt-${g.id}`}>New plan for this goal</label>
                 <input id={`nt-${g.id}`} className="field !py-2" type="text" maxLength={500} placeholder="Add a plan, e.g. Save 10% of my income" value={text} onChange={(e) => setText(e.target.value)} disabled={busy} required />
                 <button type="submit" disabled={busy} aria-label="Add plan" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rust text-white shadow-md"><Plus className="h-4 w-4" aria-hidden="true" /></button>
               </form>
               <div className="mt-1 flex flex-wrap justify-end gap-1 px-2">
+                <button type="button" onClick={() => openGoalEditor(g)} className={tool}><Pencil className="h-3.5 w-3.5" aria-hidden="true" />Edit goal</button>
+                <button type="button" onClick={() => openReflection(g.id)} className={tool}><BookHeart className="h-3.5 w-3.5" aria-hidden="true" />{reflection ? 'Reflection' : 'Reflect'}</button>
                 <button type="button" onClick={() => setGoalPrivate(g.id, !g.is_private)} aria-pressed={g.is_private}
-                  title={g.is_private ? 'Share this goal with your partners again' : 'Hide this goal from your partners'}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-oat/60 hover:text-charcoal">
+                  title={g.is_private ? 'Share this goal with your partners again' : 'Hide this goal from your partners'} className={tool}>
                   {g.is_private ? <><Users className="h-3.5 w-3.5" aria-hidden="true" />Share with partners</> : <><Lock className="h-3.5 w-3.5" aria-hidden="true" />{hasPartners ? 'Make private' : 'Private'}</>}
                 </button>
-                <button type="button" onClick={() => (armed ? archiveGoal(g.id) : setArmed(true))} // two taps, so it cannot happen by accident
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-oat/60 ${armed ? 'text-danger' : 'text-muted hover:text-charcoal'}`}>
-                  <Archive className="h-3.5 w-3.5" aria-hidden="true" /><span>{armed ? 'Tap again to archive' : 'Archive goal'}</span>
-                </button>
+                <TwoTapButton onConfirm={() => archiveGoal(g.id)} icon={Archive} label="Archive this goal (it stays in History)" confirmText="Tap again to archive" className={tool}>Archive goal</TwoTapButton>
                 <TwoTapButton onConfirm={() => deleteGoal(g.id)} icon={Trash2} label="Delete this goal and its plans for good" confirmText="Tap again to delete for good"
                   className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-danger/10 hover:text-danger">Delete goal</TwoTapButton>
               </div>

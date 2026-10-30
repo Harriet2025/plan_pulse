@@ -12,18 +12,20 @@ import CalendarView from './components/CalendarView';
 import CatchUpView from './components/CatchUpView';
 import PlannerView from './components/PlannerView';
 import PartnersView from './components/PartnersView';
+import JournalView from './components/JournalView';
+import ReflectionModal from './components/ReflectionModal';
 import NewGoalModal from './components/NewGoalModal';
 import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
 import AuthScreen from './components/AuthScreen';
 
-const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
+const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, journal: JournalView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
 
 // The emailed reset link looks like  http://localhost:5173/#reset=<64 hex characters>
 const readResetToken = () => /^#reset=([0-9a-f]{64})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
 
 export default function App() {
-  const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast } = useApp();
+  const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal } = useApp();
   const [resetToken, setResetToken] = useState(readResetToken);
   const finishReset = () => { window.history.replaceState(null, '', window.location.pathname + window.location.search); setResetToken(null); };
 
@@ -60,6 +62,7 @@ export default function App() {
 
       <AnimatePresence>{goalModal && <NewGoalModal key="goal" />}</AnimatePresence>
       <AnimatePresence>{lighten && <LightenModal key="lighten" />}</AnimatePresence>
+      <AnimatePresence>{reflectGoal && <ReflectionModal key={`reflect-${reflectGoal}`} />}</AnimatePresence>
       <AnimatePresence mode="wait">{rewardQueue[0] && <RewardModal key={rewardQueue[0].id} item={rewardQueue[0]} />}</AnimatePresence>
 
       <AnimatePresence>

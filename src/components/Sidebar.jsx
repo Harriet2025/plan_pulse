@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronRight, LayoutDashboard, LifeBuoy, ListChecks, Tags, BarChart3, Settings, LogOut, Users } from 'lucide-react';
+import { CalendarDays, ChevronRight, LayoutDashboard, LifeBuoy, ListChecks, Tags, BarChart3, Settings, LogOut, Users, BookOpen } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { cn } from '../lib/utils';
 import { Avatar, Logo, cardShadow } from './ui';
@@ -7,6 +7,7 @@ export const TABS = [
   { id: 'active', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'planner', label: 'Planner', icon: ListChecks },
   { id: 'partners', label: 'Partners', icon: Users },
+  { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'catchup', label: 'Catch up', icon: LifeBuoy },
   { id: 'categories', label: 'Categories', icon: Tags },

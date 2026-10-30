@@ -232,3 +232,40 @@ function parse_datetime_or_fail(?string $value, string $field, string $format): 
     }
     return $dt->format($format);
 }
+
+// ---- Categories: the built-in ones plus the user's own ----------------------------------------------------------
+
+/** Built-in categories first (in their usual order), then the user's own by name: [{ id, name, color, personal }]. */
+function fetch_categories(PDO $pdo, int $userId): array
+{
+    $stmt = $pdo->prepare('SELECT id, user_id, name, color_code FROM categories WHERE user_id IS NULL OR user_id = ? ORDER BY user_id IS NOT NULL, id');
+    $stmt->execute([$userId]);
+    return array_map(fn($c) => [
+        'id' => (int) $c['id'], 'name' => $c['name'], 'color' => $c['color_code'], 'personal' => $c['user_id'] !== null,
+    ], $stmt->fetchAll());
+}
+
+/** Whether the user may file a goal under this category: a built-in one, or one of their own. */
+function category_usable(PDO $pdo, int $userId, int $categoryId): bool
+{
+    $stmt = $pdo->prepare('SELECT 1 FROM categories WHERE id = ? AND (user_id IS NULL OR user_id = ?)');
+    $stmt->execute([$categoryId, $userId]);
+    return (bool) $stmt->fetchColumn();
+}
+
+// ---- Journal (private: never shared with partners) ---------------------------------------------------------------
+
+function fetch_journal(PDO $pdo, int $userId, ?int $entryId = null): array
+{
+    $sql = 'SELECT id, kind, entry_date, period, period_key, goal_id, title, body, answers, mood, UNIX_TIMESTAMP(created_at) AS c, UNIX_TIMESTAMP(updated_at) AS u
+            FROM journal_entries WHERE user_id = ?' . ($entryId !== null ? ' AND id = ?' : '') . ' ORDER BY entry_date DESC, id DESC';
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($entryId !== null ? [$userId, $entryId] : [$userId]);
+    return array_map(fn($e) => [
+        'id' => (int) $e['id'], 'kind' => $e['kind'], 'date' => $e['entry_date'], 'period' => $e['period'], 'period_key' => $e['period_key'],
+        'goal_id' => $e['goal_id'] !== null ? (int) $e['goal_id'] : null, 'title' => $e['title'], 'body' => $e['body'],
+        'answers' => $e['answers'] !== null ? (object) json_decode((string) $e['answers'], true) : (object) [],
+        'mood' => $e['mood'] !== null ? (int) $e['mood'] : null,
+        'created_at' => gmdate('Y-m-d\TH:i:s\Z', (int) $e['c']), 'updated_at' => gmdate('Y-m-d\TH:i:s\Z', (int) $e['u']),
+    ], $stmt->fetchAll());
+}

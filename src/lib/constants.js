@@ -1,4 +1,4 @@
-import { GraduationCap, Briefcase, Church, Heart, HeartPulse, Users, Wallet, Shapes, Folder } from 'lucide-react';
+import { GraduationCap, Briefcase, Church, Heart, HeartPulse, Users, Wallet, Shapes, Tag } from 'lucide-react';
 
 // Life areas. Day / Week / Month / Year are not categories: they are a goal's horizon (see HORIZONS below).
 // The ids match the categories table. Muted, earthy hues that sit beside the ivory / rust / rose palette,
@@ -17,7 +17,7 @@ export const CATEGORIES = [
 export const CAT_ICONS = {
   School: GraduationCap, Work: Briefcase, Church, Personal: Heart, Health: HeartPulse, Family: Users, Finance: Wallet, Others: Shapes,
 };
-export const catIcon = (name) => CAT_ICONS[name] || Folder;
+export const catIcon = (name) => CAT_ICONS[name] || Tag;   // personal categories get a tag
 
 /** The Planner's tabs: a day, a week (Monday to Sunday), a month or a year. */
 export const PERIODS = [

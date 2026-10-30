@@ -20,6 +20,11 @@ $partnerId = $p['partner_id'];
 $profile = partner_profile($pdo, $partnerId);
 $shares = shared_with_partner($pdo, (int) $p['id'], $partnerId);
 
+// Their categories by id, so personal ones ("Content creation") show with their own name and colour
+$cats = [];
+foreach (fetch_categories($pdo, $partnerId) as $c) {
+    $cats[$c['id']] = $c;
+}
 $goals = [];
 foreach (fetch_goals($pdo, $partnerId, 'ALL') as $g) {
     if (!goal_is_shared($g, $shares) || $g['status'] === 'ARCHIVED') {
@@ -30,6 +35,7 @@ foreach (fetch_goals($pdo, $partnerId, 'ALL') as $g) {
     }
     $goals[] = [
         'id' => $g['id'], 'title' => $g['title'], 'category_id' => $g['category_id'], 'priority' => $g['priority'],
+        'category' => isset($cats[$g['category_id']]) ? ['name' => $cats[$g['category_id']]['name'], 'color' => $cats[$g['category_id']]['color']] : null,
         'timeframe' => $g['timeframe'], 'due_date' => $g['due_date'], 'status' => $g['status'], 'completed_at' => $g['completed_at'],
         'plans' => array_map(fn($s) => ['text' => $s['task_description'], 'done' => $s['is_completed']], $g['sub_plans']),
     ];

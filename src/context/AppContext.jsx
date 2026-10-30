@@ -27,6 +27,10 @@ export function AppProvider({ children }) {
   const [user, setUser] = useState(null);
   const [goals, setGoals] = useState([]);      // every goal the user has, any status
   const [dayPlans, setDayPlans] = useState([]); // the user's day plans (stand-alone, can repeat), with done / skipped days
+  const [categories, setCategories] = useState(CATEGORIES);   // built-in plus the user's own (from the server)
+  const [journal, setJournal] = useState([]);    // private notes and reflections
+  const [reflectGoal, setReflectGoal] = useState(null);   // the goal whose reflection is open, or null
+  const [pendingReflect, setPendingReflect] = useState(null);   // a goal just completed: its reflection opens after the badge
   const [reviews, setReviews] = useState([]);  // every badge earned
 
   // A push about a partner's message opens the app at #partners
@@ -54,7 +58,8 @@ export function AppProvider({ children }) {
   // ---- Data
   const refresh = useCallback(async () => {
     const s = await api.snapshot();
-    setUser(s.user); setGoals(s.goals); setDayPlans(s.dayPlans); setReviews(s.reviews);
+    setUser(s.user); setGoals(s.goals); setDayPlans(s.dayPlans); setReviews(s.reviews); setJournal(s.journal);
+    if (s.categories) setCategories(s.categories);
     // Tell the server this browser's time zone, so reminders, the morning email and streak days follow the user's
     // clock (the server's own clock can be in a different zone)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -100,7 +105,7 @@ export function AppProvider({ children }) {
   };
   const signOut = async () => {
     await api.logout();
-    setUser(null); setGoals([]); setDayPlans([]); setReviews([]); setPartners({ partners: [], incoming: [], outgoing: [] }); setRewardQueue([]); setGoalModal(null); setLighten(null);
+    setUser(null); setGoals([]); setDayPlans([]); setReviews([]); setJournal([]); setCategories(CATEGORIES); setPartners({ partners: [], incoming: [], outgoing: [] }); setRewardQueue([]); setGoalModal(null); setLighten(null);
   };
 
   // ---- Profile. These throw, so the settings forms can show the server's message next to the field.
@@ -141,6 +146,8 @@ export function AppProvider({ children }) {
         setRewardQueue((q) => [...q, { id: rv.review.id, title: goal?.title ?? '', rank: Math.min(3, rv.review.tier), pct: rv.review.pct }]);
       }
     }
+    // Invite a reflection on the finished goal (it opens once any badge has been celebrated)
+    if (res.goal_status === 'COMPLETED' && want) setPendingReflect(goalId);
   });
 
   /**
@@ -209,6 +216,26 @@ export function AppProvider({ children }) {
   }, [user?.id, refreshPartners]); // eslint-disable-line react-hooks/exhaustive-deps
   const unreadTotal = partners.partners.reduce((n, p) => n + p.unread, 0) + partners.incoming.length;
 
+  /** Edits a goal's title, category, priority, period, finish-by date or quote. Throws, so the form can show the message. */
+  const updateGoal = async (id, fields) => {
+    try { await api.updateGoal(id, fields); } catch (e) { if (e.auth) setUser(null); throw e; }
+    await refresh(); setGoalModal(null); toast('Goal updated.');
+  };
+  const renameTask = (taskId, text) => run(async () => { await api.renameTask(taskId, text); await refresh(); return true; });
+
+  // ---- Personal categories. Each returns true (or the new id) when it worked.
+  const createCategory = (name, color) => run(async () => { const r = await api.createCategory(name, color); setCategories(r.categories); toast(`Added "${name}".`); return r.id; });
+  const updateCategory = (id, fields) => run(async () => { const r = await api.updateCategory(id, fields); setCategories(r.categories); return true; });
+  const deleteCategory = (id) => run(async () => {
+    const r = await api.deleteCategory(id); setCategories(r.categories); await refresh();
+    if (String(activeCat) === String(id)) setActiveCat('all');
+    toast('Category deleted. Its goals are now under Others.'); return true;
+  });
+
+  // ---- Journal
+  const saveJournal = (entry) => run(async () => { const e = await api.saveJournal(entry); await refresh(); toast('Saved to your journal.'); return e; });
+  const deleteJournal = (id) => run(async () => { await api.deleteJournal(id); await refresh(); toast('Entry deleted.'); return true; });
+
   /** Deletes a goal for good (the card asks twice first). */
   const deleteGoal = (id) => run(async () => { await api.deleteGoal(id); await refresh(); toast('Goal deleted.'); return true; });
   /** Removes one plan from a goal. */
@@ -246,7 +273,7 @@ export function AppProvider({ children }) {
     const items = [];
     for (const g of goals) {
       if (g.status !== 'ACTIVE' || !g.due_date || daysUntil(g.due_date) >= 0) continue;
-      const cat = CATEGORIES.find((x) => x.id === g.category_id);
+      const cat = categories.find((x) => x.id === g.category_id);
       items.push({
         key: `g${g.id}`, kind: 'goal', goalId: g.id, color: cat?.color ?? '#B85C38', category: cat?.name, title: g.title, timeframe: g.timeframe,
         due_date: g.due_date, daysLate: -daysUntil(g.due_date), done: g.sub_plans.filter((t) => t.done).length, total: g.sub_plans.length, weight: 30,
@@ -260,7 +287,14 @@ export function AppProvider({ children }) {
       });
     }
     return items.sort((x, y) => y.daysLate - x.daysLate || x.key.localeCompare(y.key));
-  }, [goals, dayPlans, now]);
+  }, [goals, dayPlans, categories, now]);
+
+  // A just-completed goal's reflection opens once the badge pop-up (if any) is out of the way
+  useEffect(() => {
+    if (!pendingReflect || rewardQueue.length || reflectGoal || goalModal) return undefined;
+    const t = setTimeout(() => { setReflectGoal(pendingReflect); setPendingReflect(null); }, 900);
+    return () => clearTimeout(t);
+  }, [pendingReflect, rewardQueue.length, reflectGoal, goalModal]);
 
   // Rewards shown in the header exclude badges still waiting to be claimed
   const rewardsTotal = Math.max(0, reviews.length - rewardQueue.length);
@@ -318,7 +352,10 @@ export function AppProvider({ children }) {
   };
 
   const value = {
-    booted, bootError, boot, user, goals, reviews, categories: CATEGORIES,
+    booted, bootError, boot, user, goals, reviews, categories,
+    createCategory, updateCategory, deleteCategory, updateGoal, renameTask,
+    journal, saveJournal, deleteJournal, reflectGoal, openReflection: (id) => setReflectGoal(id), closeReflection: () => setReflectGoal(null),
+    openGoalEditor: (goal) => setGoalModal({ draft: { edit: goal } }),
     view, setView, activeCat, setActiveCat, horizonFilter, setHorizonFilter, search, setSearch, prio, setPrio,
     soundOn, setSoundOn, goalModal, openGoalModal: (draft = null) => setGoalModal({ draft }), closeGoalModal: () => setGoalModal(null),
     freshId, focusReq, consumeFocus: () => setFocusReq(null), openGoal,

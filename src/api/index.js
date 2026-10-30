@@ -123,6 +123,8 @@ export async function snapshot() {
     user: r.user,
     goals: r.goals.map(fromGoal),
     dayPlans: (r.day_plans ?? []).map(fromDayPlan),
+    categories: r.categories ?? null,   // built-in plus the user's own: [{ id, name, color, personal }]
+    journal: r.journal ?? [],
     reviews: r.reviews.map((v) => ({ ...v, reviewed_at: iso(v.reviewed_at) })),
   };
 }
@@ -190,6 +192,32 @@ export async function markDayPlan(id, date, state) {
 /** Deletes the plan and every day of it. */
 export async function deleteDayPlan(id) {
   await dayPlanCall({ action: 'delete', id });
+}
+
+/** Changes a goal: any of { title, category_id, priority, timeframe, due_date, quote }. */
+export async function updateGoal(goalId, fields) {
+  return fromGoal((await request('goals.php', { method: 'PATCH', body: { id: goalId, edit: fields } })).goal);
+}
+/** Renames one of a goal's plans. */
+export async function renameTask(taskId, text) {
+  await request('sub_plans.php', { method: 'PATCH', body: { id: taskId, task_description: text } });
+}
+
+// ---- Personal categories -------------------------------------------------
+
+/** Each returns { categories } (the full list); create also returns the new id. */
+export const createCategory = (name, color) => request('categories.php', { method: 'POST', body: { name, color } });
+export const updateCategory = (id, fields) => request('categories.php', { method: 'PATCH', body: { id, ...fields } });
+export const deleteCategory = (id) => request('categories.php', { method: 'DELETE', body: { id } });
+
+// ---- Journal (private) -----------------------------------------------------
+
+/** Saves a NOTE, a REVIEW of a period or a GOAL reflection. Returns the saved entry. */
+export async function saveJournal(entry) {
+  return (await request('journal.php', { method: 'POST', body: { action: 'save', ...entry } })).entry;
+}
+export async function deleteJournal(id) {
+  await request('journal.php', { method: 'POST', body: { action: 'delete', id } });
 }
 
 /** Deletes a goal for good, with its plans and badges. */
