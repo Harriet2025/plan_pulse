@@ -51,7 +51,8 @@ async function request(path, { method = 'GET', body } = {}) {
 const iso = (s) => (s ? s.replace(' ', 'T') : s);
 
 // A goal's plan: one step in its checklist
-const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed });
+// `estimate` is how long it takes in minutes (null when not known), used by "What should I do now?"
+const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed, estimate: t.estimate_min ?? null });
 
 // A day plan: { id, title, date, start: 'HH:MM' | null, minutes, repeat: NONE|DAILY|WEEKLY|MONTHLY, days: [1..7], until,
 // marks: { 'YYYY-MM-DD': 'DONE' | 'SKIPPED' } }
@@ -197,6 +198,10 @@ export async function deleteDayPlan(id) {
 /** Changes a goal: any of { title, category_id, priority, timeframe, due_date, quote }. */
 export async function updateGoal(goalId, fields) {
   return fromGoal((await request('goals.php', { method: 'PATCH', body: { id: goalId, edit: fields } })).goal);
+}
+/** How long one of a goal's plans takes, in minutes (5 to 720), or null when not known. */
+export async function setTaskEstimate(taskId, minutes) {
+  await request('sub_plans.php', { method: 'PATCH', body: { id: taskId, estimate_min: minutes } });
 }
 /** Renames one of a goal's plans. */
 export async function renameTask(taskId, text) {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart3, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
@@ -49,7 +49,7 @@ function ReviewNudge() {
 }
 
 function Hero({ totals, open }) {
-  const { user, activeGoals, setView, openGoalModal } = useApp();
+  const { user, activeGoals, setView, openGoalModal, openNext } = useApp();
   const first = user.display_name.trim().split(/\s+/)[0];
   const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = activeGoals.length;
@@ -67,7 +67,8 @@ function Hero({ totals, open }) {
           <h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl">{greeting()}, {first}</h2>
           <p className="mt-2 text-sm leading-relaxed text-white md:text-base">{sub}</p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-white"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
+            <button type="button" onClick={openNext} className="inline-flex items-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-white"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
+            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-5 py-2.5 text-sm font-bold text-white hover:bg-charcoal"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
             <button type="button" onClick={() => setView('history')} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-5 py-2.5 text-sm font-bold text-white hover:bg-charcoal"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
         </div>

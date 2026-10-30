@@ -67,6 +67,10 @@ The **Planner** page has Day, Week, Month and Year tabs with ‹ › to move bet
 - **Goal reflections:** when a goal is completed, a reflection opens (after any badge): how it went, the ups, the downs, how you achieved it, the lessons learnt, and a mood. Open it again from the goal card or History.
 - **Journal:** private notes with an optional mood, plus a reflection for each week, month and year (wins, challenges, lessons, next focus). Browse them by week, month or year on the **Journal** page; a period's review in the Planner shows its journal too. Partners never see the journal (`journal_entries`, `api/journal.php`).
 
+## What should I do now?
+
+The **What should I do now?** button (on the dashboard, and the compass in the top bar) recommends one next task. It works out how long you have before your next timed plan today (or you pick 15m to 2h), lets you say how much energy you have, and scores today's day plans and your goals' plans by deadline, priority, whether they fit the time, energy, and quick wins (the last plan of a goal). It shows the reasons ("Goal is due tomorrow", "Fits your 25m"); you can **Start this task** (a focus timer that stays on screen, survives a reload and ticks the task off when you finish), **Skip** it, or **Choose something else**. When a goal's plan has no length yet it asks once, and remembers (`sub_plans.estimate_min`). The rules are in `src/lib/next.js`.
+
 ## Accountability partners
 
 The **Partners** page lets you invite up to 5 people by email. An invite waits until someone signs in with that email and accepts it, so the invite box never reveals who has an account (and inviting someone who already invited you just accepts theirs). Partners can:

@@ -100,7 +100,7 @@ CREATE TABLE sub_plans (
   is_completed     TINYINT(1)   NOT NULL DEFAULT 0,
   completed_at     DATETIME     NULL,                   -- when it was ticked, for the partners' weekly scoreboard
   remind_at        DATETIME     NULL,                   -- unused since migration 009 (times live on day_plans)
-  estimate_min     SMALLINT UNSIGNED NULL,              -- unused since migration 009
+  estimate_min     SMALLINT UNSIGNED NULL,              -- how long it takes in minutes, for "What should I do now?"
   PRIMARY KEY (id),
   KEY idx_sub_plans_goal (goal_id, is_completed),
   KEY idx_sub_plans_remind (remind_at),

@@ -30,7 +30,12 @@ export function AppProvider({ children }) {
   const [categories, setCategories] = useState(CATEGORIES);   // built-in plus the user's own (from the server)
   const [journal, setJournal] = useState([]);    // private notes and reflections
   const [reflectGoal, setReflectGoal] = useState(null);   // the goal whose reflection is open, or null
-  const [pendingReflect, setPendingReflect] = useState(null);   // a goal just completed: its reflection opens after the badge
+  const [pendingReflect, setPendingReflect] = useState(null);
+  const [nextOpen, setNextOpen] = useState(false);   // the "What should I do now?" window
+  // The task being worked on with the focus timer: { id, kind, title, context, minutes, endsAt, ref }. Kept in this
+  // browser so a reload does not lose it.
+  const [focus, setFocusState] = useState(() => { try { return JSON.parse(localStorage.getItem('auragoal.focus') || 'null'); } catch { return null; } });
+  const setFocus = (f) => { setFocusState(f); try { f ? localStorage.setItem('auragoal.focus', JSON.stringify(f)) : localStorage.removeItem('auragoal.focus'); } catch { /* ignore */ } };   // a goal just completed: its reflection opens after the badge
   const [reviews, setReviews] = useState([]);  // every badge earned
 
   // A push about a partner's message opens the app at #partners
@@ -221,6 +226,7 @@ export function AppProvider({ children }) {
     try { await api.updateGoal(id, fields); } catch (e) { if (e.auth) setUser(null); throw e; }
     await refresh(); setGoalModal(null); toast('Goal updated.');
   };
+  const setTaskEstimate = (taskId, minutes) => run(async () => { await api.setTaskEstimate(taskId, minutes); await refresh(); return true; });
   const renameTask = (taskId, text) => run(async () => { await api.renameTask(taskId, text); await refresh(); return true; });
 
   // ---- Personal categories. Each returns true (or the new id) when it worked.
@@ -353,7 +359,8 @@ export function AppProvider({ children }) {
 
   const value = {
     booted, bootError, boot, user, goals, reviews, categories,
-    createCategory, updateCategory, deleteCategory, updateGoal, renameTask,
+    createCategory, updateCategory, deleteCategory, updateGoal, renameTask, setTaskEstimate,
+    nextOpen, openNext: () => setNextOpen(true), closeNext: () => setNextOpen(false), focus, setFocus,
     journal, saveJournal, deleteJournal, reflectGoal, openReflection: (id) => setReflectGoal(id), closeReflection: () => setReflectGoal(null),
     openGoalEditor: (goal) => setGoalModal({ draft: { edit: goal } }),
     view, setView, activeCat, setActiveCat, horizonFilter, setHorizonFilter, search, setSearch, prio, setPrio,

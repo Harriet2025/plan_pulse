@@ -14,6 +14,8 @@ import PlannerView from './components/PlannerView';
 import PartnersView from './components/PartnersView';
 import JournalView from './components/JournalView';
 import ReflectionModal from './components/ReflectionModal';
+import NextTaskModal from './components/NextTaskModal';
+import FocusTimer from './components/FocusTimer';
 import NewGoalModal from './components/NewGoalModal';
 import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
@@ -25,7 +27,7 @@ const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView,
 const readResetToken = () => /^#reset=([0-9a-f]{64})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
 
 export default function App() {
-  const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal } = useApp();
+  const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus } = useApp();
   const [resetToken, setResetToken] = useState(readResetToken);
   const finishReset = () => { window.history.replaceState(null, '', window.location.pathname + window.location.search); setResetToken(null); };
 
@@ -63,6 +65,8 @@ export default function App() {
       <AnimatePresence>{goalModal && <NewGoalModal key="goal" />}</AnimatePresence>
       <AnimatePresence>{lighten && <LightenModal key="lighten" />}</AnimatePresence>
       <AnimatePresence>{reflectGoal && <ReflectionModal key={`reflect-${reflectGoal}`} />}</AnimatePresence>
+      <AnimatePresence>{nextOpen && <NextTaskModal key="next" />}</AnimatePresence>
+      <AnimatePresence>{focus && <FocusTimer key={`focus-${focus.id}`} />}</AnimatePresence>
       <AnimatePresence mode="wait">{rewardQueue[0] && <RewardModal key={rewardQueue[0].id} item={rewardQueue[0]} />}</AnimatePresence>
 
       <AnimatePresence>

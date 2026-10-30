@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, Flame, Moon, Snowflake, Trophy, Bell, Volume2, VolumeX, LogOut, Plus } from 'lucide-react';
+import { Search, Flame, Moon, Snowflake, Trophy, Bell, Volume2, VolumeX, LogOut, Plus, Compass } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import NotifList, { useNotifCount } from './NotifList';
 import { cardShadow } from './ui';
@@ -75,7 +75,7 @@ function Stat({ icon: Icon, value, label, tone, title, badge }) {
 }
 
 export default function TopBar() {
-  const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, signOut, openGoalModal } = useApp();
+  const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, signOut, openGoalModal, openNext } = useApp();
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
@@ -115,6 +115,7 @@ export default function TopBar() {
             )}
             tone={{ box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }} />
           <Stat icon={Trophy} value={rewardsTotal} label="Rewards" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
+          <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={iconBtn}><Compass className="h-4 w-4" aria-hidden="true" /></button>
           <NotificationBell />
           <button type="button" className={iconBtn} aria-label={soundOn ? 'Sound on' : 'Sound off'} aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)}>
             {soundOn ? <Volume2 className="h-4 w-4" aria-hidden="true" /> : <VolumeX className="h-4 w-4" aria-hidden="true" />}
