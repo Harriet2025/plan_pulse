@@ -212,12 +212,15 @@ function app_config(): array
 function env_config(): array
 {
     $env = fn(string ...$names) => array_reduce($names, fn($found, $n) => $found ?? (getenv($n) !== false && getenv($n) !== '' ? getenv($n) : null), null);
+    // DATABASE_URL, as Coolify shows it: mysql://user:password@host:3306/database (the separate variables win)
+    $url = parse_url((string) $env('DATABASE_URL')) ?: [];
+    $fromUrl = fn(string $k) => isset($url[$k]) && $url[$k] !== '' ? rawurldecode((string) $url[$k]) : null;
     $cfg = array_filter([
-        'host'    => $env('AURAGOAL_DB_HOST', 'MYSQLHOST'),
-        'port'    => $env('AURAGOAL_DB_PORT', 'MYSQLPORT'),
-        'name'    => $env('AURAGOAL_DB_NAME', 'MYSQLDATABASE'),
-        'user'    => $env('AURAGOAL_DB_USER', 'MYSQLUSER'),
-        'pass'    => $env('AURAGOAL_DB_PASS', 'MYSQLPASSWORD'),
+        'host'    => $env('AURAGOAL_DB_HOST', 'MYSQLHOST') ?? $fromUrl('host'),
+        'port'    => $env('AURAGOAL_DB_PORT', 'MYSQLPORT') ?? $fromUrl('port'),
+        'name'    => $env('AURAGOAL_DB_NAME', 'MYSQLDATABASE') ?? (isset($url['path']) ? ltrim(rawurldecode($url['path']), '/') : null),
+        'user'    => $env('AURAGOAL_DB_USER', 'MYSQLUSER') ?? $fromUrl('user'),
+        'pass'    => $env('AURAGOAL_DB_PASS', 'MYSQLPASSWORD') ?? $fromUrl('pass'),
         'app_url' => $env('APP_URL'),
     ], fn($v) => $v !== null);
     if ($env('SMTP_HOST')) {

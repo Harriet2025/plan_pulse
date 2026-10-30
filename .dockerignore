@@ -4,5 +4,4 @@ storage
 backend/config.local.php
 .git
 legacy
-src
-public
+*.log

@@ -27,11 +27,20 @@ Open **http://localhost:5173**. Vite forwards `/api/*` to the PHP server, so the
 
 `npm run api` uses XAMPP's PHP at `C:\xampp\php\php.exe`. The `php` on your PATH (`C:\php`) is misconfigured: its `php.ini` points at extension files that do not exist, so it cannot load `pdo_mysql`.
 
-## Putting it online (Vercel + Railway)
+## Putting it online (Coolify)
 
-The React front end is on **Vercel**; the PHP API, MySQL, stored files and the reminder worker run on **Railway** from the `Dockerfile` in this folder. Vercel forwards `/api/*` to Railway (`vercel.json`), so the browser sees one website and logins work everywhere.
+The `Dockerfile` builds **one container** with everything: the built React app at `/`, the PHP API at `/api/`, and the reminder worker running alongside. One address keeps sign-in cookies, the service worker and installing on phones simple. Only the app and `/api/` are reachable from the web; helpers, settings and storage are not.
 
-On Railway: deploy this GitHub repo (it builds the `Dockerfile`), add a **MySQL** database, add a **volume** mounted at `/app/storage` (photos, videos, sessions, push keys), and set these variables on the app service: `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` (as references to the MySQL service), `APP_URL` (the Vercel address) and, for email, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`. On first start `backend/install.php` creates the tables in the empty database. Without a `config.local.php`, all settings come from these variables (`env_config()` in `backend/db.php`).
+In Coolify:
+
+1. **New Resource → Application** from this GitHub repo, branch `main`, build pack **Dockerfile**, **Ports Exposes** `8080`.
+2. **New Resource → Database → MySQL** (in the same project). Copy its **internal** connection URL (`mysql://user:password@host:3306/database`).
+3. On the application, **Environment Variables**: `DATABASE_URL` = that URL, and `APP_URL` = the app's address (for example `https://auragoal.example.com`). For email add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
+4. **Persistent Storage**: a volume mounted at `/app/storage` (photos, chat files, sessions, push keys).
+5. **Domains**: your domain (with an A record pointing at the server). Coolify gets the HTTPS certificate.
+6. **Deploy.** On the first start `backend/install.php` creates the tables in the empty database. After that, pushing to `main` and redeploying updates the app; the data and files stay.
+
+Settings can also be given as `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` or `AURAGOAL_DB_*` (see `env_config()` in `backend/db.php`). A database created before a later migration needs that migration run by hand (`migrations/`).
 
 ## Installable app (PWA) and offline
 

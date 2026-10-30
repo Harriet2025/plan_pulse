@@ -1,6 +1,6 @@
 #!/bin/sh
-# Starts AuraGoal's back end: makes sure the storage volume is usable, creates the tables in an empty database,
-# runs the reminder worker in the background (restarting it if it stops), then serves the API with Apache.
+# Starts AuraGoal: makes sure the storage volume is usable, creates the tables in an empty database,
+# runs the reminder worker in the background (restarting it if it stops), then serves the app and API with Apache.
 set -e
 
 mkdir -p /app/storage
