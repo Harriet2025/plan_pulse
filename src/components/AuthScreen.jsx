@@ -74,8 +74,16 @@ export default function AuthScreen({ resetToken = null, onResetDone }) {
     if (!email.trim() || !password || (signup && !name.trim())) { setError('Fill in every field.'); return; }
     setBusy(true);
     try {
-      await signIn(mode, { display_name: name, email, password });
-      try { localStorage.setItem('auragoal.hasAccount', '1'); } catch { /* ignore */ }
+      const needsConfirm = await signIn(mode, { display_name: name, email, password });
+      try {
+        localStorage.setItem('auragoal.hasAccount', '1');
+        if (needsConfirm && invite) localStorage.setItem('auragoal.openPartners', '1');   // the emailed confirmation link opens a fresh page
+      } catch { /* ignore */ }
+      if (needsConfirm) {
+        go('login');
+        setNotice(`Almost there. We sent a link to ${email.trim()}. Open it to confirm your email, then sign in. Look in spam if you don't see it.`);
+        setBusy(false);
+      }
     } catch (ex) {
       setError(ex.message); setBusy(false);
     }

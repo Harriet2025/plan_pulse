@@ -19,7 +19,7 @@ export const shortDay = (d) => d.toLocaleDateString(undefined, { weekday: 'short
 export const addDays = (from, n) => new Date(from.getFullYear(), from.getMonth(), from.getDate() + n);
 export const parseDay = (key) => new Date(`${key}T00:00:00`);
 
-// ---- Periods: a day, a week (Monday to Sunday), a month or a year. Mirrors period_end() in backend/api/lib.php.
+// ---- Periods: a day, a week (Monday to Sunday), a month or a year. goal_defaults() in the database has the same rule.
 
 export function periodStart(horizon, d) {
   if (horizon === 'WEEKLY') return addDays(d, 1 - isoWeekday(d));
@@ -171,7 +171,7 @@ export function fmtSpan(start, minutes) {
 /**
  * Whether a day plan happens on a day (YYYY-MM-DD). Repeating plans run from their first day to `until`; weekly ones
  * on the chosen weekdays; monthly ones on the first day's date (or the month's last day when the month is shorter).
- * Mirrors day_plan_occurs() in backend/api/lib.php, so keep the two in step.
+ * Mirrors private.day_plan_occurs() in supabase/schema.sql and occursOn() in the notify function, so keep them in step.
  */
 export function occursOn(plan, key) {
   if (key < plan.date || (plan.until && key > plan.until)) return false;
@@ -287,7 +287,7 @@ export function loadState(planned, capacity) {
 
 /**
  * The full picture for one day: its plans still to do (`tasks`), minutes planned, minutes available, and how full that
- * is. Done plans do not count. Mirrors plan_for_day() in backend/notify.php, so keep the two in step.
+ * is. Done plans do not count. Mirrors planForDay() in the notify function, so keep the two in step.
  */
 export function dayLoad(dayPlans, user, dateKey) {
   const tasks = plansOn(dayPlans, dateKey).filter((x) => !x.done);

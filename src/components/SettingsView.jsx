@@ -119,7 +119,7 @@ function DetailsCard() {
         ...(emailChanged ? { email, current_password: password } : {}),
       });
       setPassword('');
-      setNote({ kind: 'ok', text: 'Your details are saved.' });
+      setNote({ kind: 'ok', text: emailChanged ? `Saved. We sent a link to ${email.trim()}: open it to finish changing your email.` : 'Your details are saved.' });
     } catch (ex) {
       setNote({ kind: 'err', text: ex.message });
     }
@@ -369,7 +369,7 @@ function NotificationsCard() {
     return () => clearTimeout(id);
   }, [time]); // eslint-disable-line react-hooks/exhaustive-deps
   const preview = () => run('preview', () => api.sendDigestPreview(),
-    (r) => (r.delivered === 'email' ? `Sent to ${user.email}. Check your inbox.` : 'Email is not set up on the server yet, so it was saved to storage/mail.log instead.'));
+    (r) => (r.delivered === 'email' ? `Sent to ${user.email}. Check your inbox.` : 'Email is not set up on the server yet, so nothing was sent.'));
 
   const on = !!thisKey;
   const supported = permission !== 'unsupported';
@@ -422,7 +422,7 @@ function NotificationsCard() {
           <button type="button" onClick={preview} disabled={!!busy} className={secondary}><Send className="h-4 w-4" aria-hidden="true" />{busy === 'preview' ? 'Sending…' : 'Send me a preview now'}</button>
         </div>
         {cfg && !cfg.mail_configured && (
-          <p className="mt-3 flex items-start gap-2 rounded-xl bg-warning/10 px-3 py-2 text-xs font-semibold text-charcoal"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden="true" /><span>Email is not set up on the server yet, so messages are saved to <code className="rounded bg-oat px-1">storage/mail.log</code> instead of being sent. See the README to add your mail account.</span></p>
+          <p className="mt-3 flex items-start gap-2 rounded-xl bg-warning/10 px-3 py-2 text-xs font-semibold text-charcoal"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden="true" /><span>Email is not set up on the server yet, so morning emails and invites cannot be sent.</span></p>
         )}
       </div>
 
@@ -432,8 +432,8 @@ function NotificationsCard() {
         <div className="min-w-0 flex-1 basis-56">
           <p className="text-sm font-extrabold text-charcoal">{!cfg ? 'Checking…' : cfg.worker_running ? 'The worker is running' : 'The worker is not running'}</p>
           <p className="text-xs text-muted">
-            {cfg?.worker_running ? 'It checks every 30 seconds and sends reminders and emails on time.'
-              : <>Reminders and emails are only sent while it runs. Open a terminal in the project folder, run <code className="rounded bg-oat px-1 font-bold text-charcoal">npm run worker</code>, and leave it open.</>}
+            {cfg?.worker_running ? 'It checks every minute and sends reminders and emails on time.'
+              : 'It normally checks every minute. Reminders and emails wait until it is back.'}
           </p>
         </div>
         <button type="button" onClick={refresh} className={secondary}><RefreshCw className="h-4 w-4" aria-hidden="true" />Check again</button>

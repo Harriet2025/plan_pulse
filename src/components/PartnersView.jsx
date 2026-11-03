@@ -99,7 +99,7 @@ function PartnerList({ selected, onSelect }) {
           <button type="button" onClick={() => onSelect(p.id)} aria-current={selected === p.id ? 'true' : undefined}
             className={cn('flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors', selected === p.id ? 'border-rust bg-rust/10' : 'border-oat bg-soft hover:border-blush')}>
             <span className="relative">
-              <Avatar user={p.partner} partner className="h-11 w-11 text-base" />
+              <Avatar user={p.partner} className="h-11 w-11 text-base" />
               {p.partner.streak_active_today && <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-success text-white ring-2 ring-soft" title="Active today"><Check className="h-2.5 w-2.5" strokeWidth={4} aria-hidden="true" /></span>}
             </span>
             <span className="min-w-0 flex-1">
@@ -492,7 +492,7 @@ function PartnerPanel({ entry, onBack }) {
     <section className="min-w-0 rounded-3xl border border-oat bg-soft p-4 md:p-5" style={cardShadow} aria-label={`Partner ${entry.partner.display_name}`}>
       <div className="flex items-start gap-3">
         <button type="button" onClick={onBack} aria-label="Back to partners" className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-oat/60 lg:hidden"><ArrowLeft className="h-5 w-5" aria-hidden="true" /></button>
-        <Avatar user={entry.partner} partner className="h-14 w-14 text-xl" />
+        <Avatar user={entry.partner} className="h-14 w-14 text-xl" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-xl font-extrabold tracking-tight text-charcoal">{entry.partner.display_name}</h2>
           <div className="mt-1 flex flex-wrap items-center gap-1.5">

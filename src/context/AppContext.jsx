@@ -81,7 +81,15 @@ export function AppProvider({ children }) {
   const [bootError, setBootError] = useState('');
   const boot = useCallback(async () => {
     setBootError('');
-    try { if (await api.getCurrentUser()) await refresh(); } catch (e) { setBootError(e.message); }
+    try {
+      if (await api.getCurrentUser()) {
+        await refresh();
+        // Signed up from a partner invite: confirming their email brings them back here, to the invite
+        if (localStorage.getItem('auragoal.openPartners')) { localStorage.removeItem('auragoal.openPartners'); setView('partners'); }
+      }
+    } catch (e) {
+      if (e.auth) await api.logout().catch(() => {}); else setBootError(e.message);
+    }
     setBooted(true);
   }, [refresh]);
   useEffect(() => { boot(); }, [boot]);
@@ -109,6 +117,7 @@ export function AppProvider({ children }) {
   const signIn = async (mode, fields) => {
     const invited = readInvite();   // read first: Partners clears the link as soon as it opens
     const u = mode === 'signup' ? await api.signup(fields) : await api.login(fields);
+    if (!u) return true;            // they have to confirm their email first
     await refresh();
     setView(invited ? 'partners' : 'active'); setActiveCat('all'); setSearch(''); setPrio('all');
     toast(mode === 'signup' ? `Welcome, ${u.display_name}!` : `Welcome back, ${u.display_name}.`);

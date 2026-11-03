@@ -2,45 +2,32 @@
 
 Goal tracker with sub-task checklists, badges and confetti, history and analytics, and per-user accounts.
 
-**Stack:** React 18, Vite, Tailwind CSS 3, Framer Motion, Lucide React on the front end. PHP 8 + MySQL on the back end.
+**Stack:** React 18, Vite, Tailwind CSS 3, Framer Motion, Lucide React on the front end. Supabase on the back end: Postgres, Auth, Storage and one Edge Function.
 
-## One-time setup (XAMPP)
+## One-time setup
 
-1. Open the XAMPP control panel and start **MySQL** (and Apache if you want phpMyAdmin).
-2. **Create the database.** Open http://localhost/phpmyadmin, choose **Import**, and import `schema.sql`. This creates the `auragoal` database, its tables and the 8 default categories. (It drops and recreates the tables, so only do this on a fresh install.)
-3. **Tell the backend your MySQL login.** Copy `backend/config.local.example.php` to `backend/config.local.php` and set `user` and `pass`. That file is git-ignored.
-4. `npm install`
+1. `npm install`
+2. Create `.env.local` (git-ignored) with your project's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Only ever the browser-safe key: never put the service role key in a `NEXT_PUBLIC_` variable.
+3. For a new Supabase project, run `supabase/schema.sql` and then `supabase/jobs.sql` in the SQL Editor, and deploy `supabase/functions/notify` with **Verify JWT off** (the function checks each request itself). `jobs.sql` has the project's address in its cron job, so change that for a different project.
 
 ## Run it
 
-Three terminals, all in this folder (leave them open):
-
 ```
-npm run api      # PHP server on http://127.0.0.1:8000
-npm run dev      # React app on  http://localhost:5173
-npm run worker   # sends push reminders and the morning email, even when the site is closed
+npm run dev      # the app on http://localhost:5173
 ```
 
-The worker is only needed for notifications that arrive while AuraGoal is closed. Everything else works without it, and Settings → Notifications shows whether it is running.
+There is no server of your own to run: the app talks straight to Supabase.
 
-Open **http://localhost:5173**. Vite forwards `/api/*` to the PHP server, so the browser only sees one origin and the login cookie works without CORS.
+## Putting it online (Vercel)
 
-`npm run api` uses XAMPP's PHP at `C:\xampp\php\php.exe`. The `php` on your PATH (`C:\php`) is misconfigured: its `php.ini` points at extension files that do not exist, so it cannot load `pdo_mysql`.
+The site is plain files after `npm run build`, so any static host works. On Vercel:
 
-## Putting it online (Coolify)
+1. Import this GitHub repo. It detects Vite by itself.
+2. Under **Settings → Environment Variables**, add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`, for every environment, then redeploy. They are read when the site is built.
+3. In Supabase, **Authentication → URL Configuration**: set **Site URL** to the site's address and add it under **Redirect URLs**.
+4. Tell the Edge Function the address, for the links in its emails: `update public.server_settings set value = to_jsonb('https://your-site'::text) where key = 'app_url';`
 
-The `Dockerfile` builds **one container** with everything: the built React app at `/`, the PHP API at `/api/`, and the reminder worker running alongside. One address keeps sign-in cookies, the service worker and installing on phones simple. Only the app and `/api/` are reachable from the web; helpers, settings and storage are not.
-
-In Coolify:
-
-1. **New Resource → Application** from this GitHub repo, branch `main`, build pack **Dockerfile**, **Ports Exposes** `8080`.
-2. **New Resource → Database → MySQL** (in the same project). Copy its **internal** connection URL (`mysql://user:password@host:3306/database`).
-3. On the application, **Environment Variables**: `DATABASE_URL` = that URL, and `APP_URL` = the app's address (for example `https://auragoal.example.com`). For email add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
-4. **Persistent Storage**: a volume mounted at `/app/storage` (photos, chat files, sessions, push keys).
-5. **Domains**: your domain (with an A record pointing at the server). Coolify gets the HTTPS certificate.
-6. **Deploy.** On the first start `backend/install.php` creates the tables in the empty database. After that, pushing to `main` and redeploying updates the app; the data and files stay.
-
-Settings can also be given as `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, `MYSQLPASSWORD` or `AURAGOAL_DB_*` (see `env_config()` in `backend/db.php`). A database created before a later migration needs that migration run by hand (`migrations/`).
+`vercel.json` sets the caching: fingerprinted files for a year, and `sw.js` and the pages checked every time, so a new version reaches phones on their next visit.
 
 ## Installable app (PWA) and offline
 
@@ -49,22 +36,23 @@ AuraGoal is a Progressive Web App: on a phone, tablet or computer it can be inst
 - `public/manifest.webmanifest`: name, colours, and the icons in `public/icons/` (192, 512, a maskable 512, and an Apple touch icon).
 - `public/sw.js`, the service worker:
   - **Cached:** the app's own files (built code and styles under `/assets/`, icons, the manifest, fonts and `offline.html`).
-  - **Never cached:** anything under `/api/` (accounts, sign-in, goals, plans, messages, photos), so no personal data is stored on the device and nothing old is shown as current. Without a connection those calls answer "offline" (503).
+  - **Never cached:** anything from Supabase (accounts, sign-in, goals, plans, messages, photos), so no personal data is stored on the device and nothing old is shown as current. Without a connection those calls fail and the app says so.
   - **Opening offline:** pages are fetched fresh; with no connection, `public/offline.html` is shown.
   - **Updates:** a new version is offered with an **Update** message, never forced mid-use.
   - **Push:** the service worker also shows push reminders, only on devices where the user turned notifications on.
 - **In the app:**
   - **Losing the connection:** a strip says you are offline, when the screen was last updated, and that changes can't be saved yet.
   - **Coming back:** when the connection returns, or the app is reopened after a while, the data is fetched fresh.
-- **Testing locally:** the service worker only caches the built app, so test with `npm run build` then `npx vite preview` (http://localhost:4173, with `npm run api` running). Installing needs HTTPS or localhost, which Vercel provides.
+- **Testing locally:** the service worker only caches the built app, so test with `npm run build` then `npx vite preview` (http://localhost:4173). Installing needs HTTPS or localhost, which Vercel provides.
 
 ## Forgotten passwords and email
 
-"Forgot password?" on the sign-in screen emails a one-time link that lasts 60 minutes (at most 3 per account per hour). Only a hash of the link's token is stored.
+Two things send email, and each needs setting up once. Both can use the same Gmail address and App password (turn on 2-step verification, then create one under Google Account → Security → App passwords).
 
-**Until you set up email, nothing is sent.** Each message is written to `storage/mail.log` (and to the `npm run api` terminal) instead. Open that file, copy the link, and paste it in your browser to test the flow.
+- **Sign-up confirmations and password resets** come from Supabase Auth. Its built-in sender only reaches your own team's addresses, so real users need **Authentication → SMTP Settings**: host `smtp.gmail.com`, port `465`.
+- **Partner invites and the morning email** come from the `notify` Edge Function. Add the secrets `SMTP_USER` and `SMTP_PASS` under **Edge Functions → Secrets** (optional: `SMTP_HOST`, `SMTP_FROM`). It sends over TLS on port 465, because Edge Functions cannot use port 587.
 
-To send real emails, add an `smtp` block to `backend/config.local.php` (the example file shows one for Gmail: turn on 2-step verification, create an App password, and use it as `pass`). Set `app_url` to the address the website runs at, because that is where the link points.
+So a reset link works on any device, change Supabase's **Reset password** email template (Authentication → Email Templates) to link to `{{ .SiteURL }}/#reset={{ .TokenHash }}`.
 
 ## Goals, periods and plans
 
@@ -98,14 +86,14 @@ The **What should I do now?** button (on the dashboard, and the compass in the t
 
 ## Accountability partners
 
-The **Partners** page lets you invite up to 5 people by email. They get an email with a link (`/#invite=<their email>`) that opens AuraGoal on Create account, or Sign in if they already have one, with their email filled in; once signed in they land on Partners with the invite, and accepting opens that partner on the Sharing tab. The inviter gets an email (and a push) when it is accepted, with a link to choose what to share. Without SMTP the emails go to `storage/mail.log` and the inviter is told to pass the word on themselves. The invite box never reveals who has an account (and inviting someone who already invited you just accepts theirs). Partners can:
+The **Partners** page lets you invite up to 5 people by email. They get an email with a link (`/#invite=<their email>`) that opens AuraGoal on Create account, or Sign in if they already have one, with their email filled in; once signed in they land on Partners with the invite, and accepting opens that partner on the Sharing tab. The inviter gets an email (and a push) when it is accepted, with a link to choose what to share. Without email set up, the inviter is told to pass the word on themselves. The invite box never reveals who has an account (and inviting someone who already invited you just accepts theirs). Partners can:
 
 - **See only what the other chose to share.** Under **Sharing**, each person picks, per partner, which categories (School, Work, Finance…) that partner can see, and whether they see their day plans. Nothing is shared until you choose. A goal or day plan marked **Private** stays hidden even inside a shared category.
 - **Chat**, and share **photos** (up to 10 MB; saved again as a JPEG at most 1600 px wide, which drops hidden details such as where it was taken) and **videos** (up to 50 MB, MP4, WebM or MOV). Files live in `storage/chat/` and only the two partners can open them; removing a partner deletes them. Every day you both send something grows your **chat streak**. Days count in UTC, so both partners always see the same number. A new message also sends a push notification (at most one every 2 minutes).
 - **Cheer** a goal with 🔥 👏 💪 ❤️ 🎉 ⭐, and **nudge** a quiet partner to plan their day (once every 4 hours; it arrives as a notification).
 - Race on a **weekly scoreboard** of plans done (a goal's plans ticked plus day plans done, Monday to Sunday).
 
-Only accepted partners can read a chat, see shared goals or load each other's photo; everything else gets a 404. The rules live in `backend/partners.php`, with the endpoints `api/partners.php` (list, invite, accept, decline, remove), `api/partner.php` (what a partner shares) and `api/messages.php` (chat, cheers, nudges).
+Only accepted partners can read a chat, see shared goals or load each other's photo. The rules live in the database (`supabase/schema.sql`): partners never read each other's tables, only what functions such as `partner_view()` and `get_messages()` return.
 
 ## Calendar
 
@@ -119,11 +107,11 @@ The **Calendar** page shows goals on the day they end and day plans on every day
 
 ## Reminders when AuraGoal is closed
 
-- **Push notifications:** Settings → Notifications → **Turn on** on each device. When a day plan's start time arrives (every day a repeating one happens), the worker sends it through the browser's push service (Chrome, Edge, Firefox). Messages are encrypted for that one device (RFC 8291) and signed with this app's key in `storage/vapid.json` (created on first use; keep it, and keep it private). Only real push services are accepted as destinations. A reminder more than 15 minutes old is not pushed late; it shows up in Catch up instead.
-- **Morning email:** an opt-in summary of the day (its plans, goals ending today, what slipped, how full the day is, the streak) at the time you choose. Until SMTP is set up in `backend/config.local.php` it is written to `storage/mail.log` instead.
-- **Time zones:** each browser tells the server its time zone, and reminders, the morning email and streak days all use the user's own clock, whatever zone the server is in.
+- **Push notifications:** Settings → Notifications → **Turn on** on each device. When a day plan's start time arrives (every day a repeating one happens), the `notify` Edge Function sends it through the browser's push service. A reminder does not pop up while AuraGoal is open and in front of you, since the plan is already on screen.
+- **Morning email:** an opt-in summary of the day (its plans, goals ending today, what slipped, how full the day is, the streak) at the time you choose. It needs email set up (see above).
+- **Time zones:** each browser tells the server its time zone, and reminders, the morning email and streak days all use the user's own clock.
 
-To keep the worker running without a terminal, schedule `C:\xampp\php\php.exe backend\worker.php --once` to run every minute in Windows Task Scheduler.
+A `pg_cron` job (`auragoal-worker`, in `supabase/jobs.sql`) calls the function every minute. Settings → Notifications shows whether it is running.
 
 ## Realistic day
 
@@ -133,35 +121,21 @@ Give day plans a time or a length, and set how much time you really have in Sett
 
 | Path | Purpose |
 | --- | --- |
-| `src/api/index.js` | The only file that talks to the backend (`fetch` calls to `/api/*.php`) |
+| `src/lib/supabase.js` | The connection to Supabase |
+| `src/api/index.js` | The only file that talks to the backend: tables, database functions, storage and the Edge Function |
 | `src/context/AppContext.jsx` | App state and every action (sign in, tick a task, create a goal, rewards queue, notifications) |
 | `src/components/` | UI: `Dashboard`, `PlannerView`, `GoalCard`, `HistoryView`, `CategoriesView`, `TopBar`, `Sidebar`, `NewGoalModal`, `RewardModal`, `AuthScreen` and friends |
 | `src/lib/` | `constants.js` (categories, tiers, quotes), `utils.js` (dates, progress, analytics), `sound.js` (Web Audio sounds) |
-| `backend/db.php` | PDO connection, CORS, JSON helpers, PHP sessions |
-| `backend/api/auth.php` | `GET` session check, `POST` signup / login / logout / forgot / reset |
-| `backend/mailer.php` | Sends the password-reset email through SMTP, or writes it to `storage/mail.log` when no SMTP is set up |
-| `backend/api/snapshot.php` | `GET` the profile, every goal with its tasks, and every badge, in one request |
-| `backend/api/goals.php` | `POST` new goal, `PATCH` archive / restore |
-| `backend/api/sub_plans.php` | `PATCH` tick a task or set a reminder, `POST` add a task |
-| `backend/api/reviews.php` | `POST` record a badge when a goal reaches 50 / 75 / 90% |
-| `backend/api/profile.php` | `PATCH` change name, email, password (email and password changes need the current password) or rest days |
-| `backend/api/reschedule.php` | `POST` a batch of moves / let-gos for the Catch up page, all or nothing |
-| `backend/streak.php` | Streak rules: rest days, freezes, best streak, each user's time zone |
-| `backend/api/push.php` | `GET` notification settings, `POST` subscribe / unsubscribe / test a device |
-| `backend/api/digest.php` | `POST` email me today's summary now (at most once a minute) |
-| `backend/webpush.php` | Web Push encryption and signing |
-| `backend/notify.php` | The morning email and the worker's checks |
-| `backend/worker.php` | The background worker (`npm run worker`); refuses to run from a browser |
-| `public/sw.js` | The service worker that shows push notifications |
-| `backend/api/avatar.php` | `GET` your photo, `POST` upload one (re-encoded as a 256x256 JPEG), `DELETE` remove it |
-| `storage/avatars/` | Uploaded photos, one per user. Outside the web root and git-ignored; only `avatar.php` can serve them. |
-| `schema.sql`, `migrations/` | MySQL schema. `migrations/002_stage6.sql` only upgrades a database made from the original Stage 1 schema. `migrations/003_profile_avatar.sql` adds the profile-photo column `migrations/004_password_resets.sql` adds the reset-link table, `005` adds rest days and freezes, `006` adds estimates, capacity, the morning email and push tables, `007` adds each user's time zone, `009` adds day plans (a day's plans with times and repeats) and makes goals week / month / year only, `010` adds accountability partners, their chat and the Private switch, `011` adds per-partner sharing by category and photos / videos in the chat, `012` adds personal categories and the journal, and `008` turns the Daily / Weekly / Monthly / Yearly categories into horizons (Semester becomes Month) and adds Health, Family and Finance, for a database created before those features (fresh installs already have all of them). |
+| `supabase/schema.sql` | Tables, access rules (row level security), streak, badge and partner rules, and the storage buckets |
+| `supabase/jobs.sql` | Server-only settings, and the every-minute job |
+| `supabase/functions/notify/` | The Edge Function: email, Web Push, reminders and the morning email |
+| `public/sw.js` | The service worker: offline page, and showing push notifications |
 | `legacy/index.old.html` | The previous single-file front end. Safe to delete. |
 
-History, analytics and notifications are worked out in the browser from the snapshot, so they have no endpoints of their own.
+History, analytics and notifications are worked out in the browser from the snapshot, so they have no server code of their own.
 
 ## Notes
 
-- Sessions last 30 days. The cookie is `HttpOnly` and `SameSite=Lax`, and gets `Secure` automatically over HTTPS.
-- Badge rules (Bronze 50%, Silver 75%, Gold 90%) are decided on the server from the database; the browser's numbers are never trusted.
-- Before putting this on the internet: serve it over HTTPS, keep `APP_DEBUG` false, trim `ALLOWED_ORIGINS` in `backend/db.php` to your real domain, add login rate limiting, and use a dedicated MySQL user instead of `root`.
+- The browser talks to the database directly, so the database enforces everything: each table has row level security, streaks and badges only change through functions that work them out from the data, and the browser's numbers are never trusted.
+- Keep **Confirm email** on in Supabase Auth: partner invites are matched by email address, so an unconfirmed address must not be able to claim one.
+- Photos and chat files are in private buckets, opened with short-lived links.

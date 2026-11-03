@@ -25,3 +25,27 @@ export async function prepareAvatar(file, size = 256) {
   return new Promise((resolve, reject) =>
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('That image could not be processed.'))), 'image/jpeg', 0.9));
 }
+
+/**
+ * A photo ready for the chat: scaled to at most 1600 pixels and saved again as a JPEG, which turns it the right way up and
+ * drops hidden details such as where it was taken. An animated GIF is kept as it is. Returns { blob, mime, w, h }.
+ */
+export async function prepareChatPhoto(file, maxSide = 1600) {
+  let bitmap;
+  try { bitmap = await createImageBitmap(file); } catch { throw new Error('That photo could not be read. Try another one.'); }
+  const { width, height } = bitmap;
+  if (file.type === 'image/gif') { bitmap.close?.(); return { blob: file, mime: 'image/gif', w: width, h: height }; }
+  const scale = Math.min(1, maxSide / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale)), h = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#FFFCF9';   // transparent parts become the card colour
+  ctx.fillRect(0, 0, w, h);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  bitmap.close?.();
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('That photo could not be processed.'))), 'image/jpeg', 0.85));
+  return { blob, mime: 'image/jpeg', w, h };
+}

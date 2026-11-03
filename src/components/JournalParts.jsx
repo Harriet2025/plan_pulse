@@ -14,7 +14,7 @@ export const MOODS = [
 ];
 export const moodOf = (v) => MOODS.find((m) => m.v === v);
 
-/** The guided questions, by kind of reflection. Keys match PROMPT_KEYS in backend/api/journal.php. */
+/** The guided questions, by kind of reflection. Keys match PROMPT_KEYS in src/api/index.js. */
 export const GOAL_PROMPTS = [
   ['went', 'How did it go?', 'In a few words, how did this goal go overall?'],
   ['ups', 'The ups', 'What went well? What are you proud of?'],

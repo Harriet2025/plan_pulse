@@ -1,7 +1,0 @@
-node_modules
-dist
-storage
-backend/config.local.php
-.git
-legacy
-*.log

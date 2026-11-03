@@ -4,12 +4,11 @@
 // What is cached, and what never is:
 //   * The app's own files (built code and styles under /assets/, icons, the manifest, fonts, the offline page).
 //     Built files have a fingerprint in their name, so a cached copy is never out of date.
-//   * Never: anything under /api/ (accounts, goals, plans, messages, photos, sign-in). Those always come from the
-//     server, so nobody's data is stored on the device and nothing old is shown as if it were current. Without a
-//     connection they answer "offline" straight away.
+//   * Never: anything from Supabase (accounts, goals, plans, messages, photos, sign-in). Those go straight to the
+//     server, past this worker, so nobody's data is stored on the device and nothing old is shown as if it were current.
 //   * Pages are fetched fresh; when that fails, the offline page is shown instead of an old copy of the app.
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `auragoal-shell-${VERSION}`;     // the offline page, icons and manifest
 const ASSETS = `auragoal-assets-${VERSION}`;   // built JS / CSS, cached as they are used
 const FONTS = `auragoal-fonts-${VERSION}`;     // Google Fonts
@@ -43,10 +42,6 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-const offlineJson = () => new Response(
-  JSON.stringify({ success: false, offline: true, error: "You're offline. Connect to the internet and try again." }),
-  { status: 503, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } },
-);
 
 async function trim(cacheName, max) {
   const cache = await caches.open(cacheName);
@@ -85,12 +80,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   if (url.origin !== self.location.origin) return;
-
-  // Personal data is never cached: always the network, or a clear "offline" answer
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request).catch(offlineJson));
-    return;
-  }
 
   // Opening a page: always fresh. With no connection, the offline page (never an old copy of someone's goals)
   if (request.mode === 'navigate') {

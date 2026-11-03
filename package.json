@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "api": "C:\\xampp\\php\\php.exe -d upload_max_filesize=55M -d post_max_size=60M -S 127.0.0.1:8000 -t backend",
-    "worker": "C:\\xampp\\php\\php.exe backend/worker.php",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "canvas-confetti": "^1.9.3",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.468.0",

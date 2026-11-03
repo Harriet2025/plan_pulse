@@ -3,5 +3,4 @@ dist
 backend/config.local.php
 storage/
 
-# Coolify API token (never commit it)
-.coolify
+.env.local

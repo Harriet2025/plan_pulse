@@ -24,8 +24,8 @@ import AuthScreen from './components/AuthScreen';
 
 const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, journal: JournalView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
 
-// The emailed reset link looks like  http://localhost:5173/#reset=<64 hex characters>
-const readResetToken = () => /^#reset=([0-9a-f]{64})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
+// The emailed reset link looks like  https://the-site/#reset=<token hash>, from the template in Supabase's Auth settings
+const readResetToken = () => /^#reset=([0-9a-f]{40,128})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
 
 export default function App() {
   const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus } = useApp();

@@ -6,7 +6,7 @@ import { horizonOf } from '../lib/constants';
 import { cn, localDate, periodEnd, rescheduleOptions, shiftPeriod, shortDay, spreadByCapacity } from '../lib/utils';
 import { Bar, cardShadow } from './ui';
 
-// ---- Building the changes. Each helper returns one action for POST /api/reschedule.php ----
+// ---- Building the changes. Each helper returns one action for reschedule() in src/api/index.js ----
 const targetId = (it) => (it.kind === 'goal' ? it.goalId : it.planId);
 // A plan keeps its time of day, so both move by date
 const targetFor = (_it, date) => localDate(date);
