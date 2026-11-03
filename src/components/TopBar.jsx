@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, Flame, Moon, Snowflake, Trophy, Bell, Volume2, VolumeX, LogOut, Plus, Compass } from 'lucide-react';
+import { Search, Flame, Moon, Snowflake, Trophy, Bell, Volume2, VolumeX, Plus, Compass } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import NotifList, { useNotifCount } from './NotifList';
 import { cardShadow } from './ui';
@@ -59,35 +59,36 @@ function NotificationBell() {
   );
 }
 
-function Stat({ icon: Icon, value, label, tone, title, badge }) {
+function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) {
   return (
-    <div className={`flex items-center gap-2 rounded-2xl border py-1.5 pl-2.5 pr-3 ${tone.box}`} title={title ?? label}>
+    <div className={`flex items-center gap-1 rounded-2xl border py-1.5 pl-2 pr-2.5 md:gap-2 md:pl-2.5 md:pr-3 ${tone.box} ${className}`} title={title ?? label}>
       <Icon className={`h-5 w-5 ${tone.icon}`} aria-hidden="true" />
       <div className="leading-none">
         <div className="flex items-center gap-1.5">
           <motion.div key={value} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className={`text-base font-extrabold tabular-nums ${tone.value}`}>{value}</motion.div>
           {badge}
         </div>
-        <div className={`mt-0.5 text-[9px] font-bold uppercase tracking-wider ${tone.label}`}>{label}</div>
+        <div className={`mt-0.5 hidden text-[9px] font-bold uppercase tracking-wider md:block ${tone.label}`}>{label}</div>
       </div>
     </div>
   );
 }
 
+// On phones one slim row, so the page gets the screen. Sound and sign out are in Settings there, and search sits with the goals.
 export default function TopBar() {
-  const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, signOut, openGoalModal, openNext } = useApp();
+  const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, openGoalModal, openNext } = useApp();
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <header className="sticky top-4 z-20 mx-4 mt-4 rounded-2xl border border-oat bg-soft/95 px-4 py-3 backdrop-blur-xl md:mx-6 md:px-5" style={cardShadow}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <div className="min-w-0 flex-1 basis-48">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">{today}</p>
-          <h1 className="truncate text-xl font-extrabold tracking-tight text-charcoal md:text-2xl">{view === 'active' ? 'Active Goals' : TITLES[view]}</h1>
+    <header className="sticky top-2 z-20 mx-3 mt-2 rounded-2xl border border-oat bg-soft/95 px-3 py-2 backdrop-blur-xl md:top-4 md:mx-6 md:mt-4 md:px-5 md:py-3" style={cardShadow}>
+      <div className="flex items-center gap-x-2 gap-y-3 md:flex-wrap md:gap-x-4">
+        <div className="min-w-0 flex-1 md:basis-48">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted md:text-[11px] md:tracking-[0.18em]">{today}</p>
+          <h1 className="truncate text-lg font-extrabold tracking-tight text-charcoal md:text-2xl">{view === 'active' ? 'Active Goals' : TITLES[view]}</h1>
         </div>
 
         {view === 'active' && (
-          <div className="order-last flex w-full flex-wrap items-center gap-2 lg:order-none lg:w-auto lg:flex-nowrap">
+          <div className="order-last hidden w-full flex-wrap items-center gap-2 md:flex lg:order-none lg:w-auto lg:flex-nowrap">
             <div className="relative min-w-0 flex-1 lg:w-44 lg:flex-none 2xl:w-64">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
               <label htmlFor="search" className="sr-only">Search goals and tasks</label>
@@ -105,7 +106,7 @@ export default function TopBar() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 md:flex-wrap md:gap-2">
           <Stat
             icon={user.rest_today && !user.streak_active_today ? Moon : Flame} value={user.streak_count}
             label={user.rest_today && !user.streak_active_today ? 'Rest day' : 'Streak'}
@@ -114,15 +115,14 @@ export default function TopBar() {
               <span className="inline-flex items-center gap-0.5 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-extrabold text-charcoal"><Snowflake className="h-2.5 w-2.5" aria-hidden="true" />{user.streak_freezes}</span>
             )}
             tone={{ box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }} />
-          <Stat icon={Trophy} value={rewardsTotal} label="Rewards" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
-          <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={iconBtn}><Compass className="h-4 w-4" aria-hidden="true" /></button>
+          <Stat icon={Trophy} value={rewardsTotal} label="Rewards" className="max-md:hidden" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
+          <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={`${iconBtn} max-md:hidden`}><Compass className="h-4 w-4" aria-hidden="true" /></button>
           <NotificationBell />
-          <button type="button" className={iconBtn} aria-label={soundOn ? 'Sound on' : 'Sound off'} aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)}>
+          <button type="button" className={`${iconBtn} max-md:hidden`} aria-label={soundOn ? 'Sound on' : 'Sound off'} aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)}>
             {soundOn ? <Volume2 className="h-4 w-4" aria-hidden="true" /> : <VolumeX className="h-4 w-4" aria-hidden="true" />}
           </button>
-          <button type="button" className={`${iconBtn} hover:!border-danger md:hidden`} aria-label="Sign out" onClick={signOut}><LogOut className="h-4 w-4" aria-hidden="true" /></button>
           <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => openGoalModal()} aria-label="New goal"
-            className="fab inline-flex h-10 items-center gap-2 rounded-xl bg-rust px-4 text-sm font-extrabold text-white">
+            className="fab inline-flex h-10 items-center gap-2 rounded-xl bg-rust px-2.5 text-sm font-extrabold text-white sm:px-4">
             <Plus className="h-5 w-5" strokeWidth={2.5} aria-hidden="true" /><span className="hidden sm:inline">New Goal</span>
           </motion.button>
         </div>

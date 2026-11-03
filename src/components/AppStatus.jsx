@@ -37,7 +37,7 @@ export function InstallCard({ compact = false, onDismiss }) {
   return (
     <section className={`relative flex flex-wrap items-center gap-3 rounded-3xl border border-oat bg-soft ${compact ? 'p-4' : 'p-5'} ${onDismiss ? 'pr-12' : ''}`} aria-label="Install AuraGoal">
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-rust text-white"><Smartphone className="h-5 w-5" aria-hidden="true" /></span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-0">
         <p className="text-sm font-extrabold text-charcoal">Install AuraGoal on this device</p>
         {ios ? (
           <p className="text-xs text-muted">Tap <Share className="inline h-3.5 w-3.5 align-text-bottom" aria-label="Share" /> in Safari, then <b className="text-charcoal">Add to Home Screen</b>. It opens like an app, full screen, from your home screen.</p>
@@ -46,7 +46,7 @@ export function InstallCard({ compact = false, onDismiss }) {
         )}
       </div>
       {canPrompt && (
-        <button type="button" onClick={install} className="inline-flex items-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+        <button type="button" onClick={install} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark sm:w-auto">
           <Download className="h-4 w-4" aria-hidden="true" />Install
         </button>
       )}

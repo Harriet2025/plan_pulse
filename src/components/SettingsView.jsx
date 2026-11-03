@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Camera, Check, Clock, Eye, EyeOff, Flame, Gauge, Mail, Moon, RefreshCw, Send, Snowflake, TriangleAlert, Trash2, Trophy } from 'lucide-react';
+import { Bell, Camera, Check, Clock, Eye, EyeOff, Flame, Gauge, LogOut, Mail, Moon, RefreshCw, Send, Snowflake, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { prepareAvatar } from '../lib/image';
@@ -443,6 +443,20 @@ function NotificationsCard() {
   );
 }
 
+/** Phones only: from md up these sit in the top bar and the sidebar. */
+function PhoneControls() {
+  const { soundOn, setSoundOn, signOut } = useApp();
+  const row = 'flex w-full items-center gap-3 rounded-2xl border border-oat bg-soft px-4 py-3 text-left text-sm font-bold';
+  return (
+    <div className="grid gap-2 md:hidden">
+      <button type="button" aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)} className={cn(row, 'text-charcoal')}>
+        {soundOn ? <Volume2 className="h-5 w-5 shrink-0" aria-hidden="true" /> : <VolumeX className="h-5 w-5 shrink-0" aria-hidden="true" />}Sound {soundOn ? 'on' : 'off'}
+      </button>
+      <button type="button" onClick={signOut} className={cn(row, 'text-danger')}><LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />Sign out</button>
+    </div>
+  );
+}
+
 export default function SettingsView() {
   return (
     <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
@@ -453,6 +467,7 @@ export default function SettingsView() {
       <NotificationsCard />
       <DetailsCard />
       <PasswordCard />
+      <PhoneControls />
     </div>
   );
 }

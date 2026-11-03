@@ -51,7 +51,7 @@ export default function App() {
         <Sidebar />
         <div className="min-w-0 flex-1">
           <TopBar />
-          <main className="mx-auto w-full max-w-[1600px] px-4 pb-28 pt-6 md:px-6 md:pb-10">
+          <main className="mx-auto w-full max-w-[1600px] px-3 pb-28 pt-4 md:px-6 md:pb-10 md:pt-6">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <View />

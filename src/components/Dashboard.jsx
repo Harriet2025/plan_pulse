@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Search, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
@@ -41,9 +41,9 @@ function ReviewNudge() {
   return (
     <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-blush/60 bg-blush/15 p-4" aria-label="Review">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /></span>
-      <p className="min-w-0 flex-1 text-sm font-semibold text-charcoal">{due.text} <span className="font-normal text-muted">Tick off what you managed and see your score.</span></p>
+      <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">{due.text} <span className="font-normal text-muted">Tick off what you managed and see your score.</span></p>
       <button type="button" onClick={() => { done(); setPlannerAt({ horizon: due.horizon, key: due.key, review: true }); setView('planner'); }}
-        className="inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark sm:flex-none">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
       <button type="button" onClick={done} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not now</button>
     </motion.section>
   );
@@ -60,23 +60,23 @@ function Hero({ totals, open }) {
 
   return (
     // Terracotta hero. All text on it is pure white, which is the only white that keeps 4.5:1 on rust.
-    <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
+    <section className="relative overflow-hidden rounded-[28px] bg-rust p-5 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
       <LinenTexture />
       <div className="relative flex flex-wrap items-center justify-between gap-6">
         <div className="min-w-0 max-w-xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-          <h2 className="mt-2 text-3xl font-extrabold leading-tight tracking-tight text-white md:text-4xl">{greeting()}, {first}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-white md:text-base">{sub}</p>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" onClick={openNext} className="inline-flex items-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-white"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
-            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-5 py-2.5 text-sm font-bold text-white hover:bg-charcoal"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
-            <button type="button" onClick={() => setView('history')} className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-5 py-2.5 text-sm font-bold text-white hover:bg-charcoal"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
+          <p className="hidden text-xs font-bold uppercase tracking-[0.2em] text-white md:block">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+          <h2 className="pr-24 text-2xl font-extrabold leading-tight tracking-tight text-white md:mt-2 md:pr-0 md:text-4xl">{greeting()}, {first}</h2>
+          <p className="mt-2 pr-24 text-sm leading-relaxed text-white md:pr-0 md:text-base">{sub}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2 md:mt-5 md:flex md:flex-wrap md:gap-3">
+            <button type="button" onClick={openNext} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-white"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
+            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-charcoal"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
+            <button type="button" onClick={() => setView('history')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-charcoal"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
         </div>
-        <div className="relative h-36 w-36 shrink-0 md:h-44 md:w-44" role="img" aria-label="Overall progress on your goals' plans">
+        <div className="absolute right-0 top-0 h-20 w-20 shrink-0 md:relative md:h-44 md:w-44" role="img" aria-label="Overall progress on your goals' plans">
           <Ring pct={totals.pct} track="rgba(255,255,255,.25)" stroke="#fff" />
           <div className="absolute inset-0 grid place-items-center text-center">
-            <div><div className="text-3xl font-extrabold tabular-nums text-white md:text-4xl">{totals.pct}%</div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-white">Overall</div></div>
+            <div><div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{totals.pct}%</div><div className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-white md:block">Overall</div></div>
           </div>
         </div>
       </div>
@@ -98,16 +98,16 @@ function StatCards({ totals, open }) {
       foot: dated.length ? `Next: ${dated[0].g.title}` : 'No deadlines set' },
   ];
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Your overview">
+    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4" aria-label="Your overview">
       {cards.map(({ icon: Icon, tag, value, title, tile, foot, bar }, i) => (
         <motion.div key={tag} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-          className="rounded-3xl border border-oat bg-soft p-4 md:p-5" style={cardShadow}>
+          className="rounded-3xl border border-oat bg-soft p-3 md:p-5" style={cardShadow}>
           <div className="flex items-center justify-between">
-            <span className={`grid h-10 w-10 place-items-center rounded-xl text-white ${tile}`}><Icon className="h-5 w-5" aria-hidden="true" /></span>
+            <span className={`grid h-8 w-8 place-items-center rounded-xl text-white md:h-10 md:w-10 ${tile}`}><Icon className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" /></span>
             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{tag}</span>
           </div>
-          <div className="mt-4 text-3xl font-extrabold tabular-nums text-charcoal">{value}</div>
-          <p className="text-sm font-bold text-charcoal/80">{title}</p>
+          <div className="mt-2 text-2xl font-extrabold tabular-nums text-charcoal md:mt-4 md:text-3xl">{value}</div>
+          <p className="text-xs font-bold text-charcoal/80 md:text-sm">{title}</p>
           {bar !== undefined ? <Bar pct={bar} height="h-1.5" className="mt-2" fill="bg-blush-dark" label="Tasks completed" />
             : <p className="mt-1 truncate text-xs text-muted">{foot}</p>}
         </motion.div>
@@ -358,21 +358,21 @@ function QuoteCard() {
 
 function RightRail() {
   return (
-    <aside className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 xl:order-last" aria-label="Streak, reminders and motivation">
+    <aside className="contents md:grid md:min-w-0 md:grid-cols-[minmax(0,1fr)] md:gap-6 xl:order-last" aria-label="Streak, reminders and motivation">
       <LoadCard />
-      <WeekStrip />
+      <div className="max-md:order-2 md:contents"><WeekStrip /></div>
       <section className="hidden rounded-3xl border border-oat bg-soft p-5 xl:block" style={cardShadow} aria-labelledby="railH">
         <div className="flex items-center justify-between"><h2 id="railH" className="text-sm font-extrabold text-charcoal">Reminders &amp; deadlines</h2><span className="grid h-8 w-8 place-items-center rounded-lg bg-rust/10 text-rust-dark"><BellRing className="h-4 w-4" aria-hidden="true" /></span></div>
         <NotifList className="-mx-2 mt-3 grid max-h-72 gap-0.5 overflow-y-auto overflow-x-hidden" empty={<p className="py-6 text-center text-sm text-muted">Nothing coming up. Give a plan a time and you get a reminder when it starts.</p>} />
       </section>
       <FocusAreas />
-      <QuoteCard />
+      <div className="max-md:order-3 md:contents"><QuoteCard /></div>
     </aside>
   );
 }
 
 function GoalsPanel() {
-  const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, prio, user, openGoalModal } = useApp();
+  const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, setSearch, prio, setPrio, user, openGoalModal } = useApp();
   const cat = categories.find((c) => String(c.id) === String(activeCat));
   const filtered = !!search.trim() || prio !== 'all' || horizonFilter !== 'all';
   const firstTime = !filtered && !cat && activeGoals.length === 0;
@@ -385,7 +385,7 @@ function GoalsPanel() {
     : filtered ? 'Try a different search, priority or period.' : cat ? `Click New Goal to add one under ${cat.name}.` : 'Click New Goal to set your first goal.';
 
   return (
-    <section className="min-w-0 rounded-[28px] border border-oat bg-soft/60 p-4 md:p-6" style={glassShadow} aria-labelledby="listHeading">
+    <section className="min-w-0 rounded-[28px] border border-oat bg-soft/60 p-4 max-md:order-1 md:p-6" style={glassShadow} aria-labelledby="listHeading">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rust-dark">Your goals</p>
@@ -393,7 +393,23 @@ function GoalsPanel() {
         </div>
         <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold tabular-nums text-rust-dark shadow-sm">{count} active</span>
       </div>
-      <div className="mt-4 inline-grid grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1" role="group" aria-label="Show goals for">
+      <div className="mt-3 flex gap-2 md:hidden">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <label htmlFor="searchPhone" className="sr-only">Search goals and tasks</label>
+          <input id="searchPhone" type="search" className="field !pl-9" placeholder="Search goals" autoComplete="off" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <div className="shrink-0">
+          <label htmlFor="prioPhone" className="sr-only">Filter by priority</label>
+          <select id="prioPhone" className="field !w-auto" value={prio} onChange={(e) => setPrio(e.target.value)}>
+            <option value="all">Priority</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+      <div className="mt-3 grid w-full grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1 md:mt-4 md:inline-grid md:w-auto" role="group" aria-label="Show goals for">
         {[{ id: 'all', label: 'All' }, ...HORIZONS].map((x) => {
           const on = horizonFilter === x.id;
           return (
@@ -405,7 +421,7 @@ function GoalsPanel() {
         })}
       </div>
       <nav className="mt-3" aria-label="Filter goals by category">
-        <div className="flex flex-wrap gap-2">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
           {pills.map((c) => {
             const on = String(c.id) === String(activeCat);
             return (
@@ -455,13 +471,13 @@ export default function Dashboard() {
   const totals = taskTotals(activeGoals);
   const open = totals.total - totals.done;
   return (
-    <div className="grid gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-6">
       <Hero totals={totals} open={open} />
       <ReviewNudge />
       <InstallNudge />
       <CatchUpBanner />
       <StatCards totals={totals} open={open} />
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <RightRail />
         <GoalsPanel />
       </div>
