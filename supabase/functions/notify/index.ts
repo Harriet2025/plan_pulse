@@ -380,23 +380,38 @@ async function tick() {
 const nameOf = async (id: string) => (await db.from('profiles').select('display_name').eq('id', id).single()).data?.display_name as string;
 const emailOf = async (id: string) => (await db.auth.admin.getUserById(id)).data.user?.email as string;
 
-/** The partner invite email (and a push, if they already use AuraGoal). */
-async function sendInvite(uid: string, id: number) {
+/** Forgets a claim, so an email that could not be sent can be tried again. */
+const unclaim = (user_id: string, kind: string, ref_id: number, stamp: string) =>
+  db.from('notification_log').delete().match({ user_id, kind, ref_id, stamp });
+
+/**
+ * The partner invite email (and a push, once, if they already use AuraGoal). The email goes once when the invite is
+ * made; `again` is the "Email it again" button, at most once an hour. A failed email can always be tried again.
+ */
+async function sendInvite(uid: string, id: number, again: boolean) {
   const { data: p } = await db.from('partnerships').select('*').eq('id', id).eq('inviter_id', uid).eq('status', 'PENDING').maybeSingle();
   if (!p) throw new Refused('Invite not found.', 404);
-  if (!(await claim(uid, 'invite', id, 'sent'))) return { emailed: false };   // never twice for one invite
   const url = await appUrl();
   const from = await nameOf(uid), to = p.invitee_email as string;
   const { data: theirId } = await db.rpc('user_id_by_email', { p_email: to });
+  if (theirId && (await claim(uid, 'invite-push', id, 'sent'))) {
+    await pushToUser(theirId, { kind: 'chat', title: `${from} wants to be your accountability partner`, body: 'Open Partners to accept.', tag: 'invite', url: `${url}/#partners` });
+  }
+  if (!mailConfigured()) return { emailed: false, mail_configured: false };
+  const stamp = again ? `again-${Math.floor(Date.now() / 3600000)}` : 'sent';
+  if (!(await claim(uid, 'invite', id, stamp))) {
+    if (again) throw new Refused('You just emailed this invite. You can send it again in an hour.', 429);
+    return { emailed: false, mail_configured: true };
+  }
   // The link opens AuraGoal on the invite with their email filled in ("#" keeps it out of server logs)
   const link = `${url}/#invite=${encodeURIComponent(to)}${theirId ? '&account=1' : ''}`;
   const [text, html] = buttonEmail('there', [
-    `${from} invited you to be their accountability partner on AuraGoal. Partners see the goals and plans they choose to share, chat, cheer each other on and keep a chat streak going.`,
+    `${from} invited you to be their accountability partner on AuraGoal. Partners chat, cheer each other on, keep a chat streak going and see only the goals the other one chooses to share.`,
     theirId ? `Sign in with ${to} to accept.` : `Create a free account with ${to} to accept. It takes a minute.`,
   ], theirId ? 'Accept the invite' : 'Join and accept', link, `If you don't know ${from}, ignore this email; nothing happens unless you accept.`);
   const emailed = await sendMail(to, `${from} invited you to be accountability partners`, text, html);
-  if (theirId) await pushToUser(theirId, { kind: 'chat', title: `${from} wants to be your accountability partner`, body: 'Open Partners to accept.', tag: 'invite', url: `${url}/#partners` });
-  return { emailed };
+  if (!emailed) await unclaim(uid, 'invite', id, stamp);
+  return { emailed, mail_configured: true };
 }
 
 /** Tells the inviter, so they can choose what to share. */
@@ -408,9 +423,10 @@ async function sendAccepted(uid: string, id: number) {
   const me = await nameOf(uid);
   const [text, html] = buttonEmail(await nameOf(p.inviter_id), [
     `${me} accepted your invite. You are accountability partners now.`,
-    `Choose which of your categories ${me} can see; they see nothing of yours until you do.`,
+    `Every goal of yours stays private until you share it. Pick the goals ${me} can see, and whether they see your day plans.`,
   ], 'Choose what to share', `${url}/#partners`, 'You can change what you share, or remove a partner, at any time in Partners.');
   const emailed = await sendMail(await emailOf(p.inviter_id), `${me} accepted your AuraGoal invite`, text, html);
+  if (!emailed) await unclaim(uid, 'accepted', id, 'sent');
   await pushToUser(p.inviter_id, { kind: 'chat', title: `${me} accepted your invite 🎉`, body: `Choose what ${me} can see of yours.`, tag: `partner-${id}`, url: `${url}/#partners` });
   return { emailed };
 }
@@ -463,7 +479,7 @@ Deno.serve(async (req) => {
         const beat = Number((await setting('worker_beat')) ?? 0);
         return reply({ vapid_public: (await vapidKeys()).public, mail_configured: mailConfigured(), worker_running: Date.now() - beat <= 150000 });
       }
-      case 'invite': return reply(await sendInvite(uid, Number(input.id)));
+      case 'invite': return reply(await sendInvite(uid, Number(input.id), input.again === true));
       case 'accepted': return reply(await sendAccepted(uid, Number(input.id)));
       case 'message': return reply(await sendMessagePush(uid, Number(input.id)));
       case 'test': {

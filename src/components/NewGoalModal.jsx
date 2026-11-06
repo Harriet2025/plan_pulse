@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CalendarCheck, CalendarDays, CalendarRange, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import CategoryForm from './CategoryForm';
+import ShareWith from './ShareWith';
 import { HORIZONS } from '../lib/constants';
 import { cn, localDate, parseDay, periodEnd, periodKey, periodLabel, periodPhrase as phrase, periodRange, periodStart, shiftPeriod } from '../lib/utils';
 
@@ -67,7 +68,7 @@ function PeriodPicker({ horizon, anchor, setAnchor }) {
 }
 
 export default function NewGoalModal() {
-  const { goalModal, closeGoalModal, createGoal, updateGoal, setGoalPrivate, createCategory, categories, activeCat } = useApp();
+  const { goalModal, closeGoalModal, createGoal, updateGoal, shareGoal, createCategory, categories, activeCat } = useApp();
   // Captured once: during the exit animation the context's goalModal is already null
   const [draft] = useState(() => goalModal?.draft ?? null);
   const editing = draft?.edit ?? null;   // the goal being edited, or null for a new goal
@@ -81,7 +82,7 @@ export default function NewGoalModal() {
   const [addingCategory, setAddingCategory] = useState(false);
   const [priority, setPriority] = useState(editing?.priority ?? draft?.priority ?? 'MEDIUM');
   const [quote, setQuote] = useState(editing?.quote ?? '');
-  const [isPrivate, setIsPrivate] = useState(editing?.is_private ?? false);
+  const [shareWith, setShareWith] = useState(editing?.shared_with ?? []);   // private to you unless you pick a partner
   const [tasks, setTasks] = useState(draft?.tasks?.join('\n') ?? '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -105,10 +106,10 @@ export default function NewGoalModal() {
     setError(''); setSaving(true);
     try {
       if (editing) {
-        if (isPrivate !== editing.is_private) await setGoalPrivate(editing.id, isPrivate);
+        if (shareWith.join() !== editing.shared_with.join()) await shareGoal(editing.id, shareWith, true);
         await updateGoal(editing.id, { title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote });
       } else {
-        await createGoal({ title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote, tasks: plans, is_private: isPrivate });
+        await createGoal({ title, category_id: category, priority, timeframe: horizon, due_date: dueDate, quote, tasks: plans, share_with: shareWith });
       }
     } catch (ex) {
       setError(ex.message); setSaving(false);
@@ -197,10 +198,7 @@ export default function NewGoalModal() {
               <label htmlFor="gQuote" className={label}>Your motivating quote <span className="normal-case tracking-normal text-muted">(optional)</span></label>
               <input id="gQuote" className="field" type="text" maxLength={500} placeholder="Words to push you on" value={quote} onChange={(e) => setQuote(e.target.value)} />
             </div>
-            <label className="flex cursor-pointer items-start gap-2.5 text-sm text-charcoal">
-              <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#B85C38]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />
-              <span><b>Keep private</b> <span className="text-muted">Your accountability partners will not see this goal.</span></span>
-            </label>
+            <ShareWith value={shareWith} onChange={setShareWith} disabled={saving} />
           </div>
 
           {error && <p className="mt-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{error}</p>}

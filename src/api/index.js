@@ -65,10 +65,12 @@ const TIER_RANK = { NONE: 0, BRONZE: 1, SILVER: 2, GOLD: 3, PLATINUM: 4 };
 // `estimate` is how long it takes in minutes (null when not known), used by "What should I do now?"
 const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed, estimate: t.estimate_min ?? null });
 
-const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, is_private, status, focus_week, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min), reviews(reward_badge_tier)';
+// `shared_with` lists the partnerships (partner ids) that can see the goal; a goal no one was given is private
+const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, status, focus_week, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min), reviews(reward_badge_tier), goal_shares(partnership_id)';
 const fromGoal = (g) => ({
   id: g.id, title: g.title, category_id: g.category_id, priority: g.priority, timeframe: g.timeframe,
-  due_date: g.due_date, quote: g.quote, is_private: !!g.is_private, status: g.status, focus_week: g.focus_week,
+  due_date: g.due_date, quote: g.quote, status: g.status, focus_week: g.focus_week,
+  shared_with: (g.goal_shares ?? []).map((s) => s.partnership_id).sort((a, b) => a - b),
   best_tier_rank: Math.max(0, ...(g.reviews ?? []).map((r) => TIER_RANK[r.reward_badge_tier] ?? 0)),
   completed_at: g.completed_at, created_at: g.created_at, updated_at: g.updated_at,
   sub_plans: [...(g.sub_plans ?? [])].sort((a, b) => a.id - b.id).map(fromTask),
@@ -275,11 +277,12 @@ export async function createGoal(input) {
   if (tasks.some((t) => t.length > 500)) throw new Error('Each plan must be 500 characters or fewer.');
   const id = await rpc('create_goal', {
     p_goal: {
-      title, category_id: input.category_id || null, priority: input.priority, timeframe: input.timeframe, is_private: !!input.is_private,
+      title, category_id: input.category_id || null, priority: input.priority, timeframe: input.timeframe,
       due_date: input.due_date || null, quote: input.quote || null,
     },
     p_tasks: tasks,
   });
+  if (input.share_with?.length) await rpc('share_goal', { p_goal: id, p_partners: input.share_with });
   return fetchGoal(id);
 }
 
@@ -459,9 +462,9 @@ export async function deleteTask(taskId) {
   return { goal_id: task.goal_id, goal_status: goal.status };
 }
 
-/** Hides a goal from accountability partners, or shares it again. */
-export async function setGoalPrivate(goalId, isPrivate) {
-  await q(supabase.from('goals').update({ is_private: !!isPrivate }).eq('id', goalId));
+/** Who can see a goal: the full list of partner (partnership) ids, or [] to keep it to yourself. */
+export async function shareGoal(goalId, partnerIds) {
+  await rpc('share_goal', { p_goal: goalId, p_partners: partnerIds });
   return fetchGoal(goalId);
 }
 
@@ -478,25 +481,31 @@ async function deleteChatFiles(partnershipId) {
   if (data?.length) await supabase.storage.from('chat-media').remove(data.map((f) => `${partnershipId}/${f.name}`));
 }
 
+const inviteMessage = (email, r) => (r.emailed ? `Invite emailed to ${email}. They accept it from the link, or in Partners when they sign in.`
+  : r.mail_configured === false ? `Invite saved. Email is not set up yet, so tell ${email} to sign up to AuraGoal with that email and accept it in Partners.`
+  : `Invite saved, but the email could not be sent. Try "Email again" in a while, or tell ${email} to sign in to AuraGoal to accept it.`);
+
 /**
- * action: invite (with email), accept, decline or remove (with id), share (with id, categories, day_plans).
- * Returns the same shape as getPartners().
+ * action: invite (with email), resend (with id and email), accept, decline or remove (with id),
+ * share (with id, goals, day_plans). Returns the same shape as getPartners().
  */
 export async function partnerAction(action, fields) {
   if (action === 'invite') {
     const r = await rpc('invite_partner', { p_email: fields.email });
     if (!r.invite_id) return r;   // they had already invited you, so you are partners now
-    const { emailed } = await notify('invite', { id: r.invite_id }).catch(() => ({ emailed: false }));
-    const email = fields.email.trim().toLowerCase();
-    return { ...r, message: emailed ? `Invite emailed to ${email}. They accept it from the link, or in Partners when they sign in.`
-      : `Invite saved, but the email could not be sent. Tell them to sign in to AuraGoal with ${email} to accept it.` };
+    const sent = await notify('invite', { id: r.invite_id }).catch(() => ({ emailed: false }));
+    return { ...r, message: inviteMessage(fields.email.trim().toLowerCase(), sent) };
+  }
+  if (action === 'resend') {
+    const sent = await notify('invite', { id: fields.id, again: true });
+    return { ...(await rpc('partners_payload')), message: inviteMessage(fields.email, sent) };
   }
   if (action === 'accept') {
     const r = await rpc('accept_partner', { p_id: fields.id });
     notify('accepted', { id: fields.id }).catch(() => {});   // the inviter's email never holds this up
     return r;
   }
-  if (action === 'share') return rpc('set_partner_shares', { p_id: fields.id, p_categories: fields.categories ?? [], p_day_plans: !!fields.day_plans });
+  if (action === 'share') return rpc('set_partner_shares', { p_id: fields.id, p_goals: fields.goals ?? [], p_day_plans: !!fields.day_plans });
   if (action === 'remove') await deleteChatFiles(fields.id).catch(() => {});
   if (action === 'remove' || action === 'decline') return rpc('drop_partner', { p_id: fields.id });
   throw new Error('Unknown action.');

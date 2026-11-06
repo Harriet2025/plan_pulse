@@ -29,7 +29,9 @@ const nowMinutes = (d) => d.getHours() * 60 + d.getMinutes();
  * add one on `dayKey`, at `startAt` (minutes after midnight) when an hour on the timeline was tapped.
  */
 function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
-  const { addDayPlan, editDayPlan, skipDayPlan, deleteDayPlan } = useApp();
+  const { addDayPlan, editDayPlan, skipDayPlan, deleteDayPlan, partners } = useApp();
+  // Day plans are private unless you share your day with a partner; only then can one plan be hidden from them
+  const dayShared = partners.partners.filter((p) => p.my_shares?.day_plans);
   const editing = !!plan;
   const [title, setTitle] = useState(plan?.title ?? '');
   const [date, setDate] = useState(plan?.date ?? dayKey);
@@ -137,9 +139,12 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
         </label>
       )}
 
-      <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-semibold text-charcoal">
-        <input type="checkbox" className="h-4 w-4 accent-[#B85C38]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Keep private <span className="font-normal text-muted">(partners will not see it)</span>
-      </label>
+      {(dayShared.length > 0 || isPrivate) && (
+        <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-semibold text-charcoal">
+          <input type="checkbox" className="h-4 w-4 accent-[#B85C38]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Hide this one
+          <span className="font-normal text-muted">({dayShared.map((p) => p.partner.display_name.trim().split(/\s+/)[0]).join(' and ') || 'partners'} see your day plans)</span>
+        </label>
+      )}
       {problem && title && <p className="mt-2 text-xs font-semibold text-danger" role="alert">{problem}</p>}
       {!problem && timed && <p className="mt-2 text-xs font-semibold text-charcoal">{fmtSpan(from, minutes)} · {fmtMinutes(minutes)}. You get a reminder when it starts.</p>}
       {editing && plan.repeat !== 'NONE' && <p className="mt-2 text-xs text-muted">Changes apply to every day this plan repeats.</p>}

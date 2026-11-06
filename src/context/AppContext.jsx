@@ -100,7 +100,7 @@ export function AppProvider({ children }) {
   const dismissToast = useCallback(() => setToastMsg(null), []);
   useEffect(() => {
     if (!toastMsg) return;
-    const t = setTimeout(() => setToastMsg(null), toastMsg.action ? 7000 : 2600);
+    const t = setTimeout(() => setToastMsg(null), toastMsg.action ? 7000 : String(toastMsg.msg).length > 80 ? 6000 : 2600);
     return () => clearTimeout(t);
   }, [toastMsg]);
 
@@ -217,10 +217,15 @@ export function AppProvider({ children }) {
   });
 
   /** Hides a goal from partners, or shares it again. */
-  const setGoalPrivate = (id, isPrivate) => run(async () => {
-    await api.setGoalPrivate(id, isPrivate);
-    await refresh();
-    toast(isPrivate ? 'Private: your partners cannot see this goal.' : 'Shared with your partners again.');
+  /** Who can see a goal: the full list of partner ids ([] = only you). */
+  const shareGoal = (id, partnerIds, quiet = false) => run(async () => {
+    const g = await api.shareGoal(id, partnerIds);
+    setGoals((gs) => gs.map((x) => (x.id === id ? g : x)));
+    refreshPartners();
+    if (!quiet) {
+      const names = partners.partners.filter((p) => partnerIds.includes(p.id)).map((p) => p.partner.display_name.trim().split(/\s+/)[0]);
+      toast(names.length ? `Shared with ${names.join(' and ')}.` : 'Private: only you can see this goal.');
+    }
     return true;
   });
 
@@ -408,7 +413,7 @@ export function AppProvider({ children }) {
     plannerAt, setPlannerAt,
     openPlanner: (horizon, key) => { setPlannerAt({ horizon, key }); setView('planner'); },
     openDay: (key) => { setPlannerAt({ horizon: 'DAILY', key }); setView('planner'); },
-    partners, refreshPartners, setPartners, partnerAction, unreadTotal, setGoalPrivate,
+    partners, refreshPartners, setPartners, partnerAction, unreadTotal, shareGoal,
     dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan, planWeek,
     weekPlanOpen, openWeekPlan: () => setWeekPlanOpen(true), closeWeekPlan: () => setWeekPlanOpen(false),
     activeGoals, visibleGoals, rewardsTotal, notif, now, slipped, rescheduleItems,

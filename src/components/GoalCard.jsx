@@ -4,6 +4,7 @@ import { BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, Penc
 import { useApp } from '../context/AppContext';
 import { PRIORITY, catIcon } from '../lib/constants';
 import { dueInfo, goalPeriodLabel, progressOf } from '../lib/utils';
+import ShareWith, { sharedText } from './ShareWith';
 import { Bar, TwoTapButton, cardShadow } from './ui';
 
 const collapse = { initial: { height: 0, opacity: 0 }, animate: { height: 'auto', opacity: 1 }, exit: { height: 0, opacity: 0 }, transition: { duration: 0.3, ease: [0.2, 0.8, 0.2, 1] } };
@@ -56,9 +57,12 @@ function TaskItem({ goal, task }) {
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwardedRef) {
-  const { categories, freshId, focusReq, consumeFocus, addTask, deleteGoal, setGoalPrivate, partners, openGoalEditor, openReflection, journal } = useApp();
+  const { categories, freshId, focusReq, consumeFocus, addTask, deleteGoal, shareGoal, partners, openGoalEditor, openReflection, journal } = useApp();
   const hasPartners = partners.partners.length > 0;
-  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, reflect, private, delete
+  const shared = g.shared_with.filter((id) => partners.partners.some((p) => p.id === id));
+  const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, reflect, share, delete
+  const [sharing, setSharing] = useState(false);
+  const [shareBusy, setShareBusy] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -127,7 +131,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           <span className="inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted shadow-sm" title="The period this goal is for"><CalendarRange className="h-3 w-3" aria-hidden="true" />{goalPeriodLabel(g)}</span>
           <span className={`inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold shadow-sm ${due.cls}`}><CalendarClock className="h-3 w-3" aria-hidden="true" />{due.text}</span>
-          {g.is_private && <span className="inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold text-muted shadow-sm" title="Your partners cannot see this goal"><Lock className="h-3 w-3" aria-hidden="true" />Private</span>}
+          {shared.length > 0 && <span className="inline-flex items-center gap-1 rounded-full border border-oat bg-soft px-2.5 py-0.5 text-[11px] font-bold text-rust-dark shadow-sm" title="These partners can see this goal"><Users className="h-3 w-3" aria-hidden="true" />{sharedText(shared, partners.partners)}</span>}
         </div>
       </div>
 
@@ -177,13 +181,20 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
               <div className="mt-1 flex flex-wrap justify-end gap-1 px-2">
                 <button type="button" onClick={() => openGoalEditor(g)} className={tool}><Pencil className="h-3.5 w-3.5" aria-hidden="true" />Edit goal</button>
                 <button type="button" onClick={() => openReflection(g.id)} className={tool}><BookHeart className="h-3.5 w-3.5" aria-hidden="true" />{reflection ? 'Reflection' : 'Reflect'}</button>
-                <button type="button" onClick={() => setGoalPrivate(g.id, !g.is_private)} aria-pressed={g.is_private}
-                  title={g.is_private ? 'Share this goal with your partners again' : 'Hide this goal from your partners'} className={tool}>
-                  {g.is_private ? <><Users className="h-3.5 w-3.5" aria-hidden="true" />Share with partners</> : <><Lock className="h-3.5 w-3.5" aria-hidden="true" />{hasPartners ? 'Make private' : 'Private'}</>}
-                </button>
+                {hasPartners && (
+                  <button type="button" onClick={() => setSharing((s) => !s)} aria-expanded={sharing} title="Choose which partners can see this goal" className={tool}>
+                    {shared.length ? <Users className="h-3.5 w-3.5" aria-hidden="true" /> : <Lock className="h-3.5 w-3.5" aria-hidden="true" />}{shared.length ? 'Sharing' : 'Share'}
+                  </button>
+                )}
                 <TwoTapButton onConfirm={() => deleteGoal(g.id)} icon={Trash2} label="Delete this goal and its plans for good" confirmText="Tap again to delete for good"
                   className="rounded-lg px-2 py-1.5 text-xs font-semibold text-muted hover:bg-danger/10 hover:text-danger">Delete goal</TwoTapButton>
               </div>
+              {sharing && hasPartners && (
+                <div className="mx-2 mt-2 rounded-2xl border border-oat bg-soft p-3">
+                  <ShareWith value={shared} disabled={shareBusy}
+                    onChange={async (ids) => { setShareBusy(true); await shareGoal(g.id, ids); setShareBusy(false); }} />
+                </div>
+              )}
             </div>
           </motion.div>
         )}

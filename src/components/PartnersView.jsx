@@ -82,6 +82,8 @@ function Invites({ onAccepted }) {
             <span className="block truncate text-sm font-semibold text-charcoal">{o.email}</span>
             <span className="block text-[11px] text-muted">Invite waiting for them</span>
           </span>
+          <button type="button" onClick={async () => { const m = await partnerAction('resend', { id: o.id, email: o.email }); if (typeof m === 'string') toast(m); }}
+            className="shrink-0 rounded-lg px-2 py-1.5 text-[11px] font-bold text-rust-dark hover:bg-oat/60">Email again</button>
           <button type="button" onClick={() => partnerAction('decline', { id: o.id })} aria-label={`Cancel the invite to ${o.email}`} className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-oat/60 hover:text-danger"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
       ))}
@@ -342,21 +344,25 @@ function Chat({ entry, onStreak }) {
   );
 }
 
-/** Which of my categories (and whether my day plans) this partner can see. Nothing is shared until I choose. */
+const sharesAnything = (s) => s.goals.length > 0 || s.day_plans;
+
+/** Which of my goals (and whether my day plans) this partner can see. Every goal is private until I tick it. */
 function Sharing({ entry }) {
   const { categories, goals, partnerAction, toast } = useApp();
   const name = first(entry.partner.display_name);
-  const [picked, setPicked] = useState(() => new Set(entry.my_shares.filter((c) => c !== 0)));
-  const [dayPlans, setDayPlans] = useState(entry.my_shares.includes(0));
+  const mine = entry.my_shares;
+  const [picked, setPicked] = useState(() => new Set(mine.goals));
+  const [dayPlans, setDayPlans] = useState(mine.day_plans);
   const [busy, setBusy] = useState(false);
-  const counts = (id) => goals.filter((g) => g.status === 'ACTIVE' && !g.is_private && (g.category_id ?? 9) === id).length;
+  // Goals still going, then ones already finished; archived goals are left as they are
+  const list = goals.filter((g) => g.status !== 'ARCHIVED').sort((a, b) => (a.status === 'ACTIVE' ? 0 : 1) - (b.status === 'ACTIVE' ? 0 : 1));
   const toggle = (id) => setPicked((s0) => { const n = new Set(s0); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const dirty = [...picked].sort().join() !== entry.my_shares.filter((c) => c !== 0).sort().join() || dayPlans !== entry.my_shares.includes(0);
+  const dirty = [...picked].sort().join() !== [...mine.goals].sort().join() || dayPlans !== mine.day_plans;
   const theirs = entry.their_shares;
 
   const save = async () => {
     setBusy(true);
-    if (await partnerAction('share', { id: entry.id, categories: [...picked], day_plans: dayPlans })) {
+    if (await partnerAction('share', { id: entry.id, goals: [...picked], day_plans: dayPlans })) {
       toast(picked.size || dayPlans ? `Saved. ${name} can see what you picked.` : `Saved. ${name} cannot see any of your goals or plans.`);
     }
     setBusy(false);
@@ -366,33 +372,45 @@ function Sharing({ entry }) {
     <div className="grid gap-4">
       <div>
         <h3 className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Eye className="h-4 w-4 text-rust-dark" aria-hidden="true" />What {name} can see</h3>
-        <p className="mt-0.5 text-xs text-muted">Pick the areas of your life to share with {name}. Everything else stays hidden, and so does any goal you mark private.</p>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label={`Categories ${name} can see`}>
-          {categories.map((c) => {
-            const on = picked.has(c.id), Icon = catIcon(c.name), n = counts(c.id);
-            return (
-              <button key={c.id} type="button" aria-pressed={on} onClick={() => toggle(c.id)}
-                className={cn('inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-bold transition-colors', on ? 'text-charcoal' : 'border-oat bg-soft text-muted hover:border-blush')}
-                style={on ? { borderColor: c.color, background: `${c.color}22` } : undefined}>
-                {on ? <Check className="h-3.5 w-3.5" strokeWidth={3} style={{ color: c.color }} aria-hidden="true" /> : <Icon className="h-3.5 w-3.5" aria-hidden="true" />}
-                {c.name}{n > 0 && <span className="text-[11px] font-semibold text-muted">{n}</span>}
-              </button>
-            );
-          })}
-        </div>
+        <p className="mt-0.5 text-xs text-muted">Your goals are private. Tick the ones you want {name} to see and cheer you on. Everything else stays just yours.</p>
+        {list.length === 0 ? (
+          <p className="mt-3 rounded-2xl border border-dashed border-blush bg-ivory p-4 text-center text-xs text-muted">You have no goals yet. Set one, then come back to share it.</p>
+        ) : (
+          <ul className="mt-3 grid max-h-80 gap-1.5 overflow-y-auto" aria-label={`Goals ${name} can see`}>
+            {list.map((g) => {
+              const on = picked.has(g.id), cat = categories.find((c) => c.id === g.category_id), Icon = catIcon(cat?.name);
+              return (
+                <li key={g.id}>
+                  <label className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition-colors', on ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#B85C38]" checked={on} onChange={() => toggle(g.id)} />
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: cat?.color ?? '#B85C38' }}><Icon className="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold text-charcoal">{g.title}</span>
+                      <span className="block text-[11px] text-muted">{horizonOf(g.timeframe).label} goal{cat ? ` · ${cat.name}` : ''}{g.status === 'COMPLETED' ? ' · done' : ''}</span>
+                    </span>
+                    {on ? <Eye className="h-4 w-4 shrink-0 text-rust-dark" aria-label="Shared" /> : <Lock className="h-4 w-4 shrink-0 text-muted" aria-label="Private" />}
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-oat bg-ivory p-3">
           <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#B85C38]" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
-          <span><b className="text-sm text-charcoal">My day plans</b><span className="block text-xs text-muted">{name} sees what you planned for today and what you have ticked off (not plans you mark private).</span></span>
+          <span><b className="text-sm text-charcoal">My day plans</b><span className="block text-xs text-muted">{name} sees what you planned for today and what you have ticked off. You can still hide a single plan when you edit it.</span></span>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={save} disabled={busy || !dirty} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
-          <button type="button" onClick={() => { setPicked(new Set(categories.map((c) => c.id))); setDayPlans(true); }} className="rounded-xl px-3 py-2.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Share everything</button>
-          <button type="button" onClick={() => { setPicked(new Set()); setDayPlans(false); }} className="rounded-xl px-3 py-2.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Share nothing</button>
+          {picked.size + (dayPlans ? 1 : 0) > 0 && (
+            <button type="button" onClick={() => { setPicked(new Set()); setDayPlans(false); }} className="rounded-xl px-3 py-2.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Make everything private</button>
+          )}
         </div>
       </div>
       <div className="rounded-2xl border border-oat bg-ivory p-3 text-xs text-muted">
         <b className="text-charcoal">{name} shares with you:</b>{' '}
-        {theirs.length ? [...categories.filter((c) => theirs.includes(c.id)).map((c) => c.name), ...(theirs.includes(0) ? ['day plans'] : [])].join(', ') : 'nothing yet. They choose that on their side.'}
+        {sharesAnything(theirs)
+          ? [theirs.goals.length ? `${theirs.goals.length} goal${theirs.goals.length === 1 ? '' : 's'}` : null, theirs.day_plans ? 'their day plans' : null].filter(Boolean).join(' and ')
+          : 'nothing yet. They choose that on their side.'}
       </div>
     </div>
   );
@@ -402,7 +420,7 @@ function TheirGoals({ entry, view, onCheered }) {
   const { categories, toast } = useApp();
   const name = first(entry.partner.display_name);
   const [cheered, setCheered] = useState({});   // goal id -> emoji just sent
-  if (!view.goals.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.some((c) => c !== 0) ? `${name} has no goals in the areas they share with you right now.` : `${name} has not shared any of their goals with you yet.`}</p>;
+  if (!view.goals.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.goals.length ? `The goals ${name} shares with you are archived right now.` : `${name} has not shared any of their goals with you yet. Their goals are private until they choose.`}</p>;
   const cheer = async (goal, emoji) => {
     try {
       const r = await api.sendMessage(entry.id, 'cheer', { emoji, goal_id: goal.id });
@@ -452,7 +470,7 @@ function TheirGoals({ entry, view, onCheered }) {
 
 function TheirDay({ entry, view }) {
   const name = first(entry.partner.display_name);
-  if (!view.today.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.includes(0) ? `${name} has no plans for today yet. A nudge might help 👋` : `${name} has not shared their day plans with you.`}</p>;
+  if (!view.today.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.day_plans ? `${name} has no plans for today yet. A nudge might help 👋` : `${name} has not shared their day plans with you.`}</p>;
   const done = view.today.filter((x) => x.done).length;
   return (
     <div>
@@ -472,7 +490,7 @@ function TheirDay({ entry, view }) {
 
 function PartnerPanel({ entry, onBack }) {
   const { partnerAction, toast } = useApp();
-  const [tab, setTab] = useState(entry.my_shares.length ? 'chat' : 'sharing');
+  const [tab, setTab] = useState('chat');
   const [view, setView] = useState(null);
   const [streak, setStreak] = useState(entry.chat_streak);
   const [armed, setArmed] = useState(false);
@@ -480,7 +498,7 @@ function PartnerPanel({ entry, onBack }) {
 
   useEffect(() => {
     let alive = true;
-    setView(null); setTab(entry.my_shares.length ? 'chat' : 'sharing'); setStreak(entry.chat_streak); setArmed(false);
+    setView(null); setTab('chat'); setStreak(entry.chat_streak); setArmed(false);
     const load = () => api.getPartnerView(entry.id).then((v) => alive && setView(v)).catch(() => {});
     load();
     const t = setInterval(load, 30000);
@@ -510,9 +528,9 @@ function PartnerPanel({ entry, onBack }) {
 
       {view && <div className="mt-4"><Scoreboard me={view.scoreboard.me} them={view.scoreboard.them} name={name} /></div>}
 
-      {!entry.my_shares.length && tab !== 'sharing' && (
-        <button type="button" onClick={() => setTab('sharing')} className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-left text-xs font-semibold text-charcoal hover:bg-warning/15">
-          <Lock className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />You are not sharing anything with {name} yet. Choose what {name} can see.
+      {!sharesAnything(entry.my_shares) && tab !== 'sharing' && (
+        <button type="button" onClick={() => setTab('sharing')} className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-oat bg-ivory px-3 py-2.5 text-left text-xs font-semibold text-charcoal hover:border-blush">
+          <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />Your goals are private. You can chat with {name} anyway, or pick a goal for {name} to see.
         </button>
       )}
       <div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1" role="tablist" aria-label={`With ${name}`}>
@@ -528,9 +546,9 @@ function PartnerPanel({ entry, onBack }) {
         {(tab === 'goals' || tab === 'day') && !view && <p className="py-10 text-center text-sm text-muted">Loading…</p>}
         {tab === 'goals' && view && <TheirGoals entry={entry} view={view} onCheered={setStreak} />}
         {tab === 'day' && view && <TheirDay entry={entry} view={view} />}
-        {tab === 'sharing' && <Sharing key={entry.my_shares.join()} entry={entry} />}
+        {tab === 'sharing' && <Sharing key={`${entry.my_shares.goals.join()}|${entry.my_shares.day_plans}`} entry={entry} />}
       </div>
-      <p className="mt-4 flex items-start gap-1.5 text-[11px] text-muted"><Lock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />{name} only sees what you pick under Sharing, and never a goal or plan you mark private.</p>
+      <p className="mt-4 flex items-start gap-1.5 text-[11px] text-muted"><Lock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />{name} only sees the goals you share, under Sharing or on a goal's card. Everything else stays private to you.</p>
     </section>
   );
 }
@@ -559,7 +577,7 @@ export default function PartnersView() {
         <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
           <Users className="h-10 w-10 text-white/90" aria-hidden="true" />
           <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Better together</h2>
-          <p className="mt-1 max-w-lg text-sm text-white/85">Invite an accountability partner. You see each other's goals and plans, chat to keep each other going, cheer wins, nudge when one of you goes quiet, and race each other on a weekly scoreboard.</p>
+          <p className="mt-1 max-w-lg text-sm text-white/85">Invite an accountability partner. Chat to keep each other going, share only the goals you choose (everything else stays private), cheer wins, nudge when one of you goes quiet, and race each other on a weekly scoreboard.</p>
           <ul className="mt-4 grid gap-1.5 text-sm text-white/90 sm:grid-cols-2">
             <li className="flex items-center gap-2"><Flame className="h-4 w-4" aria-hidden="true" />A chat streak for every day you both talk</li>
             <li className="flex items-center gap-2"><span aria-hidden="true">🔥</span>Cheers on each other's goals</li>
