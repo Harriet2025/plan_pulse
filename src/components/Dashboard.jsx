@@ -8,6 +8,8 @@ import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
 import { InstallNudge } from './AppStatus';
+import QuickAdd from './QuickAdd';
+import { FocusCard, WeekNudge } from './WeeklyPlan';
 
 const REVIEWED_KEY = 'auragoal.reviewed';
 const getReviewed = () => { try { return new Set(JSON.parse(localStorage.getItem(REVIEWED_KEY) || '[]')); } catch { return new Set(); } };
@@ -168,6 +170,7 @@ function LoadCard() {
         <h2 id="loadH" className="text-sm font-extrabold text-charcoal">Today</h2>
         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold', ui.pill)}><Gauge className="h-3.5 w-3.5" aria-hidden="true" />{ui.label}</span>
       </div>
+      <QuickAdd className="mt-3" />
       <div className="mt-3 flex items-baseline gap-1.5">
         <motion.span key={load.planned} initial={{ scale: 1.15 }} animate={{ scale: 1 }} className="text-3xl font-extrabold tabular-nums text-charcoal">{fmtMinutes(load.planned)}</motion.span>
         <span className="text-sm font-semibold text-muted">to go{load.capacity > 0 && ` of ${fmtMinutes(load.capacity)}`}</span>
@@ -360,6 +363,7 @@ function RightRail() {
   return (
     <aside className="contents md:grid md:min-w-0 md:grid-cols-[minmax(0,1fr)] md:gap-6 xl:order-last" aria-label="Streak, reminders and motivation">
       <LoadCard />
+      <div className="max-md:order-1 md:contents"><FocusCard /></div>
       <div className="max-md:order-2 md:contents"><WeekStrip /></div>
       <section className="hidden rounded-3xl border border-oat bg-soft p-5 xl:block" style={cardShadow} aria-labelledby="railH">
         <div className="flex items-center justify-between"><h2 id="railH" className="text-sm font-extrabold text-charcoal">Reminders &amp; deadlines</h2><span className="grid h-8 w-8 place-items-center rounded-lg bg-rust/10 text-rust-dark"><BellRing className="h-4 w-4" aria-hidden="true" /></span></div>
@@ -473,6 +477,7 @@ export default function Dashboard() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-6">
       <Hero totals={totals} open={open} />
+      <WeekNudge />
       <ReviewNudge />
       <InstallNudge />
       <CatchUpBanner />

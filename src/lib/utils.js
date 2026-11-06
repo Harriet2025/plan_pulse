@@ -80,7 +80,7 @@ export const goalPeriodLabel = (g, today = new Date()) => periodLabel(g.timefram
 const CLOCK = String.raw`\d{1,2}(?:[:.]\d{2})?(?:\s*[ap]\.?m\.?)?`;
 
 /** "2pm", "2:30 pm", "14:00", "9.15" -> minutes after midnight, or null. `mer` fills in a missing am / pm. */
-function clockMinutes(text, mer = null) {
+export function clockMinutes(text, mer = null) {
   const m = /^(\d{1,2})(?:[:.](\d{2}))?\s*(?:([ap])\.?m\.?)?$/i.exec(text.trim());
   if (!m) return null;
   let h = parseInt(m[1], 10);
@@ -418,4 +418,26 @@ export function readInvite() {
   const m = /^#invite=([^&]+)(&account=1)?$/.exec(window.location.hash);
   if (!m) return null;
   try { return { email: decodeURIComponent(m[1]), account: Boolean(m[2]) }; } catch { return null; }
+}
+
+// ---- The weekly planning ritual
+
+/** The Monday of the week worth planning now: this week from Monday to Friday, next week at the weekend. */
+export const planningMonday = (today = new Date()) => (isoWeekday(today) >= 6 ? addDays(today, 8 - isoWeekday(today)) : addDays(today, 1 - isoWeekday(today)));
+
+/**
+ * Days in the week starting `monday` for items of `minutes` each, spreading them out: each goes to the day with the
+ * most free time left (rest days and days already past are skipped). Returns a YYYY-MM-DD for each item, in order.
+ */
+export function spreadInWeek(items, dayPlans, user, monday, today = new Date()) {
+  const todayKey = localDate(today);
+  const days = [0, 1, 2, 3, 4, 5, 6].map((n) => addDays(monday, n)).filter((d) => localDate(d) >= todayKey && !isRestDate(d, user.rest_days ?? []));
+  if (!days.length) days.push(...[0, 1, 2, 3, 4, 5, 6].map((n) => addDays(monday, n)).filter((d) => localDate(d) >= todayKey));
+  if (!days.length) return items.map(() => localDate(monday));
+  const free = new Map(days.map((d) => [localDate(d), dayLoad(dayPlans, user, localDate(d)).free]));
+  return items.map((it) => {
+    const [key] = [...free.entries()].reduce((best, e) => (e[1] > best[1] ? e : best));
+    free.set(key, free.get(key) - (it.minutes ?? 30));
+    return key;
+  });
 }

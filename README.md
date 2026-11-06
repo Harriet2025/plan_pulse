@@ -8,7 +8,7 @@ Goal tracker with sub-task checklists, badges and confetti, history and analytic
 
 1. `npm install`
 2. Create `.env.local` (git-ignored) with your project's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Only ever the browser-safe key: never put the service role key in a `NEXT_PUBLIC_` variable.
-3. For a new Supabase project, run `supabase/schema.sql` and then `supabase/jobs.sql` in the SQL Editor, and deploy `supabase/functions/notify` with **Verify JWT off** (the function checks each request itself). `jobs.sql` has the project's address in its cron job, so change that for a different project.
+3. For a new Supabase project, run `supabase/schema.sql`, then `supabase/jobs.sql`, then `supabase/weekly_planning.sql` in the SQL Editor, and deploy `supabase/functions/notify` with **Verify JWT off** (the function checks each request itself). `jobs.sql` has the project's address in its cron job, so change that for a different project.
 
 ## Run it
 
@@ -80,6 +80,14 @@ The **Planner** page has Day, Week, Month and Year tabs with ‹ › to move bet
 - **Goal reflections:** when a goal is completed, a reflection opens (after any badge): how it went, the ups, the downs, how you achieved it, the lessons learnt, and a mood. Open it again from the goal card or History.
 - **Journal:** private notes with an optional mood, plus a reflection for each week, month and year (wins, challenges, lessons, next focus). Browse them by week, month or year on the **Journal** page; a period's review in the Planner shows its journal too. Partners never see the journal (`journal_entries`, `api/journal.php`).
 
+## Quick add
+
+Type a day plan the way you would say it, on the dashboard's Today card or in the Planner: *gym tomorrow 6-7am*, *church every Sunday 9am*, *call mum Friday 30 min*, *study weekdays 7pm for 2h until 20 Dec*. Before anything is saved it shows what it understood (the name, the day, the time or length, and how it repeats). It reads days (today, tomorrow, Friday, next Tuesday, 12 Nov, the 15th, in 3 days), times (6-7am, from 9 to 10:30, at 3, noon), lengths (30 min, 2h) and repeats (every day, weekdays, every Mon and Wed, Wednesdays and Saturdays, monthly). Words in quotes always stay in the name, and so do names like *Sunday school*. Everything is read on the device (`src/lib/quickadd.js`), so it is instant and free. The full **Add a plan** form understands the same words.
+
+## Plan your week
+
+A short guided session (`src/components/WeeklyPlan.jsx`): **look back** at last week and bring what slipped into the new week or let it go; pick up to **3 focus goals**; **give their plans a day**, spread to the days with the most free time; and see **the week** at a glance before saving. It saves all together (`plan_week()` in `supabase/weekly_planning.sql`). A plan scheduled this way stays linked to the goal's step, so ticking either one ticks the other. On your planning day (Sunday unless you change it in Settings → Your day), and early in a week you have not planned, the dashboard invites you to start; it is also on the Planner's Week tab. The week's focus goals show on the dashboard with their progress.
+
 ## What should I do now?
 
 The **What should I do now?** button (on the dashboard, and the compass in the top bar) recommends one next task. It works out how long you have before your next timed plan today (or you pick 15m to 2h), lets you say how much energy you have, and scores today's day plans and your goals' plans by deadline, priority, whether they fit the time, energy, and quick wins (the last plan of a goal). It shows the reasons ("Goal is due tomorrow", "Fits your 25m"); you can **Start this task** (a focus timer that stays on screen, survives a reload and ticks the task off when you finish), **Skip** it, or **Choose something else**. When a goal's plan has no length yet it asks once, and remembers (`sub_plans.estimate_min`). The rules are in `src/lib/next.js`.
@@ -128,6 +136,7 @@ Give day plans a time or a length, and set how much time you really have in Sett
 | `src/lib/` | `constants.js` (categories, tiers, quotes), `utils.js` (dates, progress, analytics), `sound.js` (Web Audio sounds) |
 | `supabase/schema.sql` | Tables, access rules (row level security), streak, badge and partner rules, and the storage buckets |
 | `supabase/jobs.sql` | Server-only settings, and the every-minute job |
+| `supabase/weekly_planning.sql` | The weekly planning ritual: planning day, focus goals, and day plans linked to a goal's plans |
 | `supabase/functions/notify/` | The Edge Function: email, Web Push, reminders and the morning email |
 | `public/sw.js` | The service worker: offline page, and showing push notifications |
 | `legacy/index.old.html` | The previous single-file front end. Safe to delete. |

@@ -288,6 +288,8 @@ function StreakCard() {
 // 1 hour to 12 hours in half-hour steps
 const CAPACITY_OPTIONS = Array.from({ length: 23 }, (_, i) => 60 + i * 30);
 
+const WEEKDAY_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 function PlanningCard() {
   const { user, updateProfile } = useApp();
   const [value, setValue] = useState(user.daily_capacity_min);
@@ -301,12 +303,25 @@ function PlanningCard() {
     catch (ex) { setValue(before); setNote({ kind: 'err', text: ex.message }); }
   };
 
+  const [planDay, setPlanDay] = useState(user.planning_day ?? 7);
+  const changeDay = async (e) => {
+    const day = Number(e.target.value), before = planDay;
+    setPlanDay(day); setNote(null);
+    try { await updateProfile({ planning_day: day }); setNote({ kind: 'ok', text: `"Plan your week" will show up on ${WEEKDAY_LONG[day - 1]}s.` }); }
+    catch (ex) { setPlanDay(before); setNote({ kind: 'err', text: ex.message }); }
+  };
+
   return (
     <Card title="Your day" description="Be honest about how much time you really have. AuraGoal warns you when a day is planned past it.">
       <label htmlFor="capacity" className={label}>Time I can realistically give on a normal day</label>
       <select id="capacity" className="field !w-auto min-w-40" value={value} onChange={change}>
         {options.map((m) => <option key={m} value={m}>{fmtMinutes(m)}</option>)}
       </select>
+      <label htmlFor="planDay" className={`${label} mt-4`}>Plan my week on</label>
+      <select id="planDay" className="field !w-auto min-w-40" value={planDay} onChange={changeDay}>
+        {WEEKDAY_LONG.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
+      </select>
+      <p className="mt-1 text-xs text-muted">That day, your dashboard invites you to plan the week ahead. You can also start it any time from the Planner's Week tab.</p>
       <ul className="mt-4 grid gap-2 text-sm text-muted">
         <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>Give your day plans a time (2:00 to 4:00pm) or a length (45 minutes) when you add them in the Planner.</span></li>
         <li className="flex gap-2"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>A day holds the plans you set for it, repeating ones included. Rest days count as zero hours.</span></li>

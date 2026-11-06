@@ -65,10 +65,10 @@ const TIER_RANK = { NONE: 0, BRONZE: 1, SILVER: 2, GOLD: 3, PLATINUM: 4 };
 // `estimate` is how long it takes in minutes (null when not known), used by "What should I do now?"
 const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed, estimate: t.estimate_min ?? null });
 
-const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, is_private, status, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min), reviews(reward_badge_tier)';
+const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, is_private, status, focus_week, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min), reviews(reward_badge_tier)';
 const fromGoal = (g) => ({
   id: g.id, title: g.title, category_id: g.category_id, priority: g.priority, timeframe: g.timeframe,
-  due_date: g.due_date, quote: g.quote, is_private: !!g.is_private, status: g.status,
+  due_date: g.due_date, quote: g.quote, is_private: !!g.is_private, status: g.status, focus_week: g.focus_week,
   best_tier_rank: Math.max(0, ...(g.reviews ?? []).map((r) => TIER_RANK[r.reward_badge_tier] ?? 0)),
   completed_at: g.completed_at, created_at: g.created_at, updated_at: g.updated_at,
   sub_plans: [...(g.sub_plans ?? [])].sort((a, b) => a.id - b.id).map(fromTask),
@@ -76,11 +76,11 @@ const fromGoal = (g) => ({
 const fetchGoal = async (id) => fromGoal(await q(supabase.from('goals').select(GOAL_COLUMNS).eq('id', id).single()));
 
 // A day plan: { id, title, date, start: 'HH:MM' | null, minutes, repeat: NONE|DAILY|WEEKLY|MONTHLY, days: [1..7], until,
-// private, marks: { 'YYYY-MM-DD': 'DONE' | 'SKIPPED' } }
-const PLAN_COLUMNS = 'id, title, plan_date, start_time, duration_min, repeat_rule, repeat_days, repeat_until, is_private, day_plan_marks(on_date, state)';
+// private, subPlanId (the goal's plan it was scheduled for, or null), marks: { 'YYYY-MM-DD': 'DONE' | 'SKIPPED' } }
+const PLAN_COLUMNS = 'id, title, plan_date, start_time, duration_min, repeat_rule, repeat_days, repeat_until, is_private, sub_plan_id, day_plan_marks(on_date, state)';
 const fromDayPlan = (p) => ({
   id: p.id, title: p.title, date: p.plan_date, start: hhmm(p.start_time), minutes: p.duration_min, repeat: p.repeat_rule,
-  days: daysFromMask(p.repeat_days), until: p.repeat_until, private: !!p.is_private,
+  days: daysFromMask(p.repeat_days), until: p.repeat_until, private: !!p.is_private, subPlanId: p.sub_plan_id,
   marks: Object.fromEntries((p.day_plan_marks ?? []).map((m) => [m.on_date, m.state])),
 });
 const fetchDayPlan = async (id) => fromDayPlan(await q(supabase.from('day_plans').select(PLAN_COLUMNS).eq('id', id).single()));
@@ -172,6 +172,7 @@ export async function updateProfile(fields) {
     set.daily_capacity_min = fields.capacity_min;
   }
   if ('timezone' in fields) set.timezone = fields.timezone;
+  if ('planning_day' in fields) set.planning_day = fields.planning_day;
   if ('digest_enabled' in fields) set.digest_enabled = !!fields.digest_enabled;
   if ('digest_time' in fields) {
     if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(fields.digest_time)) throw new Error('Choose a time like 07:30.');
@@ -356,6 +357,14 @@ export async function markDayPlan(id, date, state) {
 /** Deletes the plan and every day of it. */
 export async function deleteDayPlan(id) {
   await q(supabase.from('day_plans').delete().eq('id', id));
+}
+
+/**
+ * Saves a planned week, all or nothing: `monday` (YYYY-MM-DD), up to 3 focus goal ids, and day plans for goals' plans
+ * ([{ title, date, minutes, sub_plan_id }]). Returns how many day plans were added.
+ */
+export async function planWeek(monday, focus, plans) {
+  return rpc('plan_week', { p_week: monday, p_focus: focus, p_plans: plans });
 }
 
 /** Changes a goal: any of { title, category_id, priority, timeframe, due_date, quote }. */

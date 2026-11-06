@@ -51,6 +51,7 @@ export function AppProvider({ children }) {
   const [goalModal, setGoalModal] = useState(null);   // null, or { draft } when the New Goal sheet is open
   const [lighten, setLighten] = useState(null);       // null, or { date } when the "lighten this day" panel is open
   const [calendarFocus, setCalendarFocus] = useState(null); // asks the calendar to show a particular day
+  const [weekPlanOpen, setWeekPlanOpen] = useState(false);   // the weekly planning ritual
   const [plannerAt, setPlannerAt] = useState(null);   // the Planner's tab and period: { horizon, key }, null = today
   const [freshId, setFreshId] = useState(null);       // newly created goal opens expanded
   const [focusReq, setFocusReq] = useState(null);     // ask a card to scroll into view and open
@@ -189,7 +190,7 @@ export function AppProvider({ children }) {
   const addTask = (goalId, text) => run(async () => { await api.addTask(goalId, text); await refresh(); playSound('check'); return true; });
 
   // ---- Day plans. Each returns true when it worked.
-  const addDayPlan = (fields) => run(async () => { await api.createDayPlan(fields); await refresh(); playSound('check'); toast('Added to your day.'); return true; });
+  const addDayPlan = (fields, message = 'Added to your day.') => run(async () => { await api.createDayPlan(fields); await refresh(); playSound('check'); toast(message); return true; });
   const editDayPlan = (id, fields) => run(async () => { await api.updateDayPlan(id, fields); await refresh(); toast('Plan updated.'); return true; });
   /** Ticks one day of a plan off (or back on). Finishing one keeps the streak going, like a goal's plan. */
   const toggleDayPlan = (id, date, done) => run(async () => {
@@ -207,6 +208,13 @@ export function AppProvider({ children }) {
     return true;
   });
   const deleteDayPlan = (id) => run(async () => { await api.deleteDayPlan(id); await refresh(); toast('Plan deleted.'); return true; });
+  /** Saves the weekly planning ritual: focus goals and their plans' days. */
+  const planWeek = (monday, focus, plans) => run(async () => {
+    const n = await api.planWeek(monday, focus, plans);
+    await refresh(); playSound('check');
+    toast(n ? `Your week is planned: ${n} plan${n === 1 ? '' : 's'} added.` : 'Your week is planned.');
+    return true;
+  });
 
   /** Hides a goal from partners, or shares it again. */
   const setGoalPrivate = (id, isPrivate) => run(async () => {
@@ -401,7 +409,8 @@ export function AppProvider({ children }) {
     openPlanner: (horizon, key) => { setPlannerAt({ horizon, key }); setView('planner'); },
     openDay: (key) => { setPlannerAt({ horizon: 'DAILY', key }); setView('planner'); },
     partners, refreshPartners, setPartners, partnerAction, unreadTotal, setGoalPrivate,
-    dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan,
+    dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan, planWeek,
+    weekPlanOpen, openWeekPlan: () => setWeekPlanOpen(true), closeWeekPlan: () => setWeekPlanOpen(false),
     activeGoals, visibleGoals, rewardsTotal, notif, now, slipped, rescheduleItems,
     toastMsg, toast, dismissToast, rewardQueue, claimReward: () => {
       const item = rewardQueue[0];

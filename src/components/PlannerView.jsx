@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarCheck, CalendarDays, CalendarRange, CalendarSearch, ChevronLeft, ClipboardCheck, ListChecks, ChevronRight, Clock, Pencil, Plus, Repeat, Sun, Trash2, Undo2, X } from 'lucide-react';
+import { CalendarHeart, CalendarCheck, CalendarDays, CalendarRange, CalendarSearch, ChevronLeft, ClipboardCheck, ListChecks, ChevronRight, Clock, Pencil, Plus, Repeat, Sun, Trash2, Undo2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PERIODS, PRIORITY, REPEAT, WEEKDAY_SHORT, horizonOf } from '../lib/constants';
 import {
   addDays, clockToMinutes, cn, dayLoad, fmtClock, fmtMinutes, fmtSpan, inPeriod, isoWeekday, localDate, minutesToClock, parseDay,
-  periodEnd, periodKey, periodLabel, periodPhrase, periodRange, periodStart, plansOn, progressOf, repeatText, shiftPeriod, splitTaskLine, taskTotals,
+  periodEnd, periodKey, periodLabel, periodPhrase, periodRange, periodStart, plansOn, progressOf, repeatText, shiftPeriod, taskTotals,
 } from '../lib/utils';
 import GoalCard from './GoalCard';
+import QuickAdd from './QuickAdd';
+import { parsePlan } from '../lib/quickadd';
 import ReviewPanel from './ReviewPanel';
 import { Bar, cardShadow } from './ui';
 
@@ -42,19 +44,23 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
   const [busy, setBusy] = useState(false);
   const [armed, setArmed] = useState(false);
 
-  // Typing "Create content 2pm-4pm" fills in the time for you
-  const typed = !editing ? splitTaskLine(title) : null;
+  // Typing "Create content Friday 2pm-4pm" or "Church every Sunday 9am" fills in the rest of the form for you
+  const typed = !editing ? parsePlan(title, new Date(), dayKey) : null;
   const onTitle = (v) => {
     setTitle(v);
-    const s = !editing && splitTaskLine(v);
-    if (s?.start) {
+    const s = !editing && parsePlan(v, new Date(), dayKey);
+    if (!s) return;
+    if (s.found.date || s.found.repeat) setDate(s.date);
+    if (s.start) {
       setTimed(true); setFrom(s.start);
-      setTo(minutesToClock(Math.min(clockToMinutes(s.start) + (s.estimate ?? 60), 23 * 60 + 59)));
-    }
+      setTo(minutesToClock(Math.min(clockToMinutes(s.start) + (s.minutes ?? 60), 23 * 60 + 59)));
+    } else if (s.minutes) { setTimed(false); setLength(String(s.minutes)); }
+    if (s.found.repeat) { setRepeat(s.repeat); setDays(s.days); if (s.until) setUntil(s.until); }
   };
 
   const minutes = timed && from && to ? clockToMinutes(to) - clockToMinutes(from) : null;
-  const problem = !(typed?.start ? typed.text : title).trim() ? 'Give the plan a name.'
+  const name = typed?.title || title.trim();
+  const problem = !name ? 'Give the plan a name.'
     : timed && minutes <= 0 ? 'The end has to be after the start.'
     : timed && minutes < 5 ? 'A plan needs at least 5 minutes.'
     : repeat === 'WEEKLY' && !days.length ? 'Pick at least one day of the week.'
@@ -65,7 +71,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
     if (problem) return;
     setBusy(true);
     const fields = {
-      title: (typed?.start ? typed.text : title).trim(), date,
+      title: name, date,
       start: timed ? from : null, minutes: timed ? minutes : length ? Number(length) : null,
       repeat, days: repeat === 'WEEKLY' ? days : [], until: repeat !== 'NONE' && until ? until : null, private: isPrivate,
     };
@@ -84,7 +90,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
       </div>
 
       <label className="mt-2 block text-[11px] font-semibold text-muted">What
-        <input className="field mt-1 !py-2" maxLength={255} placeholder="e.g. Create content 2pm-4pm" value={title} onChange={(e) => onTitle(e.target.value)} autoFocus required />
+        <input className="field mt-1 !py-2" maxLength={255} placeholder="e.g. Create content Friday 2pm-4pm" value={title} onChange={(e) => onTitle(e.target.value)} autoFocus required />
       </label>
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="When">
@@ -105,7 +111,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
         <label className="mt-2 block text-[11px] font-semibold text-muted sm:max-w-xs">How long (optional)
           <select className="field mt-1 !py-1.5" value={length} onChange={(e) => setLength(e.target.value)}>
             <option value="">Not sure</option>
-            {[15, 30, 45, 60, 90, 120, 180].map((m) => <option key={m} value={m}>{fmtMinutes(m)}</option>)}
+            {[...new Set([15, 30, 45, 60, 90, 120, 180, ...(length ? [Number(length)] : [])])].sort((a, b) => a - b).map((m) => <option key={m} value={m}>{fmtMinutes(m)}</option>)}
           </select>
         </label>
       )}
@@ -302,6 +308,7 @@ function DayView({ dayKey }) {
             <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />Add a plan
           </button>
         </div>
+        <QuickAdd dayKey={dayKey} className="mb-3" />
         <AnimatePresence>
           {editor && <DayPlanEditor key={editor.plan?.id ?? `new-${editor.startAt}`} dayKey={dayKey} plan={editor.plan ?? null} startAt={editor.startAt ?? null} onClose={() => setEditor(null)} />}
         </AnimatePresence>
@@ -441,7 +448,7 @@ function GoalsView({ horizon, anchor, now }) {
 // ---------------------------------------------------------------------------------------------------------------
 
 export default function PlannerView() {
-  const { goals, dayPlans, now, plannerAt, setPlannerAt, openGoalModal, openCalendarDay } = useApp();
+  const { goals, dayPlans, now, plannerAt, setPlannerAt, openGoalModal, openCalendarDay, openWeekPlan } = useApp();
   const horizon = plannerAt?.horizon ?? 'DAILY';
   const anchor = parseDay(plannerAt?.key ?? localDate(now));
   const review = !!plannerAt?.review;   // looking back at the period, ticking what got done
@@ -500,6 +507,11 @@ export default function PlannerView() {
             className={cn('inline-flex items-center justify-center gap-2 rounded-xl border-2 px-4 py-2 text-sm font-extrabold transition-colors', review ? 'border-rust bg-rust/10 text-rust-dark' : 'border-oat bg-ivory text-charcoal hover:border-rust')}>
             {review ? <><ListChecks className="h-4 w-4" aria-hidden="true" />Back to planning</> : <><ClipboardCheck className="h-4 w-4" aria-hidden="true" />Review {isCurrent ? (horizon === 'DAILY' ? 'today' : `this ${h.unit}`) : periodPhrase(periodLabel(horizon, anchor, now))}</>}
           </button>
+          {horizon === 'WEEKLY' && !review && !isPast && (
+            <button type="button" onClick={openWeekPlan} className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-oat bg-ivory px-4 py-2 text-sm font-extrabold text-charcoal hover:border-rust">
+              <CalendarHeart className="h-4 w-4" aria-hidden="true" />Plan the week
+            </button>
+          )}
           {horizon !== 'DAILY' && !review && (
             <button type="button" onClick={() => openGoalModal({ timeframe: horizon, anchor: isPast ? localDate(now) : key })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-dark">
               <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />Goal for {isCurrent ? `this ${h.unit}` : periodPhrase(periodLabel(horizon, anchor, now))}
