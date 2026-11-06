@@ -515,6 +515,27 @@ export async function getPartnerView(partnershipId) {
   return rpc('partner_view', { p_id: partnershipId });
 }
 
+// ---- Together: shared goals and the weekly challenge -----------------------
+// Each call returns the whole Together view: { week_start, today, goals: [{ id, title, emoji, why, timeframe, due_date,
+// status, started_by_me, plans: [{ id, text, who: TOGETHER | EACH | ME | THEM, me_done, them_done, done }] }],
+// challenge: { kind, target, title, text, me, them, won, days, me_days, them_days, set_by_me } | null,
+// history: [{ week_start, text, won }], wins, win_streak }. A change that says so in the chat also pushes it to the partner.
+
+const tellPartner = (r) => { if (r?.message_id) notify('message', { id: r.message_id }).catch(() => {}); return r; };
+
+export const getTogether = (partnershipId) => rpc('together_view', { p_id: partnershipId });
+/** goalId null starts a new shared goal. plans: the full list, in order: [{ id?, text, who }]. */
+export const saveTeamGoal = async (partnershipId, goalId, fields, plans) =>
+  tellPartner(await rpc('save_team_goal', { p_id: partnershipId, p_goal: goalId, p_fields: fields, p_plans: plans }));
+export const markTeamPlan = async (planId, done) => tellPartner(await rpc('mark_team_plan', { p_plan: planId, p_done: done }));
+/** action: archive | restore | delete */
+export const setTeamGoal = async (goalId, action) => tellPartner(await rpc('set_team_goal', { p_goal: goalId, p_action: action }));
+/** kind: EACH_PLANS | TOTAL_PLANS | CHAT_DAYS | HABIT (with a title). */
+export const setChallenge = async (partnershipId, kind, target, title = null) =>
+  tellPartner(await rpc('set_challenge', { p_id: partnershipId, p_kind: kind, p_target: target, p_title: title }));
+export const clearChallenge = async (partnershipId) => tellPartner(await rpc('clear_challenge', { p_id: partnershipId }));
+export const challengeCheckin = (partnershipId, done) => rpc('challenge_checkin', { p_id: partnershipId, p_done: done });
+
 /** Gives each photo or video a link only the two partners could have asked for. */
 async function withMediaLinks(result) {
   const paths = result.messages.filter((m) => m.media).map((m) => m.media.path);

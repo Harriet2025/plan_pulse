@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, ImagePlus, Lock, MessageCircle, Send, Sun, Target, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, Handshake, ImagePlus, Lock, MessageCircle, Send, Sparkles, Sun, Target, Trophy, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { catIcon, horizonOf } from '../lib/constants';
 import { cn, fmtSpan, parseDay, periodLabel, readInvite } from '../lib/utils';
+import Together from './Together';
 import { Avatar, Bar, cardShadow } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
@@ -110,7 +111,8 @@ function PartnerList({ selected, onSelect }) {
                 <ChatStreak streak={p.chat_streak} compact name="" />
               </span>
               <span className={cn('block truncate text-xs', p.unread ? 'font-bold text-charcoal' : 'text-muted')}>
-                {p.last ? `${p.last.mine ? 'You: ' : ''}${p.last.kind === 'CHEER' ? `cheered ${p.last.body}` : p.last.kind === 'NUDGE' ? 'sent a nudge 👋' : p.last.kind === 'IMAGE' ? `📷 ${p.last.body || 'Photo'}` : p.last.kind === 'VIDEO' ? `🎬 ${p.last.body || 'Video'}` : p.last.body}` : 'Say hello 👋'}
+                {p.last?.kind === 'TEAM' ? `${p.last.mine ? 'You' : first(p.partner.display_name)} ${p.last.body}`
+                  : p.last ? `${p.last.mine ? 'You: ' : ''}${p.last.kind === 'CHEER' ? `cheered ${p.last.body}` : p.last.kind === 'NUDGE' ? 'sent a nudge 👋' : p.last.kind === 'IMAGE' ? `📷 ${p.last.body || 'Photo'}` : p.last.kind === 'VIDEO' ? `🎬 ${p.last.body || 'Video'}` : p.last.body}` : 'Say hello 👋'}
               </span>
             </span>
             {p.unread > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rust px-1.5 text-[11px] font-extrabold tabular-nums text-white" aria-label={`${p.unread} unread`}>{p.unread}</span>}
@@ -296,7 +298,9 @@ function Chat({ entry, onStreak }) {
                   <span className="inline-flex max-w-[90%] items-center gap-1.5 rounded-full bg-blush/25 px-3 py-1 text-xs font-semibold text-charcoal">
                     {m.kind === 'CHEER'
                       ? <><span className="text-base leading-none">{m.body}</span>{mine ? `You cheered ${name}` : `${name} cheered you`}{m.goal_title ? ` on “${m.goal_title}”` : ''}</>
-                      : <><Hand className="h-3.5 w-3.5" aria-hidden="true" />{mine ? `You nudged ${name}` : `${name} nudged you: time to plan your day`}</>}
+                      : m.kind === 'TEAM'
+                        ? <><Sparkles className="h-3.5 w-3.5 shrink-0 text-rust-dark" aria-hidden="true" /><span className="min-w-0">{mine ? 'You' : name} {m.body}</span></>
+                        : <><Hand className="h-3.5 w-3.5" aria-hidden="true" />{mine ? `You nudged ${name}` : `${name} nudged you: time to plan your day`}</>}
                     <span className="text-muted">· {time}</span>
                   </span>
                 </motion.p>
@@ -505,7 +509,7 @@ function PartnerPanel({ entry, onBack }) {
     return () => { alive = false; clearInterval(t); };
   }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const tabs = [['chat', 'Chat', MessageCircle, 'Chat'], ['goals', 'Their goals', Target, 'Goals'], ['day', 'Their day', Sun, 'Day'], ['sharing', 'Sharing', Lock, 'Sharing']];
+  const tabs = [['chat', 'Chat', MessageCircle, 'Chat'], ['together', 'Together', Handshake, 'Together'], ['goals', 'Their goals', Target, 'Goals'], ['day', 'Their day', Sun, 'Day'], ['sharing', 'Sharing', Lock, 'Sharing']];
   return (
     <section className="min-w-0 rounded-3xl border border-oat bg-soft p-4 md:p-5" style={cardShadow} aria-label={`Partner ${entry.partner.display_name}`}>
       <div className="flex items-start gap-3">
@@ -533,16 +537,17 @@ function PartnerPanel({ entry, onBack }) {
           <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />Your goals are private. You can chat with {name} anyway, or pick a goal for {name} to see.
         </button>
       )}
-      <div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1" role="tablist" aria-label={`With ${name}`}>
+      <div className="mt-4 grid grid-cols-5 gap-1 rounded-2xl bg-oat/60 p-1" role="tablist" aria-label={`With ${name}`}>
         {tabs.map(([id, label, Icon, short]) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
-            className={cn('flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-xs font-extrabold transition-colors sm:text-sm', tab === id ? 'bg-rust text-white shadow-md' : 'text-charcoal hover:bg-soft/70')}>
+            className={cn('flex min-w-0 items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-[11px] font-extrabold transition-colors sm:text-sm', tab === id ? 'bg-rust text-white shadow-md' : 'text-charcoal hover:bg-soft/70')}>
             <Icon className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden="true" /><span className="truncate sm:hidden">{short}</span><span className="hidden truncate sm:inline">{label}</span>
           </button>
         ))}
       </div>
       <div className="mt-4">
         {tab === 'chat' && <Chat entry={entry} onStreak={setStreak} />}
+        {tab === 'together' && <Together entry={entry} />}
         {(tab === 'goals' || tab === 'day') && !view && <p className="py-10 text-center text-sm text-muted">Loading…</p>}
         {tab === 'goals' && view && <TheirGoals entry={entry} view={view} onCheered={setStreak} />}
         {tab === 'day' && view && <TheirDay entry={entry} view={view} />}
@@ -577,12 +582,12 @@ export default function PartnersView() {
         <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
           <Users className="h-10 w-10 text-white/90" aria-hidden="true" />
           <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Better together</h2>
-          <p className="mt-1 max-w-lg text-sm text-white/85">Invite an accountability partner. Chat to keep each other going, share only the goals you choose (everything else stays private), cheer wins, nudge when one of you goes quiet, and race each other on a weekly scoreboard.</p>
+          <p className="mt-1 max-w-lg text-sm text-white/85">Invite a partner: your love, a friend or a coursemate. Set goals you both own, take on a challenge every week, chat, cheer each other on and nudge when one of you goes quiet. Your own goals stay private unless you share them.</p>
           <ul className="mt-4 grid gap-1.5 text-sm text-white/90 sm:grid-cols-2">
+            <li className="flex items-center gap-2"><Handshake className="h-4 w-4" aria-hidden="true" />Shared goals with plans for each of you</li>
+            <li className="flex items-center gap-2"><Trophy className="h-4 w-4" aria-hidden="true" />A weekly challenge you win together</li>
             <li className="flex items-center gap-2"><Flame className="h-4 w-4" aria-hidden="true" />A chat streak for every day you both talk</li>
-            <li className="flex items-center gap-2"><span aria-hidden="true">🔥</span>Cheers on each other's goals</li>
-            <li className="flex items-center gap-2"><Hand className="h-4 w-4" aria-hidden="true" />Nudges that arrive as a notification</li>
-            <li className="flex items-center gap-2"><Crown className="h-4 w-4" aria-hidden="true" />A weekly race of plans done</li>
+            <li className="flex items-center gap-2"><Hand className="h-4 w-4" aria-hidden="true" />Cheers and nudges that arrive as a notification</li>
           </ul>
         </section>
         <Invites onAccepted={setSelected} />

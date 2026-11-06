@@ -8,7 +8,7 @@ Goal tracker with sub-task checklists, badges and confetti, history and analytic
 
 1. `npm install`
 2. Create `.env.local` (git-ignored) with your project's `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Only ever the browser-safe key: never put the service role key in a `NEXT_PUBLIC_` variable.
-3. For a new Supabase project, run `supabase/schema.sql`, then `supabase/jobs.sql`, then `supabase/weekly_planning.sql`, then `supabase/partner_sharing.sql` in the SQL Editor, and deploy `supabase/functions/notify` with **Verify JWT off** (the function checks each request itself). `jobs.sql` has the project's address in its cron job, so change that for a different project.
+3. For a new Supabase project, run `supabase/schema.sql`, then `supabase/jobs.sql`, then `supabase/weekly_planning.sql`, then `supabase/partner_sharing.sql`, then `supabase/together.sql` in the SQL Editor, and deploy `supabase/functions/notify` with **Verify JWT off** (the function checks each request itself). `jobs.sql` has the project's address in its cron job, so change that for a different project.
 
 ## Run it
 
@@ -99,7 +99,11 @@ The **Partners** page lets you invite up to 5 people by email. They get an email
 - **See only the goals the other chose to share.** Every goal is private to you. You give a partner one goal at a time: on the goal's card (**Share**), when you set or edit a goal (**Who can see it**), or on that partner's **Sharing** tab, which lists all your goals to tick. They see that goal and its plans, and can cheer it. Day plans are private too, unless you tick **My day plans** for that partner; then you can still hide a single day plan with **Hide this one** (`goal_shares` and `share_goal()` in `supabase/partner_sharing.sql`).
 - **Chat**, and share **photos** (up to 10 MB; saved again as a JPEG at most 1600 px wide, which drops hidden details such as where it was taken) and **videos** (up to 50 MB, MP4, WebM or MOV). Files live in `storage/chat/` and only the two partners can open them; removing a partner deletes them. Every day you both send something grows your **chat streak**. Days count in UTC, so both partners always see the same number. A new message also sends a push notification (at most one every 2 minutes).
 - **Cheer** a goal with 🔥 👏 💪 ❤️ 🎉 ⭐, and **nudge** a quiet partner to plan their day (once every 4 hours; it arrives as a notification).
-- Race on a **weekly scoreboard** of plans done (a goal's plans ticked plus day plans done, Monday to Sunday).
+- Race on a **weekly scoreboard** of plans done (a goal's plans ticked, day plans done and shared plans ticked, Monday to Sunday).
+- **Do things together** on the **Together** tab (`supabase/together.sql`):
+  - **Shared goals**: a goal both partners own, for a week, a month or a year, with an emoji and an optional "why". Each plan is done **Together** (either one ticks it, and unticking it unticks it for both), by **Each of us** (both tick their own part), or by one named partner (only they can tick it). The goal completes when every plan is done. Either partner can edit, archive or delete it. Ticking a shared plan keeps your streak going and counts on the scoreboard.
+  - **This week's challenge**: either partner sets one per week: *each of us finishes N plans*, *together we finish N plans*, *we both chat on N days*, or *each of us does a habit on N days* (each taps **I did it today**). It is won when both reach it, and the tab keeps the number of challenges won and the weeks in a row.
+  - Starting or finishing a shared goal and setting a challenge show up in the chat and send the partner a push.
 
 Only accepted partners can read a chat, see shared goals or load each other's photo. The rules live in the database (`supabase/schema.sql`): partners never read each other's tables, only what functions such as `partner_view()` and `get_messages()` return.
 
@@ -138,6 +142,7 @@ Give day plans a time or a length, and set how much time you really have in Sett
 | `supabase/jobs.sql` | Server-only settings, and the every-minute job |
 | `supabase/weekly_planning.sql` | The weekly planning ritual: planning day, focus goals, and day plans linked to a goal's plans |
 | `supabase/partner_sharing.sql` | Every goal private until shared: which partner sees which goal (`goal_shares`) |
+| `supabase/together.sql` | Shared goals two partners own, and the weekly challenge |
 | `supabase/functions/notify/` | The Edge Function: email, Web Push, reminders and the morning email |
 | `public/sw.js` | The service worker: offline page, and showing push notifications |
 | `legacy/index.old.html` | The previous single-file front end. Safe to delete. |

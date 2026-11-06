@@ -1,5 +1,5 @@
 // AuraGoal's one server-side job: everything that needs a secret the browser must never hold.
-//   * partner invite emails, "they accepted" emails, and pushes for chat messages
+//   * partner invite emails, "they accepted" emails, and pushes for chat messages (and shared goal / challenge news)
 //   * the Settings page: notification status, test push, morning email preview
 //   * every minute (called by pg_cron): reminder pushes and morning emails
 //
@@ -406,7 +406,7 @@ async function sendInvite(uid: string, id: number, again: boolean) {
   // The link opens AuraGoal on the invite with their email filled in ("#" keeps it out of server logs)
   const link = `${url}/#invite=${encodeURIComponent(to)}${theirId ? '&account=1' : ''}`;
   const [text, html] = buttonEmail('there', [
-    `${from} invited you to be their accountability partner on AuraGoal. Partners chat, cheer each other on, keep a chat streak going and see only the goals the other one chooses to share.`,
+    `${from} invited you to be their accountability partner on AuraGoal. Partners set goals they share, take on a challenge together every week, chat and cheer each other on. Your own goals stay private unless you share them.`,
     theirId ? `Sign in with ${to} to accept.` : `Create a free account with ${to} to accept. It takes a minute.`,
   ], theirId ? 'Accept the invite' : 'Join and accept', link, `If you don't know ${from}, ignore this email; nothing happens unless you accept.`);
   const emailed = await sendMail(to, `${from} invited you to be accountability partners`, text, html);
@@ -447,6 +447,9 @@ async function sendMessagePush(uid: string, id: number) {
     title = `${me} cheered you on ${m.body}`; body = `For “${m.goals?.title ?? 'your goal'}”. Keep going!`;
   } else if (m.kind === 'NUDGE') {
     title = `${me} nudged you 👋`; body = 'Time to plan your day and get going.';
+  } else if (m.kind === 'TEAM') {
+    // "started a shared goal: ✈️ Save for our trip", "set this week's challenge: ...", "completed the shared goal: ... 🎉"
+    title = `${me} ${clip(m.body, 60)}`; body = 'Open Together to see it.';
   } else {
     body = `${m.kind === 'VIDEO' ? '🎬 Sent a video' : '📷 Sent a photo'}${m.body ? `: ${clip(m.body, 100)}` : ''}`;
   }

@@ -216,7 +216,6 @@ export function AppProvider({ children }) {
     return true;
   });
 
-  /** Hides a goal from partners, or shares it again. */
   /** Who can see a goal: the full list of partner ids ([] = only you). */
   const shareGoal = (id, partnerIds, quiet = false) => run(async () => {
     const g = await api.shareGoal(id, partnerIds);
@@ -247,6 +246,17 @@ export function AppProvider({ children }) {
     return () => clearInterval(t);
   }, [user?.id, refreshPartners]); // eslint-disable-line react-hooks/exhaustive-deps
   const unreadTotal = partners.partners.reduce((n, p) => n + p.unread, 0) + partners.incoming.length;
+
+  /** Ticks (or unticks) your part of a shared goal's plan. Returns the new Together view, or undefined on failure. */
+  const markTeamPlan = (planId, done) => run(async () => {
+    const res = await api.markTeamPlan(planId, done);
+    playSound(done ? 'check' : 'uncheck');
+    const messages = res.finished ? ['You finished it together! 🎉'] : [];
+    messages.push(...streakMessages(res.streak));
+    messages.forEach((m, i) => setTimeout(() => toast(m), i * 3000));
+    if (done) refresh();   // the streak in the header
+    return res;
+  });
 
   /** Edits a goal's title, category, priority, period, finish-by date or quote. Throws, so the form can show the message. */
   const updateGoal = async (id, fields) => {
@@ -413,7 +423,7 @@ export function AppProvider({ children }) {
     plannerAt, setPlannerAt,
     openPlanner: (horizon, key) => { setPlannerAt({ horizon, key }); setView('planner'); },
     openDay: (key) => { setPlannerAt({ horizon: 'DAILY', key }); setView('planner'); },
-    partners, refreshPartners, setPartners, partnerAction, unreadTotal, shareGoal,
+    partners, refreshPartners, setPartners, partnerAction, unreadTotal, shareGoal, markTeamPlan,
     dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan, planWeek,
     weekPlanOpen, openWeekPlan: () => setWeekPlanOpen(true), closeWeekPlan: () => setWeekPlanOpen(false),
     activeGoals, visibleGoals, rewardsTotal, notif, now, slipped, rescheduleItems,
