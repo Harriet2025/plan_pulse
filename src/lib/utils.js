@@ -441,3 +441,6 @@ export function spreadInWeek(items, dayPlans, user, monday, today = new Date()) 
     return key;
   });
 }
+
+/** What AuraGoal calls someone: their nickname if they set one, else the first word of their name. */
+export const callName = (user) => user?.nickname?.trim() || (user?.display_name ?? '').trim().split(/\s+/)[0];

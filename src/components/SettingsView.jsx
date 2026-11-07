@@ -113,14 +113,16 @@ function PhotoCard() {
 function DetailsCard() {
   const { user, updateProfile } = useApp();
   const [name, setName] = useState(user.display_name);
+  const [nick, setNick] = useState(user.nickname ?? '');
   const [email, setEmail] = useState(user.email);
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);
 
   const nameChanged = name.trim() !== user.display_name;
+  const nickChanged = nick.trim() !== (user.nickname ?? '');
   const emailChanged = email.trim().toLowerCase() !== user.email;
-  const dirty = nameChanged || emailChanged;
+  const dirty = nameChanged || nickChanged || emailChanged;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -130,6 +132,7 @@ function DetailsCard() {
     try {
       await updateProfile({
         ...(nameChanged ? { display_name: name } : {}),
+        ...(nickChanged ? { nickname: nick } : {}),
         ...(emailChanged ? { email, current_password: password } : {}),
       });
       setPassword('');
@@ -141,11 +144,17 @@ function DetailsCard() {
   };
 
   return (
-    <Card title="Your details">
+    <Card title="Your details" info="Your nickname is what AuraGoal calls you, for example when the dashboard says good morning. Partners still see your name, unless they give you a nickname of their own.">
       <form onSubmit={submit} noValidate className="grid gap-4">
-        <div>
-          <label htmlFor="setName" className={label}>Name</label>
-          <input id="setName" className="field" type="text" maxLength={100} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="setName" className={label}>Name</label>
+            <input id="setName" className="field" type="text" maxLength={100} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor="setNick" className={label}>Nickname <span className="normal-case tracking-normal">(optional)</span></label>
+            <input id="setNick" className="field" type="text" maxLength={40} autoComplete="nickname" placeholder={name.trim().split(/\s+/)[0] || 'e.g. Harry'} value={nick} onChange={(e) => setNick(e.target.value)} />
+          </div>
         </div>
         <div>
           <label htmlFor="setEmail" className={label}>Email</label>

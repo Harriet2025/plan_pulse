@@ -165,6 +165,11 @@ export async function updateProfile(fields) {
     if (!name || name.length > 100) throw new Error('Enter a name of 1 to 100 characters.');
     set.display_name = name;
   }
+  if ('nickname' in fields) {   // what AuraGoal calls you; empty = your first name
+    const nick = String(fields.nickname ?? '').trim();
+    if (nick.length > 40) throw new Error('Keep your nickname to 40 characters.');
+    set.nickname = nick || null;
+  }
   if ('rest_days' in fields) {
     if (fields.rest_days.length > 3) throw new Error('Choose up to 3 rest days.');
     set.rest_days = maskFromDays(fields.rest_days);
@@ -472,7 +477,59 @@ export async function shareGoal(goalId, partnerIds) {
 
 /** { partners: [{ id, partner, unread, last, chat_streak }], incoming: [{ id, from }], outgoing: [{ id, email }], message? } */
 export async function getPartners() {
-  return rpc('partners_payload');
+  return withPrefs(await rpc('partners_payload'));
+}
+
+/**
+ * Adds your own choices for each partner: the nickname you gave them (shown everywhere in place of their name;
+ * `partner.real_name` keeps theirs) and your chat wallpaper. Nobody else sees these.
+ */
+async function withPrefs(r) {
+  if (!r?.partners?.length) return r;
+  const { data } = await supabase.from('partner_prefs').select('partnership_id, nickname, wallpaper');
+  const prefs = new Map((data ?? []).map((p) => [p.partnership_id, p]));
+  r.partners = r.partners.map((p) => {
+    const mine = prefs.get(p.id);
+    return { ...p, nickname: mine?.nickname ?? null, wallpaper: mine?.wallpaper ?? null,
+      partner: { ...p.partner, real_name: p.partner.display_name, display_name: mine?.nickname || p.partner.display_name } };
+  });
+  return r;
+}
+
+/** Saves your nickname for a partner and/or your chat wallpaper with them ({ nickname, wallpaper }; null clears). */
+export async function setPartnerPrefs(partnershipId, fields) {
+  const row = { partnership_id: partnershipId };
+  if ('nickname' in fields) {
+    const nick = String(fields.nickname ?? '').trim();
+    if (nick.length > 40) throw new Error('Keep the nickname to 40 characters.');
+    row.nickname = nick || null;
+  }
+  if ('wallpaper' in fields) row.wallpaper = fields.wallpaper;
+  await q(supabase.from('partner_prefs').upsert(row, { onConflict: 'partnership_id,owner_id' }));
+}
+
+/** Uploads a photo to use as your chat wallpaper with a partner. Returns the value to save ('photo:<path>'). */
+export async function uploadWallpaper(partnershipId, file) {
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error('Choose a photo (JPG, PNG, WebP or GIF).');
+  if (file.size > 15 * 1024 * 1024) throw new Error('That photo is over 15 MB.');
+  const photo = await prepareChatPhoto(file);
+  const path = `${partnershipId}/wallpaper-${crypto.randomUUID().slice(0, 12)}.${photo.mime === 'image/gif' ? 'gif' : 'jpg'}`;
+  const { error } = await supabase.storage.from('chat-media').upload(path, photo.blob, { contentType: photo.mime });
+  if (error) throw new Error('The photo could not be uploaded. Try again.');
+  return `photo:${path}`;
+}
+
+/** Deletes a wallpaper photo that is no longer used. */
+export async function removeWallpaperPhoto(value) {
+  if (!value?.startsWith('photo:')) return;
+  await supabase.storage.from('chat-media').remove([value.slice(6)]);
+}
+
+/** A link to a wallpaper photo, valid for a few hours, or null. */
+export async function wallpaperUrl(value) {
+  if (!value?.startsWith('photo:')) return null;
+  const { data } = await supabase.storage.from('chat-media').createSignedUrl(value.slice(6), 6 * 3600);
+  return data?.signedUrl ?? null;
 }
 
 /** Deletes a partnership's chat photos and videos (the rows go with the partnership itself). */
@@ -490,6 +547,9 @@ const inviteMessage = (email, r) => (r.emailed ? `Invite emailed to ${email}. Th
  * share (with id, goals, day_plans). Returns the same shape as getPartners().
  */
 export async function partnerAction(action, fields) {
+  return withPrefs(await partnerActionRaw(action, fields));
+}
+async function partnerActionRaw(action, fields) {
   if (action === 'invite') {
     const r = await rpc('invite_partner', { p_email: fields.email });
     if (!r.invite_id) return r;   // they had already invited you, so you are partners now

@@ -5,7 +5,7 @@ import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { HORIZONS } from '../lib/constants';
 import { addDays, cn, localDate, parseDay, periodEnd, periodKey, periodLabel, shiftPeriod } from '../lib/utils';
-import { Bar, cardShadow } from './ui';
+import { Bar, InfoTip, cardShadow } from './ui';
 
 // What two partners do together: this week's challenge, then the goals they share.
 // Weeks run Monday to Sunday (UTC), the same as the scoreboard.
@@ -32,12 +32,27 @@ const label = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-
 // This week's challenge
 // ---------------------------------------------------------------------------------------------------------------
 
+// The kinds of weekly challenge. `hint` sits behind an ⓘ: what exactly counts.
 const KINDS = [
-  { id: 'EACH_PLANS', title: 'Each of us finishes', unit: 'plans', start: 10, max: 100, hint: 'In total this week, not per day. Both of you have to reach it. Any plan you tick counts: goal plans, day plans and shared plans.' },
-  { id: 'TOTAL_PLANS', title: 'Together we finish', unit: 'plans', start: 20, max: 200, hint: 'In total this week. Your plans and theirs add up to one number.' },
-  { id: 'CHAT_DAYS', title: 'We both chat on', unit: 'days', start: 5, max: 7, hint: 'Out of the 7 days this week. A day counts when both of you send something.' },
-  { id: 'HABIT', title: 'Each of us does a habit on', unit: 'days', start: 5, max: 7, hint: 'Out of the 7 days this week. Each of you taps “I did it today” on the days you do it.' },
+  { id: 'EACH_GOALS', title: 'Each of us completes', unit: 'goals', start: 1, max: 20,
+    hint: 'A goal counts when every one of its steps is ticked this week: your own goals, and shared goals you finish together.' },
+  { id: 'EACH_PLANS', title: 'Each of us ticks off', unit: 'plans', start: 10, max: 100,
+    hint: 'A total for the whole week, not per day. Anything you tick counts: today’s plans in the Planner, steps of your goals, and shared plans. Both of you have to reach it.' },
+  { id: 'TOTAL_PLANS', title: 'Together we tick off', unit: 'plans', start: 20, max: 200,
+    hint: 'Your ticks and theirs add up to one number for the week: today’s plans, goal steps and shared plans.' },
+  { id: 'CHAT_DAYS', title: 'We both chat on', unit: 'days', start: 5, max: 7,
+    hint: 'A day counts when both of you send something that day.' },
+  { id: 'HABIT', title: 'Each of us does a habit on', unit: 'days', start: 5, max: 7,
+    hint: 'You name the habit. Each of you taps “I did it today” on the days you do it.' },
 ];
+
+/** "2 today’s plans · 1 goal step": where a plans total came from. */
+const partsText = (p) => {
+  if (!p) return '';
+  const bits = [[p.day, 'today’s plan', 'today’s plans'], [p.steps, 'goal step', 'goal steps'], [p.shared, 'shared plan', 'shared plans']]
+    .filter(([n]) => n > 0).map(([n, one, many]) => `${n} ${n === 1 ? one : many}`);
+  return bits.length ? bits.join(' · ') : 'nothing yet';
+};
 
 function Stepper({ value, onChange, max, unit }) {
   const btn = 'grid h-9 w-9 place-items-center rounded-xl border border-oat bg-soft text-charcoal hover:border-rust disabled:opacity-40';
@@ -54,7 +69,7 @@ function Stepper({ value, onChange, max, unit }) {
 
 function ChallengePicker({ entry, current, onDone, onCancel }) {
   const { toast } = useApp();
-  const [kind, setKind] = useState(current?.kind ?? 'EACH_PLANS');
+  const [kind, setKind] = useState(current?.kind ?? 'EACH_GOALS');
   const [targets, setTargets] = useState(() => Object.fromEntries(KINDS.map((k) => [k.id, current?.kind === k.id ? current.target : k.start])));
   const [title, setTitle] = useState(current?.title ?? '');
   const [busy, setBusy] = useState(false);
@@ -76,9 +91,10 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
       <fieldset className="grid gap-1.5">
         <legend className={label}>Pick a challenge for this week</legend>
         {KINDS.map((x) => (
-          <label key={x.id} className={cn('flex cursor-pointer items-start gap-2.5 rounded-2xl border-2 px-3 py-2.5 transition-colors', kind === x.id ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-            <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-rust" checked={kind === x.id} onChange={() => setKind(x.id)} />
-            <span><b className="text-sm text-charcoal">{x.title} … {x.unit} this week</b><span className="block text-xs text-muted">{x.hint}</span></span>
+          <label key={x.id} className={cn('flex cursor-pointer items-center gap-2.5 rounded-2xl border-2 px-3 py-2 transition-colors', kind === x.id ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
+            <input type="radio" name="challengeKind" className="h-4 w-4 shrink-0 accent-rust" checked={kind === x.id} onChange={() => setKind(x.id)} />
+            <b className="flex-1 text-sm text-charcoal">{x.title} … {x.unit}</b>
+            <InfoTip text={x.hint} align="right" label={`What counts for “${x.title} … ${x.unit}”`} />
           </label>
         ))}
       </fieldset>
@@ -147,7 +163,12 @@ function Challenge({ entry, data, setData }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week’s challenge · {weekSpan(data.week_start)}{c ? ` · ${ends}` : ''}</p>
-          {c && !picking && <h3 className="mt-0.5 text-base font-extrabold leading-snug text-charcoal">{cap(c.text)} this week</h3>}
+          {c && !picking && (
+            <h3 className="mt-0.5 flex items-center gap-1 text-base font-extrabold leading-snug text-charcoal">
+              {cap(c.text)} this week
+              <InfoTip text={`${KINDS.find((k) => k.id === c.kind)?.hint ?? ''} Starts again from 0 next Monday.`} label="What counts" />
+            </h3>
+          )}
         </div>
         {c && !picking && <button type="button" onClick={() => setPicking(true)} className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-rust-dark hover:bg-oat/60">Change</button>}
       </div>
@@ -156,7 +177,7 @@ function Challenge({ entry, data, setData }) {
         <div className="mt-3"><ChallengePicker entry={entry} current={c} onDone={(r) => { setData(r); setPicking(false); }} onCancel={() => setPicking(false)} /></div>
       ) : !c ? (
         <div className="mt-2">
-          <p className="text-sm text-charcoal">Set one small thing to beat together this week. You win or lose it as a team.</p>
+          <p className="text-sm text-charcoal">One thing to beat together this week.</p>
           <button type="button" onClick={() => setPicking(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
             <Trophy className="h-4 w-4" aria-hidden="true" />Set a challenge
           </button>
@@ -168,20 +189,21 @@ function Challenge({ entry, data, setData }) {
               <Trophy className="h-5 w-5" aria-hidden="true" />You did it together! Challenge won 🎉
             </motion.p>
           )}
-          {(c.kind === 'EACH_PLANS' || c.kind === 'TOTAL_PLANS') && (
-            <p className="text-xs text-muted">Every plan ticked from Monday to Sunday counts, today’s included. It starts again from 0 next Monday.</p>
-          )}
-          {c.kind === 'EACH_PLANS' && <>{row('You', c.me, true)}{row(name, c.them, false)}</>}
+          {(c.kind === 'EACH_GOALS' || c.kind === 'EACH_PLANS') && <>{row('You', c.me, true)}{row(name, c.them, false)}</>}
           {c.kind === 'TOTAL_PLANS' && (
-            <div>
-              <div className="flex items-center gap-2"><Bar pct={Math.min(100, Math.round((100 * (c.me + c.them)) / c.target))} height="h-3" className="flex-1" fill={c.won ? 'bg-success' : 'bg-rust'} label={`Together: ${c.me + c.them} of ${c.target}`} /><span className="text-xs font-extrabold tabular-nums text-charcoal">{c.me + c.them}/{c.target}</span></div>
-              <p className="mt-1 text-xs text-muted">You {c.me} · {name} {c.them}</p>
+            <div className="flex items-center gap-2"><Bar pct={Math.min(100, Math.round((100 * (c.me + c.them)) / c.target))} height="h-3" className="flex-1" fill={c.won ? 'bg-success' : 'bg-rust'} label={`Together: ${c.me + c.them} of ${c.target}`} /><span className="text-xs font-extrabold tabular-nums text-charcoal">{c.me + c.them}/{c.target}</span></div>
+          )}
+          {(c.kind === 'EACH_PLANS' || c.kind === 'TOTAL_PLANS') && (
+            // Exactly what was counted, so a number never comes out of nowhere
+            <div className="rounded-xl bg-panel px-3 py-2 text-xs text-charcoal">
+              <p><b>You:</b> {partsText(c.me_parts)}</p>
+              <p><b>{name}:</b> {partsText(c.them_parts)}</p>
             </div>
           )}
           {c.kind === 'CHAT_DAYS' && (
-            <div>
+            <div className="flex flex-wrap items-center gap-3">
               <WeekDots weekStart={data.week_start} days={c.days} today={data.today} who="Both of you" />
-              <p className="mt-1.5 text-xs text-muted">{c.me} of {c.target} days so far. A day counts when you both send something.</p>
+              <span className="text-xs font-extrabold tabular-nums text-charcoal">{c.me}/{c.target} days</span>
             </div>
           )}
           {c.kind === 'HABIT' && (
@@ -354,7 +376,6 @@ function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
             <h2 id="teamGoalTitle" className="text-lg font-extrabold text-charcoal">{goal ? 'Edit shared goal' : `A goal with ${name}`}</h2>
             <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full text-muted hover:bg-oat/60"><X className="h-5 w-5" aria-hidden="true" /></button>
           </div>
-          <p className="mt-1 text-xs text-muted">You both own this goal: you both see it, tick it and can change it.</p>
 
           <div className="mt-4 grid gap-4">
             <fieldset>
@@ -389,7 +410,10 @@ function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
             </div>
 
             <fieldset>
-              <legend className={label}>The plans, and who does each</legend>
+              <legend className={cn(label, 'flex items-center gap-1')}>
+                The plans, and who does each
+                <InfoTip text={`Together: one tick from either of you. Each of us: you both tick your own part. Me or ${name}: only that person ticks it. You both see this goal and either of you can change it.`} />
+              </legend>
               <div className="grid gap-2">
                 {rows.map((r, i) => (
                   <div key={r.key} className="rounded-2xl border border-oat bg-ivory p-2">
@@ -410,7 +434,6 @@ function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
               {rows.length < 50 && (
                 <button type="button" onClick={() => setRows((rs) => [...rs, newRow()])} className="mt-2 inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-bold text-rust-dark hover:bg-oat/60"><Plus className="h-4 w-4" aria-hidden="true" />Add a plan</button>
               )}
-              <p className="mt-1 text-xs text-muted"><b>Together</b>: one tick from either of you. <b>Each of us</b>: you both tick your own part. <b>Me</b> or <b>{name}</b>: only that person ticks it.</p>
             </fieldset>
           </div>
 

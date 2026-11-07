@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, Handshake, ImagePlus, Lock, MessageCircle, Send, Sparkles, Sun, Target, Trophy, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, Handshake, ImagePlus, Lock, MessageCircle, Paintbrush, Pencil, Send, Smile, Sparkles, Sun, Target, Trophy, Upload, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { catIcon, horizonOf } from '../lib/constants';
 import { cn, fmtSpan, localDate, parseDay, periodLabel, periodStart, readInvite } from '../lib/utils';
+import { WALLPAPERS, wallpaperStyle } from '../lib/wallpapers';
+import EmojiPicker from './EmojiPicker';
 import Together, { weekSpan } from './Together';
-import { Avatar, Bar, cardShadow, heroStyle } from './ui';
+import { Avatar, Bar, InfoTip, cardShadow, heroStyle } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
 const QUICK = ['You got this! 💪', 'Proud of you 🎉', 'How is your day going?', 'Let’s finish strong today 🔥'];
@@ -143,14 +145,14 @@ function Scoreboard({ me, them, name }) {
   );
   return (
     <div className="rounded-2xl border border-oat bg-ivory p-3">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week so far · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}</p>
+      <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+        This week so far · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}
+        <InfoTip label="What counts here" text="Every plan each of you ticks off from Monday to Sunday: today's plans, steps of your goals and shared plans. It starts again from 0 every Monday. It is only a count, not a target: targets are the weekly challenge, on Together." />
+      </p>
       <div className="grid grid-cols-2 gap-2">
         {tile('You', me, me > them)}
         {tile(name, them, them > me)}
       </div>
-      <p className="mt-2 text-[11px] text-muted">
-        Every plan either of you ticks off counts, and it starts again from 0 on Monday. {me === them ? (me ? 'Neck and neck!' : 'Who goes first?') : me > them ? `You are ahead. Cheer ${name} on!` : `${name} is ahead. Time to catch up!`}
-      </p>
     </div>
   );
 }
@@ -191,6 +193,55 @@ const dayHeading = (d) => {
   return d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
 };
 
+/** Choose the chat's background: one of the designs, or a photo of your own. Only you see your choice. */
+function WallpaperPicker({ entry, onClose }) {
+  const { toast, refreshPartners } = useApp();
+  const [busy, setBusy] = useState(false);
+  const file = useRef(null);
+  const current = entry.wallpaper ?? 'preset:plain';
+
+  const save = async (value) => {
+    setBusy(true);
+    try {
+      const old = entry.wallpaper;
+      await api.setPartnerPrefs(entry.id, { wallpaper: value === 'preset:plain' ? null : value });
+      await refreshPartners();
+      if (old?.startsWith('photo:') && old !== value) api.removeWallpaperPhoto(old).catch(() => {});   // the old photo is no longer needed
+      onClose();
+    } catch (e) { toast(e.message); }
+    setBusy(false);
+  };
+  const upload = async (f) => {
+    if (!f) return;
+    setBusy(true);
+    try { await save(await api.uploadWallpaper(entry.id, f)); } catch (e) { toast(e.message); setBusy(false); }
+  };
+
+  return (
+    <div className="mb-2 rounded-2xl border border-oat bg-soft p-3" role="group" aria-label="Chat wallpaper">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-sm font-extrabold text-charcoal">Wallpaper</p>
+        <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel"><X className="h-4 w-4" aria-hidden="true" /></button>
+      </div>
+      <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
+        {WALLPAPERS.map((w) => {
+          const on = current === `preset:${w.id}`;
+          return (
+            <button key={w.id} type="button" disabled={busy} onClick={() => save(`preset:${w.id}`)} aria-pressed={on} title={w.name} aria-label={`${w.name} wallpaper`}
+              className={cn('h-14 rounded-xl border-2 transition-colors disabled:opacity-60', on ? 'border-rust' : 'border-oat hover:border-blush')} style={w.style} />
+          );
+        })}
+        <button type="button" disabled={busy} onClick={() => file.current?.click()} aria-pressed={current.startsWith('photo:')} title="Your photo" aria-label="Use your own photo"
+          className={cn('grid h-14 place-items-center rounded-xl border-2 border-dashed text-muted hover:text-charcoal disabled:opacity-60', current.startsWith('photo:') ? 'border-rust' : 'border-oat hover:border-blush')}>
+          <Upload className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
+      <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+      {busy && <p className="mt-2 text-xs font-semibold text-muted">Saving…</p>}
+    </div>
+  );
+}
+
 function Chat({ entry, onStreak }) {
   const { user, toast, refreshPartners } = useApp();
   const [messages, setMessages] = useState(null);
@@ -199,10 +250,31 @@ function Chat({ entry, onStreak }) {
   const [attachment, setAttachment] = useState(null);   // { file, url, kind } waiting to be sent
   const [progress, setProgress] = useState(null);       // 0..1 while a file uploads
   const [viewing, setViewing] = useState(null);         // a photo shown full screen
+  const [emojis, setEmojis] = useState(false);
+  const [choosingWallpaper, setChoosingWallpaper] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState(null);      // the wallpaper photo's link, when it is one
   const lastId = useRef(0);
   const scroller = useRef(null);
   const picker = useRef(null);
+  const input = useRef(null);
   const name = first(entry.partner.display_name);
+
+  useEffect(() => {
+    let alive = true;
+    setPhotoUrl(null);
+    if (entry.wallpaper?.startsWith('photo:')) api.wallpaperUrl(entry.wallpaper).then((u) => alive && setPhotoUrl(u));
+    return () => { alive = false; };
+  }, [entry.wallpaper]);
+
+  /** Puts an emoji where the cursor is in the message box. */
+  const insertEmoji = (e) => {
+    const el = input.current;
+    const at = el && document.activeElement === el ? el.selectionStart : text.length;
+    const end = el && document.activeElement === el ? el.selectionEnd : text.length;
+    const next = (text.slice(0, at) + e + text.slice(end)).slice(0, 1000);
+    setText(next);
+    requestAnimationFrame(() => { if (!el) return; el.focus(); const pos = Math.min(at + e.length, next.length); el.setSelectionRange(pos, pos); });
+  };
 
   useEffect(() => () => { if (attachment) URL.revokeObjectURL(attachment.url); }, [attachment]);
   useEffect(() => {
@@ -272,14 +344,19 @@ function Chat({ entry, onStreak }) {
   let lastDay = '';
   return (
     <div className="flex min-h-0 flex-col">
-      <div ref={scroller} className="h-[min(52vh,460px)] overflow-y-auto rounded-2xl border border-oat bg-ivory p-3" aria-live="polite" aria-label={`Chat with ${entry.partner.display_name}`}>
+      {choosingWallpaper && <WallpaperPicker entry={entry} onClose={() => setChoosingWallpaper(false)} />}
+      <div className="relative">
+        <button type="button" onClick={() => setChoosingWallpaper((s) => !s)} aria-expanded={choosingWallpaper} aria-label="Change the chat wallpaper" title="Wallpaper"
+          className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full border border-oat bg-soft/95 text-muted shadow-sm hover:text-charcoal">
+          <Paintbrush className="h-4 w-4" aria-hidden="true" />
+        </button>
+      <div ref={scroller} className="h-[min(52vh,460px)] overflow-y-auto rounded-2xl border border-oat p-3" style={wallpaperStyle(entry.wallpaper, photoUrl)} aria-live="polite" aria-label={`Chat with ${entry.partner.display_name}`}>
         {messages === null && <p className="py-10 text-center text-sm text-muted">Loading…</p>}
         {messages?.length === 0 && (
           <div className="grid h-full place-items-center text-center">
-            <div>
-              <MessageCircle className="mx-auto h-8 w-8 text-blush" aria-hidden="true" />
-              <p className="mt-2 text-sm font-bold text-charcoal">Say hello to {name}</p>
-              <p className="text-xs text-muted">Chat, or share a photo or video of what you are doing, every day you both can to grow your chat streak.</p>
+            <div className="rounded-2xl bg-soft/95 px-5 py-4">
+              <MessageCircle className="mx-auto h-8 w-8 text-blush-dark" aria-hidden="true" />
+              <p className="mt-2 text-sm font-bold text-charcoal">Say hello to {name} 👋</p>
             </div>
           </div>
         )}
@@ -290,7 +367,7 @@ function Chat({ entry, onStreak }) {
           const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
           return (
             <div key={m.id}>
-              {heading && <p className="my-2 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{heading}</p>}
+              {heading && <p className="my-2 text-center"><span className="rounded-full bg-soft/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{heading}</span></p>}
               {m.kind === 'IMAGE' || m.kind === 'VIDEO' ? (
                 <MediaBubble m={m} mine={mine} time={time} onOpen={setViewing} />
               ) : m.kind === 'TEXT' ? (
@@ -302,7 +379,7 @@ function Chat({ entry, onStreak }) {
                 </motion.div>
               ) : (
                 <motion.p initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="my-2 text-center">
-                  <span className="inline-flex max-w-[90%] items-center gap-1.5 rounded-full bg-blush/25 px-3 py-1 text-xs font-semibold text-charcoal">
+                  <span className="inline-flex max-w-[90%] items-center gap-1.5 rounded-full border border-oat bg-soft px-3 py-1 text-xs font-semibold text-charcoal">
                     {m.kind === 'CHEER'
                       ? <><span className="text-base leading-none">{m.body}</span>{mine ? `You cheered ${name}` : `${name} cheered you`}{m.goal_title ? ` on “${m.goal_title}”` : ''}</>
                       : m.kind === 'TEAM'
@@ -315,6 +392,7 @@ function Chat({ entry, onStreak }) {
             </div>
           );
         })}
+      </div>
       </div>
       <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" role="group" aria-label="Quick messages">
         {QUICK.map((q) => <button key={q} type="button" disabled={busy} onClick={() => send('text', { body: q })} className="shrink-0 rounded-full border border-oat bg-soft px-3 py-1.5 text-xs font-semibold text-charcoal hover:border-rust disabled:opacity-50">{q}</button>)}
@@ -333,13 +411,20 @@ function Chat({ entry, onStreak }) {
           <button type="button" onClick={() => setAttachment(null)} disabled={busy} aria-label="Remove the attachment" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-oat/60 hover:text-danger"><X className="h-4 w-4" aria-hidden="true" /></button>
         </div>
       )}
-      <form className="mt-1.5 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (attachment) sendAttachment(); else if (text.trim()) send('text', { body: text.trim() }); }}>
+      <form className="relative mt-1.5 flex gap-2" onSubmit={(e) => { e.preventDefault(); setEmojis(false); if (attachment) sendAttachment(); else if (text.trim()) send('text', { body: text.trim() }); }}>
+        {emojis && <EmojiPicker onPick={insertEmoji} onClose={() => setEmojis(false)} />}
         <input ref={picker} type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" className="sr-only" tabIndex={-1} aria-hidden="true"
           onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
         <button type="button" onClick={() => picker.current?.click()} disabled={busy} aria-label="Add a photo or video" title="Photo or video"
           className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-oat bg-soft text-rust-dark hover:border-rust disabled:opacity-50"><ImagePlus className="h-5 w-5" aria-hidden="true" /></button>
-        <label className="sr-only" htmlFor="chatInput">Message</label>
-        <input id="chatInput" className="field !py-2.5" maxLength={1000} placeholder={attachment ? 'Add a caption…' : `Message ${name}…`} value={text} onChange={(e) => setText(e.target.value)} disabled={busy} autoComplete="off" />
+        <div className="relative min-w-0 flex-1">
+          <label className="sr-only" htmlFor="chatInput">Message</label>
+          <input ref={input} id="chatInput" className="field !py-2.5 !pr-11" maxLength={1000} placeholder={attachment ? 'Add a caption…' : `Message ${name}…`} value={text} onChange={(e) => setText(e.target.value)} disabled={busy} autoComplete="off" />
+          <button type="button" data-emoji-toggle onClick={() => setEmojis((s) => !s)} aria-expanded={emojis} aria-label="Emojis" title="Emojis"
+            className={cn('absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-lg', emojis ? 'bg-rust/15 text-rust-dark' : 'text-muted hover:text-charcoal')}>
+            <Smile className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
         <button type="button" onClick={() => send('nudge')} disabled={busy} title={`Nudge ${name} to plan their day (once every few hours)`} aria-label={`Nudge ${name}`}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-oat bg-soft text-rust-dark hover:border-rust disabled:opacity-50"><Hand className="h-5 w-5" aria-hidden="true" /></button>
         <button type="submit" disabled={busy || (!text.trim() && !attachment)} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rust text-white hover:bg-rust-strong disabled:opacity-50"><Send className="h-4 w-4" aria-hidden="true" /></button>
@@ -382,8 +467,10 @@ function Sharing({ entry }) {
   return (
     <div className="grid gap-4">
       <div>
-        <h3 className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Eye className="h-4 w-4 text-rust-dark" aria-hidden="true" />What {name} can see</h3>
-        <p className="mt-0.5 text-xs text-muted">Your goals are private. Tick the ones you want {name} to see and cheer you on. Everything else stays just yours.</p>
+        <h3 className="flex items-center gap-2 text-sm font-extrabold text-charcoal">
+          <Eye className="h-4 w-4 text-rust-dark" aria-hidden="true" />What {name} can see
+          <InfoTip text={`Your goals are private. Tick the ones you want ${name} to see and cheer on; everything else stays just yours. You can also share a goal from its card.`} />
+        </h3>
         {list.length === 0 ? (
           <p className="mt-3 rounded-2xl border border-dashed border-blush/50 bg-ivory p-4 text-center text-xs text-muted">You have no goals yet. Set one, then come back to share it.</p>
         ) : (
@@ -408,7 +495,8 @@ function Sharing({ entry }) {
         )}
         <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-oat bg-ivory p-3">
           <input type="checkbox" className="mt-0.5 h-4 w-4 accent-rust" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
-          <span><b className="text-sm text-charcoal">My day plans</b><span className="block text-xs text-muted">{name} sees what you planned for today and what you have ticked off. You can still hide a single plan when you edit it.</span></span>
+          <span className="flex items-center gap-1"><b className="text-sm text-charcoal">My day plans</b>
+            <InfoTip text={`${name} sees what you planned for today and what you have ticked off. You can still hide a single plan when you edit it.`} /></span>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button type="button" onClick={save} disabled={busy || !dirty} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
@@ -499,6 +587,46 @@ function TheirDay({ entry, view }) {
   );
 }
 
+/** The partner's name, or the nickname you gave them, with a pencil to change it. Only you see the nickname. */
+function NicknameHeading({ entry }) {
+  const { refreshPartners, toast } = useApp();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const [busy, setBusy] = useState(false);
+  const real = entry.partner.real_name ?? entry.partner.display_name;
+
+  const save = async (e) => {
+    e?.preventDefault();
+    setBusy(true);
+    try {
+      await api.setPartnerPrefs(entry.id, { nickname: value });
+      await refreshPartners();
+      setEditing(false);
+      toast(value.trim() ? `Saved. Only you see “${value.trim()}”.` : `Back to ${real}.`);
+    } catch (ex) { toast(ex.message); }
+    setBusy(false);
+  };
+
+  if (editing) {
+    return (
+      <form onSubmit={save} className="flex flex-wrap items-center gap-1.5">
+        <label className="sr-only" htmlFor="partnerNick">Nickname for {real}</label>
+        <input id="partnerNick" className="field !w-auto min-w-0 flex-1 !py-1.5" maxLength={40} autoFocus placeholder={`A nickname for ${first(real)}`} value={value} onChange={(e) => setValue(e.target.value)} />
+        <button type="submit" disabled={busy} className="rounded-lg bg-rust px-3 py-1.5 text-xs font-extrabold text-white disabled:opacity-60">Save</button>
+        <button type="button" onClick={() => setEditing(false)} className="rounded-lg px-2 py-1.5 text-xs font-bold text-muted hover:bg-panel">Cancel</button>
+      </form>
+    );
+  }
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <h2 className="truncate text-xl font-extrabold tracking-tight text-charcoal">{entry.partner.display_name}</h2>
+      <button type="button" onClick={() => { setValue(entry.nickname ?? ''); setEditing(true); }} aria-label={entry.nickname ? 'Change the nickname' : `Give ${first(real)} a nickname`} title="Nickname"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-panel hover:text-charcoal"><Pencil className="h-3.5 w-3.5" aria-hidden="true" /></button>
+      {entry.nickname && <span className="truncate text-xs font-semibold text-muted">{real}</span>}
+    </div>
+  );
+}
+
 function PartnerPanel({ entry, onBack }) {
   const { partnerAction, toast } = useApp();
   const [tab, setTab] = useState('chat');
@@ -523,7 +651,7 @@ function PartnerPanel({ entry, onBack }) {
         <button type="button" onClick={onBack} aria-label="Back to partners" className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-oat/60 lg:hidden"><ArrowLeft className="h-5 w-5" aria-hidden="true" /></button>
         <Avatar user={entry.partner} className="h-14 w-14 text-xl" />
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-xl font-extrabold tracking-tight text-charcoal">{entry.partner.display_name}</h2>
+          <NicknameHeading entry={entry} />
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-oat px-2.5 py-1 text-xs font-bold text-charcoal" title={`${name}'s own planning streak`}>
               <Flame className="h-3.5 w-3.5 text-rust" aria-hidden="true" />{entry.partner.streak_count}-day streak{entry.partner.streak_active_today ? ' · active today' : ''}
@@ -541,7 +669,7 @@ function PartnerPanel({ entry, onBack }) {
 
       {!sharesAnything(entry.my_shares) && tab !== 'sharing' && (
         <button type="button" onClick={() => setTab('sharing')} className="mt-4 flex w-full items-center gap-2 rounded-2xl border border-oat bg-ivory px-3 py-2.5 text-left text-xs font-semibold text-charcoal hover:border-blush">
-          <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />Your goals are private. You can chat with {name} anyway, or pick a goal for {name} to see.
+          <Lock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />Your goals are private. Share one with {name}
         </button>
       )}
       <div className="mt-4 grid grid-cols-5 gap-1 rounded-2xl bg-oat/60 p-1" role="tablist" aria-label={`With ${name}`}>
@@ -560,7 +688,6 @@ function PartnerPanel({ entry, onBack }) {
         {tab === 'day' && view && <TheirDay entry={entry} view={view} />}
         {tab === 'sharing' && <Sharing key={`${entry.my_shares.goals.join()}|${entry.my_shares.day_plans}`} entry={entry} />}
       </div>
-      <p className="mt-4 flex items-start gap-1.5 text-[11px] text-muted"><Lock className="mt-0.5 h-3 w-3 shrink-0" aria-hidden="true" />{name} only sees the goals you share, under Sharing or on a goal's card. Everything else stays private to you.</p>
     </section>
   );
 }

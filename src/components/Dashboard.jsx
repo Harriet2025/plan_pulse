@@ -3,7 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Search, Snowflake, Target, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
-import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
+import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
 import { Bar, LinenTexture, Ring, cardShadow, glassShadow, heroStyle } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
@@ -52,7 +52,7 @@ function ReviewNudge() {
 
 function Hero({ totals, open }) {
   const { user, activeGoals, setView, openGoalModal, openNext } = useApp();
-  const first = user.display_name.trim().split(/\s+/)[0];
+  const first = callName(user);   // their nickname, if they set one
   const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = activeGoals.length;
   const sub = !n ? 'Set a goal for this week, month or year, and list the plans that will get you there.'
@@ -376,22 +376,24 @@ function RightRail() {
 function GoalsPanel() {
   const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, setSearch, prio, setPrio, user, openGoalModal } = useApp();
   const cat = categories.find((c) => String(c.id) === String(activeCat));
-  const filtered = !!search.trim() || prio !== 'all' || horizonFilter !== 'all';
+  const filtered = !!search.trim() || prio !== 'all';
+  const period = HORIZONS.find((h) => h.id === horizonFilter) ?? HORIZONS[0];
+  const periodWord = period.label.toLowerCase();
   const firstTime = !filtered && !cat && activeGoals.length === 0;
   const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length;
   const pills = [{ id: 'all', name: 'All', color: '#4A78D4' }, ...categories];
 
-  const emptyTitle = firstTime ? `Welcome, ${user.display_name.split(' ')[0]}! Let's set your first goal`
-    : filtered ? 'No goals match your search' : cat ? `No ${cat.name} goals yet` : 'No goals yet';
+  const emptyTitle = firstTime ? `Welcome, ${callName(user)}! Let's set your first goal`
+    : filtered ? 'No goals match your search' : cat ? `No ${cat.name} goals for this ${periodWord}` : `No goals for this ${periodWord} yet`;
   const emptyHint = firstTime ? 'Everything you add here is private to your account. Start from an idea or write your own.'
-    : filtered ? 'Try a different search, priority or period.' : cat ? `Click New Goal to add one under ${cat.name}.` : 'Click New Goal to set your first goal.';
+    : filtered ? 'Try a different search or priority.' : cat ? `Click New Goal to add one under ${cat.name}.` : 'Click New Goal to set your first goal.';
 
   return (
     <section className="min-w-0 rounded-[28px] border border-oat bg-soft/60 p-4 max-md:order-1 md:p-6" style={glassShadow} aria-labelledby="listHeading">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rust-dark">Your goals</p>
-          <h2 className="mt-0.5 text-xl font-extrabold tracking-tight text-charcoal" id="listHeading">{cat ? `${cat.name} goals` : 'All goals'}</h2>
+          <h2 className="mt-0.5 text-xl font-extrabold tracking-tight text-charcoal" id="listHeading">{period.this}{cat ? ` · ${cat.name}` : ''}</h2>
         </div>
         <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold tabular-nums text-rust-dark shadow-sm">{count} active</span>
       </div>
@@ -411,8 +413,8 @@ function GoalsPanel() {
           </select>
         </div>
       </div>
-      <div className="mt-3 grid w-full grid-cols-4 gap-1 rounded-2xl bg-oat/60 p-1 md:mt-4 md:inline-grid md:w-auto" role="group" aria-label="Show goals for">
-        {[{ id: 'all', label: 'All' }, ...HORIZONS].map((x) => {
+      <div className="mt-3 grid w-full grid-cols-3 gap-1 rounded-2xl bg-oat/60 p-1 md:mt-4 md:inline-grid md:w-auto" role="group" aria-label="Show goals for">
+        {HORIZONS.map((x) => {
           const on = horizonFilter === x.id;
           return (
             <button key={x.id} type="button" aria-pressed={on} onClick={() => setHorizonFilter(x.id)}

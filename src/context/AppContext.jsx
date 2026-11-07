@@ -3,7 +3,7 @@ import * as api from '../api';
 import { CATEGORIES, TIERS, tierOf } from '../lib/constants';
 import { playSound, setSoundEnabled } from '../lib/sound';
 import { pushFlag } from '../lib/push';
-import { addDays, daysUntil, fmtSpan, localDate, plansOn, readInvite } from '../lib/utils';
+import { addDays, callName, daysUntil, fmtSpan, localDate, plansOn, readInvite } from '../lib/utils';
 
 const Ctx = createContext(null);
 export const useApp = () => useContext(Ctx);
@@ -43,7 +43,11 @@ export function AppProvider({ children }) {
   // A push about a partner's message opens the app at #partners, and an emailed invite at #invite=...
   const [view, setView] = useState(() => (window.location.hash === '#partners' || readInvite() ? 'partners' : 'active'));
   const [activeCat, setActiveCat] = useState('all');
-  const [horizonFilter, setHorizonFilter] = useState('all');   // all, or WEEKLY / MONTHLY / YEARLY
+  // The goals list shows one period at a time (WEEKLY / MONTHLY / YEARLY), never all mixed together. Remembered per device.
+  const [horizonFilter, setHorizonState] = useState(() => {
+    try { const v = localStorage.getItem('auragoal.goalPeriod'); return ['WEEKLY', 'MONTHLY', 'YEARLY'].includes(v) ? v : 'WEEKLY'; } catch { return 'WEEKLY'; }
+  });
+  const setHorizonFilter = (v) => { setHorizonState(v); try { localStorage.setItem('auragoal.goalPeriod', v); } catch { /* ignore */ } };
   const [search, setSearch] = useState('');
   const [prio, setPrio] = useState('all');
   const [soundOn, setSoundOn] = useState(true);
@@ -121,7 +125,7 @@ export function AppProvider({ children }) {
     if (!u) return true;            // they have to confirm their email first
     await refresh();
     setView(invited ? 'partners' : 'active'); setActiveCat('all'); setSearch(''); setPrio('all');
-    toast(mode === 'signup' ? `Welcome, ${u.display_name}!` : `Welcome back, ${u.display_name}.`);
+    toast(mode === 'signup' ? `Welcome, ${callName(u)}!` : `Welcome back, ${callName(u)}.`);
   };
   const signOut = async () => {
     await api.logout();
@@ -140,6 +144,7 @@ export function AppProvider({ children }) {
     const g = await api.createGoal(input);
     await refresh();
     setFreshId(g.id); setGoalModal(null);
+    if (['WEEKLY', 'MONTHLY', 'YEARLY'].includes(input.timeframe)) setHorizonFilter(input.timeframe);   // show the list it went into
     setView((v) => (v === 'planner' ? v : 'active'));   // a goal made in the Planner stays there, in its period
     toast('Goal saved.');
   };
@@ -262,6 +267,7 @@ export function AppProvider({ children }) {
   const updateGoal = async (id, fields) => {
     try { await api.updateGoal(id, fields); } catch (e) { if (e.auth) setUser(null); throw e; }
     await refresh(); setGoalModal(null); toast('Goal updated.');
+    if (['WEEKLY', 'MONTHLY', 'YEARLY'].includes(fields.timeframe)) setHorizonFilter(fields.timeframe);
   };
   const setTaskEstimate = (taskId, minutes) => run(async () => { await api.setTaskEstimate(taskId, minutes); await refresh(); return true; });
   const renameTask = (taskId, text) => run(async () => { await api.renameTask(taskId, text); await refresh(); return true; });
@@ -303,7 +309,7 @@ export function AppProvider({ children }) {
     const q = search.trim().toLowerCase();
     return activeGoals.filter((g) => {
       if (activeCat !== 'all' && g.category_id !== Number(activeCat)) return false;
-      if (horizonFilter !== 'all' && g.timeframe !== horizonFilter) return false;
+      if (g.timeframe !== horizonFilter) return false;
       if (prio !== 'all' && g.priority !== prio) return false;
       if (q && !(`${g.title} ${g.sub_plans.map((t) => t.text).join(' ')}`).toLowerCase().includes(q)) return false;
       return true;
@@ -403,8 +409,9 @@ export function AppProvider({ children }) {
   }, [notif.due, user, toast]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openGoal = (id) => {
-    if (!activeGoals.some((g) => g.id === id)) { toast('That goal is not in your active list.'); return; }
-    setSearch(''); setPrio('all'); setActiveCat('all'); setHorizonFilter('all'); setView('active');
+    const goal = activeGoals.find((g) => g.id === id);
+    if (!goal) { toast('That goal is not in your active list.'); return; }
+    setSearch(''); setPrio('all'); setActiveCat('all'); setHorizonFilter(goal.timeframe); setView('active');
     setFocusReq({ id, n: Date.now() });
   };
 

@@ -1,11 +1,42 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Info, Sparkles } from 'lucide-react';
 import { avatarUrl } from '../api';
 import { RING } from '../lib/constants';
 import { cn } from '../lib/utils';
 
 const spring = { type: 'spring', stiffness: 90, damping: 14 };
+
+/**
+ * A small ⓘ that shows an explanation in a bubble when tapped (tap again, tap elsewhere or Escape to close).
+ * For the things worth explaining; obvious things get no text at all.
+ */
+export function InfoTip({ text, label = 'More about this', align = 'left', className }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const away = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const key = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', key); };
+  }, [open]);
+  return (
+    <span ref={ref} className={cn('relative inline-flex align-middle', className)}>
+      <button type="button" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen((o) => !o); }} aria-expanded={open} aria-label={label}
+        className={cn('grid h-6 w-6 place-items-center rounded-full transition-colors', open ? 'bg-oat text-charcoal' : 'text-muted hover:bg-oat/70 hover:text-charcoal')}>
+        <Info className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
+      {open && (
+        <span role="note" className={cn('absolute top-full z-40 mt-1 w-[min(17rem,78vw)] rounded-xl bg-deep px-3 py-2 text-left text-xs font-medium normal-case leading-relaxed tracking-normal text-white shadow-lg',
+          align === 'right' ? 'right-0' : 'left-0')}>
+          {text}
+        </span>
+      )}
+    </span>
+  );
+}
 
 /**
  * Circular progress. Draws from empty to `pct` and springs when it changes. `track` and `stroke` are CSS colours,
