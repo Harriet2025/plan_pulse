@@ -1,6 +1,5 @@
 import { CalendarDays, ChevronRight, LayoutDashboard, LifeBuoy, ListChecks, Tags, BarChart3, Settings, LogOut, Users, BookOpen } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { cn } from '../lib/utils';
 import { Avatar, Logo, cardShadow } from './ui';
 
 export const TABS = [
@@ -16,7 +15,7 @@ export const TABS = [
 ];
 
 export default function Sidebar() {
-  const { user, view, setView, categories, activeGoals, activeCat, setActiveCat, signOut, slipped, unreadTotal } = useApp();
+  const { user, view, setView, signOut, slipped, unreadTotal } = useApp();
 
   return (
     <aside
@@ -51,25 +50,6 @@ export default function Sidebar() {
           </button>
         ))}
       </nav>
-
-      <div className="shrink-0">
-        <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-[0.18em] text-muted">Categories</p>
-        <div className="grid gap-0.5" role="group" aria-label="Quick category filter">
-          {categories.map((c) => {
-            const on = String(activeCat) === String(c.id);
-            const n = activeGoals.filter((g) => g.category_id === c.id).length;
-            return (
-              <button key={c.id} type="button" aria-pressed={on}
-                onClick={() => { setActiveCat(on ? 'all' : c.id); setView('active'); }} // click again to clear
-                className={cn('flex items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold transition-colors', on ? 'bg-oat/70 text-charcoal' : 'text-muted hover:bg-oat/40')}>
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color, boxShadow: on ? `0 0 0 3px ${c.color}33` : undefined }} />
-                <span className="flex-1 truncate">{c.name}</span>
-                {n > 0 && <span className="rounded-full bg-oat px-2 text-[11px] font-bold tabular-nums text-rust-dark">{n}</span>}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       <button type="button" onClick={signOut} className="mt-auto flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-sm font-bold text-danger hover:bg-danger/10">
         <LogOut className="h-[18px] w-[18px]" aria-hidden="true" />Sign out

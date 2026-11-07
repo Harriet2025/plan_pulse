@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Camera, Check, Clock, Eye, EyeOff, Flame, Gauge, LogOut, Mail, Moon, RefreshCw, Send, Snowflake, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Camera, Check, Eye, EyeOff, Flame, Info, LogOut, Mail, Moon, Send, Snowflake, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { prepareAvatar } from '../lib/image';
@@ -13,12 +13,28 @@ const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-mute
 const primary = 'rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:cursor-not-allowed disabled:opacity-60';
 const secondary = 'inline-flex items-center gap-2 rounded-xl border border-oat bg-soft px-4 py-2.5 text-sm font-bold text-charcoal hover:border-blush disabled:cursor-not-allowed disabled:opacity-60';
 
-function Card({ title, description, children }) {
+/** A settings section. `info` is an explanation kept behind a small ⓘ button, for whoever wants it. */
+function Card({ title, info, children }) {
+  const [open, setOpen] = useState(false);
   return (
     <section className="rounded-3xl border border-oat bg-soft p-5 md:p-6" style={cardShadow}>
-      <h2 className="text-base font-extrabold text-charcoal">{title}</h2>
-      {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
-      <div className="mt-5">{children}</div>
+      <div className="flex items-center gap-1">
+        <h2 className="text-base font-extrabold text-charcoal">{title}</h2>
+        {info && (
+          <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={`About ${title.toLowerCase()}`}
+            className={cn('grid h-7 w-7 place-items-center rounded-full transition-colors', open ? 'bg-oat text-charcoal' : 'text-muted hover:bg-oat/60 hover:text-charcoal')}>
+            <Info className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+            <p className="mt-2 rounded-xl bg-oat/50 px-3 py-2 text-sm text-charcoal">{info}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="mt-4">{children}</div>
     </section>
   );
 }
@@ -73,11 +89,10 @@ function PhotoCard() {
   };
 
   return (
-    <Card title="Profile photo" description="Shown in the sidebar. We crop it to a square for you.">
+    <Card title="Profile photo">
       <div className="flex flex-wrap items-center gap-5">
         <Avatar user={user} className="h-24 w-24 text-4xl ring-4 ring-ivory" />
-        <div className="grid gap-2">
-          <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
             <button type="button" disabled={busy} onClick={() => fileRef.current?.click()} className={cn(primary, 'inline-flex items-center gap-2')}>
               <Camera className="h-4 w-4" aria-hidden="true" />{busy ? 'Working…' : user.avatar_v ? 'Change photo' : 'Upload photo'}
             </button>
@@ -86,8 +101,6 @@ function PhotoCard() {
                 <Trash2 className="h-4 w-4" aria-hidden="true" />Remove
               </button>
             )}
-          </div>
-          <p className="text-xs text-muted">JPG, PNG or WebP.</p>
         </div>
         <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} onChange={onPick} aria-label="Choose a profile photo" />
       </div>
@@ -127,7 +140,7 @@ function DetailsCard() {
   };
 
   return (
-    <Card title="Your details" description="The name shown on your dashboard and the email you sign in with.">
+    <Card title="Your details">
       <form onSubmit={submit} noValidate className="grid gap-4">
         <div>
           <label htmlFor="setName" className={label}>Name</label>
@@ -142,7 +155,6 @@ function DetailsCard() {
             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="-mx-1 overflow-hidden px-1">
               <label htmlFor="setEmailPass" className={label}>Current password</label>
               <PasswordInput id="setEmailPass" value={password} onChange={setPassword} autoComplete="current-password" />
-              <p className="mt-1.5 text-xs text-muted">Needed to confirm a change of email.</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -180,7 +192,7 @@ function PasswordCard() {
   };
 
   return (
-    <Card title="Password" description="Use at least 8 characters. You stay signed in on this device.">
+    <Card title="Password" info="Use at least 8 characters. You stay signed in on this device.">
       <form onSubmit={submit} noValidate className="grid gap-4">
         <div>
           <label htmlFor="pwCurrent" className={label}>Current password</label>
@@ -243,7 +255,8 @@ function StreakCard() {
   const progress = full ? 100 : Math.round(((FREEZE_EVERY - toNext) / FREEZE_EVERY) * 100);
 
   return (
-    <Card title="Rest days and streak" description="Days off never break your streak, and a freeze covers a day you miss.">
+    <Card title="Rest days and streak"
+      info={`Rest days never break your streak (pick up to ${MAX_REST_DAYS}), and plans you finish on them still count. Every ${FREEZE_EVERY} days in a row earns a streak freeze (you can hold ${MAX_FREEZES}); if you miss a day, one is used automatically and your streak carries on.`}>
       <div className="grid grid-cols-3 gap-3">
         <StatTile icon={Flame} value={user.streak_count} label="Streak" tone="bg-rust/10 text-rust-dark" />
         <StatTile icon={Trophy} value={user.best_streak} label="Best" tone="bg-blush/30 text-blush-dark" />
@@ -268,17 +281,10 @@ function StreakCard() {
           );
         })}
       </div>
-      <p className="mt-2 text-xs text-muted">{days.length} of {MAX_REST_DAYS} chosen. You can still finish tasks on a rest day, and it counts.</p>
-
-      <div className="mt-5 rounded-2xl border border-oat bg-ivory p-4">
-        <div className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Snowflake className="h-4 w-4 text-blush-dark" aria-hidden="true" />Streak freezes</div>
-        <p className="mt-1 text-sm text-muted">
-          Every {FREEZE_EVERY} days in a row earns a freeze (you can hold {MAX_FREEZES}). If you miss a day, a freeze is used automatically and your streak carries on.
-        </p>
-        <div className="mt-3 flex items-center gap-3">
-          <Bar pct={progress} height="h-2" className="flex-1" fill="bg-blush-dark" label="Progress to the next freeze" />
-          <span className="shrink-0 text-xs font-bold text-muted">{full ? `Holding the maximum (${MAX_FREEZES})` : `${toNext} more day${toNext === 1 ? '' : 's'} to the next`}</span>
-        </div>
+      <div className="mt-5 flex items-center gap-3">
+        <Snowflake className="h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" />
+        <Bar pct={progress} height="h-2" className="flex-1" fill="bg-blush-dark" label="Progress to the next freeze" />
+        <span className="shrink-0 text-xs font-bold text-muted">{full ? 'Freezes full' : `Next freeze in ${toNext} day${toNext === 1 ? '' : 's'}`}</span>
       </div>
       <Notice note={note} />
     </Card>
@@ -312,8 +318,9 @@ function PlanningCard() {
   };
 
   return (
-    <Card title="Your day" description="Be honest about how much time you really have. AuraGoal warns you when a day is planned past it.">
-      <label htmlFor="capacity" className={label}>Time I can realistically give on a normal day</label>
+    <Card title="Your day"
+      info={'AuraGoal warns you when a day is planned past the time you have. Give day plans a time or a length in the Planner so it can add them up; rest days count as zero hours. On your planning day, the dashboard invites you to plan the week ahead.'}>
+      <label htmlFor="capacity" className={label}>Time I have on a normal day</label>
       <select id="capacity" className="field !w-auto min-w-40" value={value} onChange={change}>
         {options.map((m) => <option key={m} value={m}>{fmtMinutes(m)}</option>)}
       </select>
@@ -321,11 +328,6 @@ function PlanningCard() {
       <select id="planDay" className="field !w-auto min-w-40" value={planDay} onChange={changeDay}>
         {WEEKDAY_LONG.map((d, i) => <option key={d} value={i + 1}>{d}</option>)}
       </select>
-      <p className="mt-1 text-xs text-muted">That day, your dashboard invites you to plan the week ahead. You can also start it any time from the Planner's Week tab.</p>
-      <ul className="mt-4 grid gap-2 text-sm text-muted">
-        <li className="flex gap-2"><Clock className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>Give your day plans a time (2:00 to 4:00pm) or a length (45 minutes) when you add them in the Planner.</span></li>
-        <li className="flex gap-2"><Gauge className="mt-0.5 h-4 w-4 shrink-0 text-blush-dark" aria-hidden="true" /><span>A day holds the plans you set for it, repeating ones included. Rest days count as zero hours.</span></li>
-      </ul>
       <Notice note={note} />
     </Card>
   );
@@ -384,13 +386,15 @@ function NotificationsCard() {
     return () => clearTimeout(id);
   }, [time]); // eslint-disable-line react-hooks/exhaustive-deps
   const preview = () => run('preview', () => api.sendDigestPreview(),
-    (r) => (r.delivered === 'email' ? `Sent to ${user.email}. Check your inbox.` : 'Email is not set up on the server yet, so nothing was sent.'));
+    (r) => (r.delivered === 'email' ? `Sent to ${user.email}. Check your inbox.` : 'The email could not be sent right now. Try again later.'));
 
   const on = !!thisKey;
   const supported = permission !== 'unsupported';
 
   return (
-    <Card title="Notifications" description="Get your reminders and a morning summary even when AuraGoal is closed.">
+    <Card title="Notifications"
+      info="Reminders pop up on this device when a day plan's start time arrives, even with AuraGoal closed. The morning email lists your plans for the day, what is due and what slipped.">
+
       {loadError && <p className="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">{loadError}</p>}
 
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted">On this device</h3>
@@ -398,11 +402,9 @@ function NotificationsCard() {
         <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white', on ? 'bg-success' : 'bg-blush-dark')}><Bell className="h-5 w-5" aria-hidden="true" /></span>
         <div className="min-w-0 flex-1 basis-48">
           <p className="text-sm font-extrabold text-charcoal">{on ? 'Reminders are on' : 'Reminders are off'}</p>
-          <p className="text-xs text-muted">
-            {!supported ? 'This browser cannot show notifications while it is closed. Try Chrome, Edge or Firefox.'
-              : permission === 'denied' ? 'Notifications are blocked for this site. Allow them in your browser’s site settings, then reload.'
-              : on ? 'A notification appears when a day plan’s start time arrives.' : 'Turn them on to be reminded even with the browser closed.'}
-          </p>
+          {/* Only said when something stops them working */}
+          {!supported && <p className="text-xs text-muted">This browser can’t show notifications. Try Chrome, Edge or Firefox.</p>}
+          {supported && permission === 'denied' && <p className="text-xs text-muted">Blocked in your browser’s site settings. Allow them, then reload.</p>}
         </div>
         {supported && permission !== 'denied' && (on
           ? <div className="flex flex-wrap gap-2">
@@ -423,10 +425,7 @@ function NotificationsCard() {
       <div className="rounded-2xl border border-oat bg-ivory p-3.5">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rust text-white"><Mail className="h-5 w-5" aria-hidden="true" /></span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold text-charcoal">Today’s plan, in your inbox</p>
-            <p className="truncate text-xs text-muted">Sent to {user.email}: your tasks, what is due, what slipped, and how full the day is.</p>
-          </div>
+          <p className="min-w-0 flex-1 text-sm font-extrabold text-charcoal">Today’s plan, in your inbox</p>
           <Switch on={user.digest_enabled} onChange={toggleDigest} label="Send me a morning email" disabled={busy === 'digest'} />
         </div>
         <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-oat pt-3">
@@ -434,24 +433,8 @@ function NotificationsCard() {
             <label htmlFor="digestTime" className={label}>Send it at</label>
             <input id="digestTime" type="time" className="field !w-auto" value={time} disabled={!user.digest_enabled} onChange={(e) => setTime(e.target.value)} />
           </div>
-          <button type="button" onClick={preview} disabled={!!busy} className={secondary}><Send className="h-4 w-4" aria-hidden="true" />{busy === 'preview' ? 'Sending…' : 'Send me a preview now'}</button>
+          <button type="button" onClick={preview} disabled={!!busy} className={secondary}><Send className="h-4 w-4" aria-hidden="true" />{busy === 'preview' ? 'Sending…' : 'Send a preview'}</button>
         </div>
-        {cfg && !cfg.mail_configured && (
-          <p className="mt-3 flex items-start gap-2 rounded-xl bg-warning/10 px-3 py-2 text-xs font-semibold text-charcoal"><TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning" aria-hidden="true" /><span>Email is not set up on the server yet, so morning emails and invites cannot be sent.</span></p>
-        )}
-      </div>
-
-      <h3 className="mb-2 mt-6 text-xs font-bold uppercase tracking-wider text-muted">Background worker</h3>
-      <div className={cn('flex flex-wrap items-center gap-3 rounded-2xl border p-3.5', cfg?.worker_running ? 'border-success/40 bg-success/10' : 'border-warning/40 bg-warning/10')}>
-        <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', cfg?.worker_running ? 'bg-success' : 'bg-warning')} aria-hidden="true" />
-        <div className="min-w-0 flex-1 basis-56">
-          <p className="text-sm font-extrabold text-charcoal">{!cfg ? 'Checking…' : cfg.worker_running ? 'The worker is running' : 'The worker is not running'}</p>
-          <p className="text-xs text-muted">
-            {cfg?.worker_running ? 'It checks every minute and sends reminders and emails on time.'
-              : 'It normally checks every minute. Reminders and emails wait until it is back.'}
-          </p>
-        </div>
-        <button type="button" onClick={refresh} className={secondary}><RefreshCw className="h-4 w-4" aria-hidden="true" />Check again</button>
       </div>
       <Notice note={note} />
     </Card>
