@@ -12,6 +12,12 @@ import { Bar, cardShadow } from './ui';
 
 const first = (name) => name.trim().split(/\s+/)[0];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+/** "Mon 2 – Sun 8 Nov" for the week starting on that Monday. */
+export function weekSpan(monday) {
+  const s = parseDay(monday), e = addDays(s, 6);
+  const day = (d, month) => d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', ...(month ? { month: 'short' } : {}) });
+  return `${day(s, s.getMonth() !== e.getMonth())} – ${day(e, true)}`;
+}
 const EMOJIS = ['🎯', '❤️', '💑', '📚', '💰', '✈️', '🏃', '🙏', '🏠', '🌱', '🍳', '🎓'];
 const IDEAS = [
   { emoji: '❤️', title: 'A date night every week', timeframe: 'MONTHLY', plans: [['Pick the place', 'TOGETHER'], ['Plan a surprise', 'EACH']] },
@@ -27,10 +33,10 @@ const label = 'mb-1.5 block text-xs font-semibold uppercase tracking-wider text-
 // ---------------------------------------------------------------------------------------------------------------
 
 const KINDS = [
-  { id: 'EACH_PLANS', title: 'Each of us finishes', unit: 'plans', start: 10, max: 100, hint: 'Both of you have to reach it. Any plan counts: goals, day plans and shared plans.' },
-  { id: 'TOTAL_PLANS', title: 'Together we finish', unit: 'plans', start: 20, max: 200, hint: 'Your plans and theirs add up to one number.' },
-  { id: 'CHAT_DAYS', title: 'We both chat on', unit: 'days', start: 5, max: 7, hint: 'A day counts when both of you send something.' },
-  { id: 'HABIT', title: 'Each of us does a habit on', unit: 'days', start: 5, max: 7, hint: 'Each of you taps “I did it today” on the days you do it.' },
+  { id: 'EACH_PLANS', title: 'Each of us finishes', unit: 'plans', start: 10, max: 100, hint: 'In total this week, not per day. Both of you have to reach it. Any plan you tick counts: goal plans, day plans and shared plans.' },
+  { id: 'TOTAL_PLANS', title: 'Together we finish', unit: 'plans', start: 20, max: 200, hint: 'In total this week. Your plans and theirs add up to one number.' },
+  { id: 'CHAT_DAYS', title: 'We both chat on', unit: 'days', start: 5, max: 7, hint: 'Out of the 7 days this week. A day counts when both of you send something.' },
+  { id: 'HABIT', title: 'Each of us does a habit on', unit: 'days', start: 5, max: 7, hint: 'Out of the 7 days this week. Each of you taps “I did it today” on the days you do it.' },
 ];
 
 function Stepper({ value, onChange, max, unit }) {
@@ -72,7 +78,7 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
         {KINDS.map((x) => (
           <label key={x.id} className={cn('flex cursor-pointer items-start gap-2.5 rounded-2xl border-2 px-3 py-2.5 transition-colors', kind === x.id ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
             <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-[#B85C38]" checked={kind === x.id} onChange={() => setKind(x.id)} />
-            <span><b className="text-sm text-charcoal">{x.title} … {x.unit}</b><span className="block text-xs text-muted">{x.hint}</span></span>
+            <span><b className="text-sm text-charcoal">{x.title} … {x.unit} this week</b><span className="block text-xs text-muted">{x.hint}</span></span>
           </label>
         ))}
       </fieldset>
@@ -83,7 +89,7 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
         </div>
       )}
       <div>
-        <p className={label}>{k.title}</p>
+        <p className={label}>{k.title} (this week)</p>
         <Stepper value={targets[kind]} max={k.max} unit={k.unit} onChange={(n) => setTargets((t) => ({ ...t, [kind]: n }))} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -140,8 +146,8 @@ function Challenge({ entry, data, setData }) {
     <section className={cn('rounded-3xl border-2 p-4', c?.won ? 'border-success/50 bg-success/5' : 'border-rust/30 bg-ivory')} aria-label="This week's challenge">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week’s challenge{c ? ` · ${ends}` : ''}</p>
-          {c && !picking && <h3 className="mt-0.5 text-base font-extrabold leading-snug text-charcoal">{cap(c.text)}</h3>}
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week’s challenge · {weekSpan(data.week_start)}{c ? ` · ${ends}` : ''}</p>
+          {c && !picking && <h3 className="mt-0.5 text-base font-extrabold leading-snug text-charcoal">{cap(c.text)} this week</h3>}
         </div>
         {c && !picking && <button type="button" onClick={() => setPicking(true)} className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-rust-dark hover:bg-oat/60">Change</button>}
       </div>
@@ -161,6 +167,9 @@ function Challenge({ entry, data, setData }) {
             <motion.p initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center gap-2 rounded-2xl bg-success/15 px-3 py-2 text-sm font-extrabold text-success">
               <Trophy className="h-5 w-5" aria-hidden="true" />You did it together! Challenge won 🎉
             </motion.p>
+          )}
+          {(c.kind === 'EACH_PLANS' || c.kind === 'TOTAL_PLANS') && (
+            <p className="text-xs text-muted">Every plan ticked from Monday to Sunday counts, today’s included. It starts again from 0 next Monday.</p>
           )}
           {c.kind === 'EACH_PLANS' && <>{row('You', c.me, true)}{row(name, c.them, false)}</>}
           {c.kind === 'TOTAL_PLANS' && (

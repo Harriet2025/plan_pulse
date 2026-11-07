@@ -4,8 +4,8 @@ import { ArrowLeft, Check, Crown, Eye, Film, Flame, Hand, Handshake, ImagePlus, 
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { catIcon, horizonOf } from '../lib/constants';
-import { cn, fmtSpan, parseDay, periodLabel, readInvite } from '../lib/utils';
-import Together from './Together';
+import { cn, fmtSpan, localDate, parseDay, periodLabel, periodStart, readInvite } from '../lib/utils';
+import Together, { weekSpan } from './Together';
 import { Avatar, Bar, cardShadow } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
@@ -138,7 +138,7 @@ function Scoreboard({ me, them, name }) {
   );
   return (
     <div className="rounded-2xl border border-oat bg-ivory p-3">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Plans done this week</p>
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Plans done this week · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}</p>
       <div className="grid gap-1.5">
         {row('You', me, me > them, true)}
         {row(name, them, them > me, false)}

@@ -1,12 +1,20 @@
-import { CalendarDays, ChevronRight, LayoutDashboard, LifeBuoy, ListChecks, Tags, BarChart3, Settings, LogOut, Users, BookOpen } from 'lucide-react';
+import { CalendarDays, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, NotebookPen, Tags, BarChart3, Settings, LogOut, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Avatar, Logo, cardShadow } from './ui';
 
+// Each section has its own colour (from the category palette), so its icon is easy to tell apart at a glance
+export const TAB_COLORS = {
+  active: '#B85C38', planner: '#3F6F9B', partners: '#B8647D', journal: '#8A6E9B', calendar: '#3F8F83',
+  catchup: '#B38A3A', categories: '#5F8F6B', history: '#9A7B4F', settings: '#76685F',
+};
+/** The icon's colour and a soft tint of it behind, unless the tab is selected (then it is white on rust). */
+export const tabIconStyle = (id, selected) => (selected ? undefined : { color: TAB_COLORS[id], background: `${TAB_COLORS[id]}1F` });
+
 export const TABS = [
   { id: 'active', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'planner', label: 'Planner', icon: ListChecks },
+  { id: 'planner', label: 'Planner', icon: ClipboardList },
   { id: 'partners', label: 'Partners', icon: Users },
-  { id: 'journal', label: 'Journal', icon: BookOpen },
+  { id: 'journal', label: 'Journal', icon: NotebookPen },
   { id: 'calendar', label: 'Calendar', icon: CalendarDays },
   { id: 'catchup', label: 'Catch up', icon: LifeBuoy },
   { id: 'categories', label: 'Categories', icon: Tags },
@@ -39,7 +47,7 @@ export default function Sidebar() {
         {TABS.map(({ id, label, icon: Icon }) => (
           <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
             className="tab flex items-center gap-3 rounded-2xl px-2.5 py-2 text-left text-sm font-bold">
-            <span className="tabicon grid h-9 w-9 place-items-center rounded-xl bg-oat text-rust-dark"><Icon className="h-[18px] w-[18px]" aria-hidden="true" /></span>
+            <span className="tabicon grid h-9 w-9 place-items-center rounded-xl" style={tabIconStyle(id, view === id)}><Icon className="h-[18px] w-[18px]" aria-hidden="true" /></span>
             {label}
             {id === 'partners' && unreadTotal > 0 && (
               <span className="ml-auto rounded-full bg-rust px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>

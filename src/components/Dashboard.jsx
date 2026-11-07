@@ -8,7 +8,6 @@ import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
 import { InstallNudge } from './AppStatus';
-import QuickAdd from './QuickAdd';
 import { FocusCard, WeekNudge } from './WeeklyPlan';
 
 const REVIEWED_KEY = 'auragoal.reviewed';
@@ -170,7 +169,6 @@ function LoadCard() {
         <h2 id="loadH" className="text-sm font-extrabold text-charcoal">Today</h2>
         <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold', ui.pill)}><Gauge className="h-3.5 w-3.5" aria-hidden="true" />{ui.label}</span>
       </div>
-      <QuickAdd className="mt-3" />
       <div className="mt-3 flex items-baseline gap-1.5">
         <motion.span key={load.planned} initial={{ scale: 1.15 }} animate={{ scale: 1 }} className="text-3xl font-extrabold tabular-nums text-charcoal">{fmtMinutes(load.planned)}</motion.span>
         <span className="text-sm font-semibold text-muted">to go{load.capacity > 0 && ` of ${fmtMinutes(load.capacity)}`}</span>

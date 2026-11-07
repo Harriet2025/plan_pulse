@@ -1,14 +1,15 @@
-import { Target, ListChecks, BookOpen, LifeBuoy, Settings, Users } from 'lucide-react';
+import { ClipboardList, LayoutDashboard, LifeBuoy, NotebookPen, Settings, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { TAB_COLORS } from './Sidebar';
 
 // Six fit on a phone: Categories is in the dashboard's filters, the Calendar opens from the Planner, and History
 // from the Journal page (and the dashboard's "View progress")
 const ITEMS = [
-  { id: 'active', label: 'Active', icon: Target },
-  { id: 'planner', label: 'Planner', icon: ListChecks },
+  { id: 'active', label: 'Home', icon: LayoutDashboard },
+  { id: 'planner', label: 'Planner', icon: ClipboardList },
   { id: 'partners', label: 'Partners', icon: Users },
   { id: 'catchup', label: 'Catch up', icon: LifeBuoy },
-  { id: 'journal', label: 'Journal', icon: BookOpen },
+  { id: 'journal', label: 'Journal', icon: NotebookPen },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -22,7 +23,7 @@ export default function BottomNav() {
           {ITEMS.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
               className="tab relative flex flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-bold">
-              <Icon className="h-5 w-5" aria-hidden="true" />{label}
+              <Icon className="h-5 w-5" style={view === id ? undefined : { color: TAB_COLORS[id] }} aria-hidden="true" />{label}
               {id === 'partners' && unreadTotal > 0 && (
                 <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rust px-1 text-[9px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>
               )}
