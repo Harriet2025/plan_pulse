@@ -236,7 +236,7 @@ function WallpaperPicker({ entry, onClose }) {
           <Upload className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <input ref={file} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
+      <input ref={file} type="file" accept="image/*" className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ''; }} />
       {busy && <p className="mt-2 text-xs font-semibold text-muted">Saving…</p>}
     </div>
   );

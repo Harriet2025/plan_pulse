@@ -505,12 +505,16 @@ export async function setPartnerPrefs(partnershipId, fields) {
     row.nickname = nick || null;
   }
   if ('wallpaper' in fields) row.wallpaper = fields.wallpaper;
-  await q(supabase.from('partner_prefs').upsert(row, { onConflict: 'partnership_id,owner_id' }));
+  // Change your row if you have one, otherwise add it. (An upsert would also rewrite the ids, which is not allowed.)
+  const { partnership_id: _pid, ...changes } = row;
+  const updated = await q(supabase.from('partner_prefs').update(changes).eq('partnership_id', partnershipId).select('partnership_id'));
+  if (!updated?.length) await q(supabase.from('partner_prefs').insert(row));
 }
 
 /** Uploads a photo to use as your chat wallpaper with a partner. Returns the value to save ('photo:<path>'). */
 export async function uploadWallpaper(partnershipId, file) {
-  if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) throw new Error('Choose a photo (JPG, PNG, WebP or GIF).');
+  // Any photo from the camera roll is fine (an iPhone's HEIC too, where the browser can open it): it is saved again as a JPEG
+  if (file.type && !file.type.startsWith('image/')) throw new Error('Choose a photo.');
   if (file.size > 15 * 1024 * 1024) throw new Error('That photo is over 15 MB.');
   const photo = await prepareChatPhoto(file);
   const path = `${partnershipId}/wallpaper-${crypto.randomUUID().slice(0, 12)}.${photo.mime === 'image/gif' ? 'gif' : 'jpg'}`;
