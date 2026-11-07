@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Camera, Check, Eye, EyeOff, Flame, Info, LogOut, Mail, Moon, Send, Snowflake, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Camera, Check, Eye, EyeOff, Flame, Info, LogOut, Mail, Monitor, Moon, MoonStar, Send, Snowflake, Sun, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { prepareAvatar } from '../lib/image';
@@ -8,9 +8,10 @@ import { currentSubscription, disablePush, enablePush, endpointKey, pushFlag, pu
 import { cn, fmtMinutes } from '../lib/utils';
 import { Avatar, Bar, cardShadow } from './ui';
 import { InstallCard } from './AppStatus';
+import { useTheme } from '../lib/theme';
 
 const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted';
-const primary = 'rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:cursor-not-allowed disabled:opacity-60';
+const primary = 'rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:cursor-not-allowed disabled:opacity-60';
 const secondary = 'inline-flex items-center gap-2 rounded-xl border border-oat bg-soft px-4 py-2.5 text-sm font-bold text-charcoal hover:border-blush disabled:cursor-not-allowed disabled:opacity-60';
 
 /** A settings section. `info` is an explanation kept behind a small ⓘ button, for whoever wants it. */
@@ -399,7 +400,7 @@ function NotificationsCard() {
 
       <h3 className="text-xs font-bold uppercase tracking-wider text-muted">On this device</h3>
       <div className="mt-2 flex flex-wrap items-center gap-3 rounded-2xl border border-oat bg-ivory p-3.5">
-        <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white', on ? 'bg-success' : 'bg-blush-dark')}><Bell className="h-5 w-5" aria-hidden="true" /></span>
+        <span className={cn('grid h-10 w-10 shrink-0 place-items-center rounded-xl text-on-status', on ? 'bg-success' : 'bg-blush-dark')}><Bell className="h-5 w-5" aria-hidden="true" /></span>
         <div className="min-w-0 flex-1 basis-48">
           <p className="text-sm font-extrabold text-charcoal">{on ? 'Reminders are on' : 'Reminders are off'}</p>
           {/* Only said when something stops them working */}
@@ -441,6 +442,53 @@ function NotificationsCard() {
   );
 }
 
+// A miniature of each theme for the Appearance picker. These are pictures of the two themes, so their colours are
+// fixed on purpose (they must look the same whichever theme is showing); "system" shows half of each.
+const PREVIEW = {
+  light: { bg: '#F5F7FA', card: '#FFFFFF', line: '#D8E0EA', text: '#202B38', accent: '#356ACB' },
+  dark: { bg: '#17191E', card: '#242831', line: '#3A414D', text: '#F3F5F8', accent: '#477BDB' },
+};
+function ThemePreview({ kind }) {
+  const half = (p) => (
+    <div className="flex h-full flex-1 flex-col gap-1 p-1.5" style={{ background: p.bg }}>
+      <div className="h-1.5 w-8 rounded-full" style={{ background: p.text }} />
+      <div className="flex flex-1 flex-col gap-1 rounded-md p-1.5" style={{ background: p.card, border: `1px solid ${p.line}` }}>
+        <div className="h-1 w-3/4 rounded-full" style={{ background: p.line }} />
+        <div className="h-1.5 w-1/2 rounded-full" style={{ background: p.accent }} />
+      </div>
+    </div>
+  );
+  return (
+    <div className="flex h-16 w-full overflow-hidden rounded-xl border border-oat" aria-hidden="true">
+      {kind === 'system' ? <>{half(PREVIEW.light)}{half(PREVIEW.dark)}</> : half(PREVIEW[kind])}
+    </div>
+  );
+}
+
+function AppearanceCard() {
+  const { choice, setChoice } = useTheme();
+  const options = [['light', 'Light', Sun], ['dark', 'Dark', MoonStar], ['system', 'System', Monitor]];
+  return (
+    <Card title="Appearance" info="System follows your phone or computer: light in the day and dark at night if your device does that. Your choice is saved on this device.">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label="Theme">
+        {options.map(([id, text, Icon]) => {
+          const on = choice === id;
+          return (
+            <button key={id} type="button" role="radio" aria-checked={on} onClick={() => setChoice(id)}
+              className={cn('flex flex-col gap-2 rounded-2xl border-2 p-2 text-left transition-colors sm:p-2.5', on ? 'border-rust bg-rust/10' : 'border-oat bg-soft hover:border-blush')}>
+              <ThemePreview kind={id} />
+              <span className="flex items-center gap-1.5 px-0.5 text-sm font-bold text-charcoal">
+                <Icon className={cn('h-4 w-4 shrink-0', on ? 'text-rust-dark' : 'text-muted')} aria-hidden="true" />{text}
+                {on && <Check className="ml-auto h-4 w-4 shrink-0 text-rust-dark" aria-hidden="true" />}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
 /** Phones only: from md up these sit in the top bar and the sidebar. */
 function PhoneControls() {
   const { soundOn, setSoundOn, signOut } = useApp();
@@ -459,6 +507,7 @@ export default function SettingsView() {
   return (
     <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
       <InstallCard />
+      <AppearanceCard />
       <PhotoCard />
       <StreakCard />
       <PlanningCard />

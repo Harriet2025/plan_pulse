@@ -7,17 +7,20 @@ import { cn } from '../lib/utils';
 
 const spring = { type: 'spring', stiffness: 90, damping: 14 };
 
-/** Circular progress. Draws from empty to `pct` and springs when it changes. */
+/**
+ * Circular progress. Draws from empty to `pct` and springs when it changes. `track` and `stroke` are CSS colours,
+ * theme variables included (rgb(var(--rust))): they are set as styles, since SVG attributes cannot read variables.
+ */
 export function Ring({ pct, track, stroke, strokeWidth = 9, defs, style }) {
   return (
     <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
       {defs}
-      <circle cx="50" cy="50" r="42" fill="none" stroke={track} strokeWidth={strokeWidth} />
+      <circle cx="50" cy="50" r="42" fill="none" strokeWidth={strokeWidth} style={{ stroke: track }} />
       <motion.circle
-        cx="50" cy="50" r="42" fill="none" stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round"
+        cx="50" cy="50" r="42" fill="none" strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={RING} initial={{ strokeDashoffset: RING }}
         animate={{ strokeDashoffset: RING * (1 - pct / 100) }}
-        transition={{ type: 'spring', stiffness: 40, damping: 12 }} style={style}
+        transition={{ type: 'spring', stiffness: 40, damping: 12 }} style={{ stroke, ...style }}
       />
     </svg>
   );
@@ -72,12 +75,13 @@ export function LinenTexture({ className }) {
   );
 }
 
-// One soft, cool shadow style for every raised surface
-export const cardShadow = { boxShadow: '0 1px 2px rgba(21,27,44,.04), 0 10px 24px -14px rgba(21,27,44,.16)' };
-// The big banners (dashboard, partners): royal blue deepening to midnight, with a soft glow beneath
+// One soft shadow style for every raised surface (in dark mode it simply sinks into the background)
+export const cardShadow = { boxShadow: '0 1px 2px rgba(11,14,20,.05), 0 10px 24px -14px rgba(11,14,20,.18)' };
+// The big banners (dashboard, partners, sign-in): electric blue sliding into charcoal, with a thin electric
+// edge along the top. Colours come from the theme (--hero-from / --hero-to), so dark mode gets a deeper version.
 export const heroStyle = {
-  backgroundImage: 'linear-gradient(135deg, #3B5BDB 0%, #2B44B0 55%, #1A2466 100%)',
-  boxShadow: '0 18px 36px -20px rgba(43,68,176,.6)',
+  backgroundImage: 'linear-gradient(125deg, rgb(var(--hero-from)) 0%, rgb(var(--hero-from)) 30%, rgb(var(--hero-to)) 100%)',
+  boxShadow: 'inset 0 2px 0 rgb(var(--blush) / .55), 0 18px 36px -22px rgb(var(--hero-from) / .55)',
 };
 export const glassShadow = cardShadow;
 

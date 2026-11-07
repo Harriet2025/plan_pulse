@@ -167,7 +167,7 @@ export default function AuthScreen({ resetToken = null, onResetDone }) {
 
             {mode === 'forgot' && sent ? (
               <div className="mt-6 rounded-2xl border border-success/40 bg-success/10 p-4 text-sm text-charcoal" role="status">
-                <span className="mb-2 grid h-9 w-9 place-items-center rounded-xl bg-success text-white"><Mail className="h-[18px] w-[18px]" aria-hidden="true" /></span>
+                <span className="mb-2 grid h-9 w-9 place-items-center rounded-xl bg-success text-on-status"><Mail className="h-[18px] w-[18px]" aria-hidden="true" /></span>
                 <p className="font-bold">Check your inbox</p>
                 <p className="mt-1 text-muted">If an account uses <b className="text-charcoal">{email.trim()}</b>, a reset link is on its way. It works once and expires in 60 minutes. Look in spam if you don't see it.</p>
                 <button type="button" onClick={() => go('login')} className="mt-3 text-sm font-bold text-rust-dark hover:underline">Back to sign in</button>
@@ -225,7 +225,7 @@ export default function AuthScreen({ resetToken = null, onResetDone }) {
                   </p>
                 )}
 
-                <button type="submit" disabled={busy} className="mt-6 w-full rounded-xl bg-rust py-3 text-sm font-extrabold text-white hover:bg-rust-dark active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" disabled={busy} className="mt-6 w-full rounded-xl bg-rust py-3 text-sm font-extrabold text-white hover:bg-rust-strong active:scale-[.99] disabled:cursor-not-allowed disabled:opacity-60">
                   {busy ? busyText : buttonText}
                 </button>
               </>

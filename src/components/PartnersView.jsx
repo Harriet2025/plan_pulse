@@ -49,7 +49,7 @@ function InviteForm() {
       <div className="mt-3 flex gap-2">
         <label className="sr-only" htmlFor="partnerEmail">Their email</label>
         <input id="partnerEmail" type="email" required maxLength={255} className="field !py-2" placeholder="friend@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
-        <button type="submit" disabled={busy} className="shrink-0 rounded-xl bg-rust px-4 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60">Invite</button>
+        <button type="submit" disabled={busy} className="shrink-0 rounded-xl bg-rust px-4 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-60">Invite</button>
       </div>
     </form>
   );
@@ -71,13 +71,13 @@ function Invites({ onAccepted }) {
           </div>
           <div className="mt-2.5 flex gap-2">
             <button type="button" onClick={async () => { const m = await partnerAction('accept', { id: i.id }); if (m) { toast(typeof m === 'string' ? m : 'You are partners now.'); onAccepted?.(i.id); } }}
-              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust py-2 text-xs font-extrabold text-white hover:bg-rust-dark"><Check className="h-3.5 w-3.5" aria-hidden="true" />Accept</button>
+              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust py-2 text-xs font-extrabold text-white hover:bg-rust-strong"><Check className="h-3.5 w-3.5" aria-hidden="true" />Accept</button>
             <button type="button" onClick={() => partnerAction('decline', { id: i.id })} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Decline</button>
           </div>
         </motion.div>
       ))}
       {outgoing.map((o) => (
-        <div key={`o${o.id}`} className="flex items-center gap-3 rounded-2xl border border-dashed border-blush bg-soft px-3 py-2.5">
+        <div key={`o${o.id}`} className="flex items-center gap-3 rounded-2xl border border-dashed border-blush/50 bg-soft px-3 py-2.5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-oat text-muted"><Send className="h-4 w-4" aria-hidden="true" /></span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold text-charcoal">{o.email}</span>
@@ -103,7 +103,7 @@ function PartnerList({ selected, onSelect }) {
             className={cn('flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors', selected === p.id ? 'border-rust bg-rust/10' : 'border-oat bg-soft hover:border-blush')}>
             <span className="relative">
               <Avatar user={p.partner} className="h-11 w-11 text-base" />
-              {p.partner.streak_active_today && <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-success text-white ring-2 ring-soft" title="Active today"><Check className="h-2.5 w-2.5" strokeWidth={4} aria-hidden="true" /></span>}
+              {p.partner.streak_active_today && <span className="absolute -bottom-0.5 -right-0.5 grid h-4 w-4 place-items-center rounded-full bg-success text-on-status ring-2 ring-soft" title="Active today"><Check className="h-2.5 w-2.5" strokeWidth={4} aria-hidden="true" /></span>}
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center justify-between gap-2">
@@ -165,11 +165,11 @@ function MediaBubble({ m, mine, time, onOpen }) {
             <img src={src} alt={m.body || 'Photo'} loading="lazy" className="block max-h-80 w-full max-w-[18rem] bg-oat object-cover" style={{ aspectRatio: ratio }} />
           </button>
         ) : (
-          <video src={src} controls playsInline preload="metadata" className="block max-h-80 w-full max-w-[18rem] bg-charcoal" aria-label={m.body || 'Video'} />
+          <video src={src} controls playsInline preload="metadata" className="block max-h-80 w-full max-w-[18rem] bg-ink" aria-label={m.body || 'Video'} />
         )}
         <div className="px-3 py-1.5">
           {m.body && <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>}
-          <p className={cn('text-right text-[10px]', mine ? 'text-white/75' : 'text-muted')}>{m.kind === 'VIDEO' ? '🎬 ' : ''}{time}</p>
+          <p className={cn('text-right text-[10px]', mine ? 'text-white/90' : 'text-muted')}>{m.kind === 'VIDEO' ? '🎬 ' : ''}{time}</p>
         </div>
       </div>
     </motion.div>
@@ -290,7 +290,7 @@ function Chat({ entry, onStreak }) {
                 <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cn('my-1 flex', mine ? 'justify-end' : 'justify-start')}>
                   <div className={cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-md bg-rust text-white' : 'rounded-bl-md bg-oat text-charcoal')}>
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                    <p className={cn('mt-0.5 text-right text-[10px]', mine ? 'text-white/75' : 'text-muted')}>{time}</p>
+                    <p className={cn('mt-0.5 text-right text-[10px]', mine ? 'text-white/90' : 'text-muted')}>{time}</p>
                   </div>
                 </motion.div>
               ) : (
@@ -316,7 +316,7 @@ function Chat({ entry, onStreak }) {
         <div className="mt-2 flex items-center gap-3 rounded-2xl border border-rust/40 bg-soft p-2" aria-label="Ready to send">
           {attachment.kind === 'IMAGE'
             ? <img src={attachment.url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
-            : <video src={attachment.url} muted className="h-16 w-16 shrink-0 rounded-xl bg-charcoal object-cover" />}
+            : <video src={attachment.url} muted className="h-16 w-16 shrink-0 rounded-xl bg-ink object-cover" />}
           <div className="min-w-0 flex-1">
             <p className="flex items-center gap-1.5 truncate text-sm font-bold text-charcoal">{attachment.kind === 'VIDEO' ? <Film className="h-4 w-4 shrink-0" aria-hidden="true" /> : <ImagePlus className="h-4 w-4 shrink-0" aria-hidden="true" />}{attachment.kind === 'VIDEO' ? 'Video' : 'Photo'} · {fmtSize(attachment.file.size)}</p>
             {progress !== null
@@ -335,10 +335,10 @@ function Chat({ entry, onStreak }) {
         <input id="chatInput" className="field !py-2.5" maxLength={1000} placeholder={attachment ? 'Add a caption…' : `Message ${name}…`} value={text} onChange={(e) => setText(e.target.value)} disabled={busy} autoComplete="off" />
         <button type="button" onClick={() => send('nudge')} disabled={busy} title={`Nudge ${name} to plan their day (once every few hours)`} aria-label={`Nudge ${name}`}
           className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-oat bg-soft text-rust-dark hover:border-rust disabled:opacity-50"><Hand className="h-5 w-5" aria-hidden="true" /></button>
-        <button type="submit" disabled={busy || (!text.trim() && !attachment)} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rust text-white hover:bg-rust-dark disabled:opacity-50"><Send className="h-4 w-4" aria-hidden="true" /></button>
+        <button type="submit" disabled={busy || (!text.trim() && !attachment)} aria-label="Send" className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-rust text-white hover:bg-rust-strong disabled:opacity-50"><Send className="h-4 w-4" aria-hidden="true" /></button>
       </form>
       {viewing && (
-        <div className="fixed inset-0 z-[90] grid place-items-center bg-charcoal/90 p-4" role="dialog" aria-modal="true" aria-label="Photo" onClick={() => setViewing(null)}>
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-ink/90 p-4" role="dialog" aria-modal="true" aria-label="Photo" onClick={() => setViewing(null)}>
           <img src={api.chatMediaUrl(viewing.media)} alt={viewing.body || 'Photo'} className="max-h-[85vh] max-w-full rounded-xl object-contain" />
           {viewing.body && <p className="mt-3 max-w-xl text-center text-sm text-white">{viewing.body}</p>}
           <button type="button" onClick={() => setViewing(null)} aria-label="Close" className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"><X className="h-5 w-5" aria-hidden="true" /></button>
@@ -378,7 +378,7 @@ function Sharing({ entry }) {
         <h3 className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Eye className="h-4 w-4 text-rust-dark" aria-hidden="true" />What {name} can see</h3>
         <p className="mt-0.5 text-xs text-muted">Your goals are private. Tick the ones you want {name} to see and cheer you on. Everything else stays just yours.</p>
         {list.length === 0 ? (
-          <p className="mt-3 rounded-2xl border border-dashed border-blush bg-ivory p-4 text-center text-xs text-muted">You have no goals yet. Set one, then come back to share it.</p>
+          <p className="mt-3 rounded-2xl border border-dashed border-blush/50 bg-ivory p-4 text-center text-xs text-muted">You have no goals yet. Set one, then come back to share it.</p>
         ) : (
           <ul className="mt-3 grid max-h-80 gap-1.5 overflow-y-auto" aria-label={`Goals ${name} can see`}>
             {list.map((g) => {
@@ -386,8 +386,8 @@ function Sharing({ entry }) {
               return (
                 <li key={g.id}>
                   <label className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition-colors', on ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={on} onChange={() => toggle(g.id)} />
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: cat?.color ?? '#3B5BDB' }}><Icon className="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-rust" checked={on} onChange={() => toggle(g.id)} />
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: cat?.color ?? '#4A78D4' }}><Icon className="h-3.5 w-3.5" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-charcoal">{g.title}</span>
                       <span className="block text-[11px] text-muted">{horizonOf(g.timeframe).label} goal{cat ? ` · ${cat.name}` : ''}{g.status === 'COMPLETED' ? ' · done' : ''}</span>
@@ -400,11 +400,11 @@ function Sharing({ entry }) {
           </ul>
         )}
         <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-oat bg-ivory p-3">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#3B5BDB]" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-rust" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
           <span><b className="text-sm text-charcoal">My day plans</b><span className="block text-xs text-muted">{name} sees what you planned for today and what you have ticked off. You can still hide a single plan when you edit it.</span></span>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={save} disabled={busy || !dirty} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
+          <button type="button" onClick={save} disabled={busy || !dirty} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{busy ? 'Saving…' : 'Save'}</button>
           {picked.size + (dayPlans ? 1 : 0) > 0 && (
             <button type="button" onClick={() => { setPicked(new Set()); setDayPlans(false); }} className="rounded-xl px-3 py-2.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Make everything private</button>
           )}
@@ -424,7 +424,7 @@ function TheirGoals({ entry, view, onCheered }) {
   const { categories, toast } = useApp();
   const name = first(entry.partner.display_name);
   const [cheered, setCheered] = useState({});   // goal id -> emoji just sent
-  if (!view.goals.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.goals.length ? `The goals ${name} shares with you are archived right now.` : `${name} has not shared any of their goals with you yet. Their goals are private until they choose.`}</p>;
+  if (!view.goals.length) return <p className="rounded-2xl border border-dashed border-blush/50 bg-ivory p-6 text-center text-sm text-muted">{view.shares.goals.length ? `The goals ${name} shares with you are archived right now.` : `${name} has not shared any of their goals with you yet. Their goals are private until they choose.`}</p>;
   const cheer = async (goal, emoji) => {
     try {
       const r = await api.sendMessage(entry.id, 'cheer', { emoji, goal_id: goal.id });
@@ -441,7 +441,7 @@ function TheirGoals({ entry, view, onCheered }) {
         return (
           <article key={g.id} className="rounded-2xl border border-oat bg-soft p-4" style={cardShadow}>
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cat?.color ?? '#3B5BDB' }} />
+              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cat?.color ?? '#4A78D4' }} />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date))}{cat ? ` · ${cat.name}` : ''}</p>
                 <h4 className={cn('break-words text-base font-extrabold leading-snug', g.status === 'COMPLETED' ? 'text-success' : 'text-charcoal')}>{g.title}{g.status === 'COMPLETED' && ' ✓'}</h4>
@@ -452,7 +452,7 @@ function TheirGoals({ entry, view, onCheered }) {
               <ul className="mt-2 grid gap-1">
                 {g.plans.map((x, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm">
-                    <span className={cn('mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[5px] border-[1.5px]', x.done ? 'border-success bg-success' : 'border-charcoal/30')}>{x.done && <Check className="h-3 w-3 text-white" strokeWidth={4} aria-hidden="true" />}</span>
+                    <span className={cn('mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[5px] border-[1.5px]', x.done ? 'border-success bg-success' : 'border-charcoal/30')}>{x.done && <Check className="h-3 w-3 text-on-status" strokeWidth={4} aria-hidden="true" />}</span>
                     <span className={x.done ? 'text-muted line-through' : 'text-charcoal'}>{x.text}</span>
                   </li>
                 ))}
@@ -474,7 +474,7 @@ function TheirGoals({ entry, view, onCheered }) {
 
 function TheirDay({ entry, view }) {
   const name = first(entry.partner.display_name);
-  if (!view.today.length) return <p className="rounded-2xl border border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">{view.shares.day_plans ? `${name} has no plans for today yet. A nudge might help 👋` : `${name} has not shared their day plans with you.`}</p>;
+  if (!view.today.length) return <p className="rounded-2xl border border-dashed border-blush/50 bg-ivory p-6 text-center text-sm text-muted">{view.shares.day_plans ? `${name} has no plans for today yet. A nudge might help 👋` : `${name} has not shared their day plans with you.`}</p>;
   const done = view.today.filter((x) => x.done).length;
   return (
     <div>
@@ -482,7 +482,7 @@ function TheirDay({ entry, view }) {
       <ul className="grid gap-1.5">
         {view.today.map((x, i) => (
           <li key={i} className="flex items-center gap-3 rounded-xl border border-oat bg-ivory px-3 py-2.5">
-            <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]', x.done ? 'border-success bg-success' : 'border-charcoal/30')}>{x.done && <Check className="h-3.5 w-3.5 text-white" strokeWidth={4} aria-hidden="true" />}</span>
+            <span className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]', x.done ? 'border-success bg-success' : 'border-charcoal/30')}>{x.done && <Check className="h-3.5 w-3.5 text-on-status" strokeWidth={4} aria-hidden="true" />}</span>
             <span className={cn('min-w-0 flex-1 truncate text-sm font-semibold', x.done ? 'text-muted line-through' : 'text-charcoal')}>{x.title}</span>
             <span className="shrink-0 text-xs font-bold tabular-nums text-muted">{x.start ? fmtSpan(x.start, x.minutes) : 'Any time'}</span>
           </li>
@@ -582,7 +582,7 @@ export default function PartnersView() {
         <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={heroStyle}>
           <Users className="h-10 w-10 text-white/90" aria-hidden="true" />
           <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Better together</h2>
-          <p className="mt-1 max-w-lg text-sm text-white/85">Invite a partner: your love, a friend or a coursemate. Set goals you both own, take on a challenge every week, chat, cheer each other on and nudge when one of you goes quiet. Your own goals stay private unless you share them.</p>
+          <p className="mt-1 max-w-lg text-sm text-white/90">Invite a partner: your love, a friend or a coursemate. Set goals you both own, take on a challenge every week, chat, cheer each other on and nudge when one of you goes quiet. Your own goals stay private unless you share them.</p>
           <ul className="mt-4 grid gap-1.5 text-sm text-white/90 sm:grid-cols-2">
             <li className="flex items-center gap-2"><Handshake className="h-4 w-4" aria-hidden="true" />Shared goals with plans for each of you</li>
             <li className="flex items-center gap-2"><Trophy className="h-4 w-4" aria-hidden="true" />A weekly challenge you win together</li>
@@ -609,7 +609,7 @@ export default function PartnersView() {
           <PartnerPanel entry={entry} onBack={() => setSelected(null)} />
         </motion.div>
       ) : (
-        <div className="hidden rounded-3xl border border-dashed border-blush bg-soft/60 p-10 text-center text-sm text-muted lg:block">Pick a partner to chat and see their goals.</div>
+        <div className="hidden rounded-3xl border border-dashed border-blush/50 bg-soft/60 p-10 text-center text-sm text-muted lg:block">Pick a partner to chat and see their goals.</div>
       )}
     </div>
   );

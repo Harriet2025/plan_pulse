@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, Flame, Moon, Snowflake, Trophy, Bell, Volume2, VolumeX, Plus, Compass } from 'lucide-react';
+import { Search, Flame, Moon, MoonStar, Snowflake, Sun, Trophy, Bell, Volume2, VolumeX, Plus, Compass } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useTheme } from '../lib/theme';
 import NotifList, { useNotifCount } from './NotifList';
 import { cardShadow } from './ui';
 
 const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', journal: 'Journal', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
-const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal/80 hover:border-rust';
+const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal hover:border-rust';
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
@@ -32,7 +33,7 @@ function NotificationBell() {
       <button type="button" className={iconBtn} aria-label="Notifications" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <Bell className="h-4 w-4" aria-hidden="true" />
         {count > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-extrabold tabular-nums text-white">{count > 9 ? '9+' : count}</span>
+          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-extrabold tabular-nums text-on-status">{count > 9 ? '9+' : count}</span>
         )}
       </button>
       <AnimatePresence>
@@ -77,6 +78,7 @@ function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) 
 // On phones one slim row, so the page gets the screen. Sound and sign out are in Settings there, and search sits with the goals.
 export default function TopBar() {
   const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, openGoalModal, openNext } = useApp();
+  const theme = useTheme();
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
@@ -118,6 +120,10 @@ export default function TopBar() {
           <Stat icon={Trophy} value={rewardsTotal} label="Rewards" className="max-md:hidden" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
           <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={`${iconBtn} max-md:hidden`}><Compass className="h-4 w-4" aria-hidden="true" /></button>
           <NotificationBell />
+          <button type="button" className={iconBtn} onClick={theme.toggle}
+            aria-label={theme.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme.theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+            {theme.theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <MoonStar className="h-4 w-4" aria-hidden="true" />}
+          </button>
           <button type="button" className={`${iconBtn} max-md:hidden`} aria-label={soundOn ? 'Sound on' : 'Sound off'} aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)}>
             {soundOn ? <Volume2 className="h-4 w-4" aria-hidden="true" /> : <VolumeX className="h-4 w-4" aria-hidden="true" />}
           </button>

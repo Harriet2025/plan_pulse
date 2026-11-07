@@ -74,7 +74,7 @@ export function GuidedForm({ prompts, entry, onSave, onCancel, saveLabel = 'Save
       </label>
       {extra}
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" disabled={busy || !filled} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{busy ? 'Saving…' : saveLabel}</button>
+        <button type="submit" disabled={busy || !filled} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{busy ? 'Saving…' : saveLabel}</button>
         {onCancel && <button type="button" onClick={onCancel} className="rounded-xl px-3 py-2.5 text-sm font-bold text-muted hover:bg-oat/60 hover:text-charcoal">{cancelLabel}</button>}
         <span className="text-xs text-muted">Private: your partners never see your journal.</span>
       </div>
@@ -106,7 +106,7 @@ export function NoteEditor({ entry, defaultDate, onDone }) {
       <textarea className="field min-h-[7rem]" rows={4} maxLength={20000} aria-label="Your note" placeholder="What happened today? How are you feeling about your goals?" value={body} onChange={(e) => setBody(e.target.value)} />
       <MoodPicker value={mood} onChange={setMood} />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" disabled={busy || (!body.trim() && !title.trim())} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{busy ? 'Saving…' : entry ? 'Save changes' : 'Save note'}</button>
+        <button type="submit" disabled={busy || (!body.trim() && !title.trim())} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{busy ? 'Saving…' : entry ? 'Save changes' : 'Save note'}</button>
         {onDone && entry && <button type="button" onClick={onDone} className="rounded-xl px-3 py-2.5 text-sm font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Cancel</button>}
       </div>
     </form>

@@ -31,7 +31,7 @@ export default function RewardModal({ item }) {
 
   return (
     <div className="fixed inset-0 z-[60] grid place-items-center px-4">
-      <motion.div className="absolute inset-0 bg-charcoal/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={claimReward} />
+      <motion.div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={claimReward} />
       <motion.div
         role="dialog" aria-modal="true" aria-labelledby="rwTitle" aria-describedby="rwMsg"
         initial={{ opacity: 0, scale: 0.82, y: 24 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 12 }}
@@ -50,7 +50,7 @@ export default function RewardModal({ item }) {
           </motion.div>
         </div>
         <h2 id="rwTitle" className="mt-5 text-2xl font-extrabold text-charcoal">{T.name} Tier Badge</h2>
-        <p id="rwMsg" className="mt-2 text-sm leading-relaxed text-charcoal/80">{T.msg}</p>
+        <p id="rwMsg" className="mt-2 text-sm leading-relaxed text-charcoal">{T.msg}</p>
         <div className="mt-4 rounded-2xl border border-oat bg-oat/40 p-3 text-left">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted">Goal</p>
           <p className="mt-0.5 break-words text-sm font-bold text-charcoal">{item.title}</p>

@@ -141,7 +141,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
 
       {(dayShared.length > 0 || isPrivate) && (
         <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-semibold text-charcoal">
-          <input type="checkbox" className="h-4 w-4 accent-[#3B5BDB]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Hide this one
+          <input type="checkbox" className="h-4 w-4 accent-rust" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Hide this one
           <span className="font-normal text-muted">({dayShared.map((p) => p.partner.display_name.trim().split(/\s+/)[0]).join(' and ') || 'partners'} see your day plans)</span>
         </label>
       )}
@@ -150,7 +150,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
       {editing && plan.repeat !== 'NONE' && <p className="mt-2 text-xs text-muted">Changes apply to every day this plan repeats.</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <button type="submit" disabled={busy || !!problem} className="rounded-lg bg-rust px-4 py-2 text-xs font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{editing ? 'Save' : 'Add to my day'}</button>
+        <button type="submit" disabled={busy || !!problem} className="rounded-lg bg-rust px-4 py-2 text-xs font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{editing ? 'Save' : 'Add to my day'}</button>
         {editing && plan.repeat !== 'NONE' && (
           <button type="button" onClick={async () => { if (await skipDayPlan(plan.id, dayKey)) onClose(); }} className="rounded-lg px-2.5 py-2 text-xs font-semibold text-muted hover:bg-oat/60 hover:text-charcoal">Remove from this day only</button>
         )}
@@ -247,7 +247,7 @@ function DayTimeline({ dayKey, items, onAddAt, onEdit }) {
               <button type="button" onClick={() => onEdit(b.plan)} className="flex min-w-0 flex-1 flex-col justify-start px-2 py-1 text-left" aria-label={`Edit ${b.plan.title}`}>
                 <span className={cn('block truncate text-[13px] font-extrabold leading-tight text-charcoal', b.done && 'text-muted line-through')}>{b.plan.title}</span>
                 {height > 34 && (
-                  <span className="flex items-center gap-1 truncate text-[11px] font-semibold text-charcoal/70">
+                  <span className="flex items-center gap-1 truncate text-[11px] font-semibold text-charcoal">
                     {fmtSpan(b.start, b.minutes)}{b.plan.repeat !== 'NONE' && <><Repeat className="h-3 w-3 shrink-0" aria-hidden="true" />{repeatText(b.plan)}</>}
                   </span>
                 )}
@@ -309,7 +309,7 @@ function DayView({ dayKey }) {
             <h2 className="text-base font-extrabold text-charcoal">Your day</h2>
             <p className="text-xs text-muted">Tap an empty hour to plan something then, or tap a plan to change it.</p>
           </div>
-          <button type="button" onClick={() => setEditor({ startAt: null })} className="inline-flex items-center gap-1.5 rounded-xl bg-rust px-3.5 py-2 text-sm font-extrabold text-white shadow-md hover:bg-rust-dark">
+          <button type="button" onClick={() => setEditor({ startAt: null })} className="inline-flex items-center gap-1.5 rounded-xl bg-rust px-3.5 py-2 text-sm font-extrabold text-white shadow-md hover:bg-rust-strong">
             <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />Add a plan
           </button>
         </div>
@@ -433,7 +433,7 @@ function GoalsView({ horizon, anchor, now }) {
       )}
       <h2 className="mb-3 text-base font-extrabold text-charcoal">Goals for {periodPhrase(periodLabel(horizon, anchor, now))}</h2>
       {periodGoals.length === 0 ? (
-        <button type="button" onClick={newGoal} className="flex w-full flex-col items-center gap-2 rounded-3xl border-2 border-dashed border-blush bg-soft/60 px-6 py-10 text-center hover:border-rust">
+        <button type="button" onClick={newGoal} className="flex w-full flex-col items-center gap-2 rounded-3xl border-2 border-dashed border-blush/50 bg-soft/60 px-6 py-10 text-center hover:border-rust">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-oat text-rust-dark"><Plus className="h-6 w-6" aria-hidden="true" /></span>
           <span className="text-base font-extrabold text-charcoal">{isPast ? `No goals were set for this ${h.unit}.` : `What do you want to achieve ${isCurrent ? `this ${h.unit}` : `in ${periodPhrase(periodLabel(horizon, anchor, now))}`}?`}</span>
           <span className="max-w-sm text-sm text-muted">Set a goal, then list the plans that will get you there. You can have as many goals as you like.</span>
@@ -518,7 +518,7 @@ export default function PlannerView() {
             </button>
           )}
           {horizon !== 'DAILY' && !review && (
-            <button type="button" onClick={() => openGoalModal({ timeframe: horizon, anchor: isPast ? localDate(now) : key })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-dark">
+            <button type="button" onClick={() => openGoalModal({ timeframe: horizon, anchor: isPast ? localDate(now) : key })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-strong">
               <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />Goal for {isCurrent ? `this ${h.unit}` : periodPhrase(periodLabel(horizon, anchor, now))}
             </button>
           )}

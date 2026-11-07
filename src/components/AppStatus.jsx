@@ -46,7 +46,7 @@ export function InstallCard({ compact = false, onDismiss }) {
         )}
       </div>
       {canPrompt && (
-        <button type="button" onClick={install} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark sm:w-auto">
+        <button type="button" onClick={install} className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong sm:w-auto">
           <Download className="h-4 w-4" aria-hidden="true" />Install
         </button>
       )}
@@ -102,7 +102,7 @@ export default function AppStatus() {
             className="pointer-events-auto flex w-full max-w-xl items-center gap-3 rounded-2xl border border-oat bg-soft px-4 py-2.5 text-sm shadow-lg">
             <RefreshCw className="h-4 w-4 shrink-0 text-rust-dark" aria-hidden="true" />
             <p className="min-w-0 flex-1 font-semibold text-charcoal">A new version of AuraGoal is ready.</p>
-            <button type="button" onClick={applyUpdate} className="shrink-0 rounded-full bg-rust px-3.5 py-1.5 text-xs font-extrabold text-white hover:bg-rust-dark">Update</button>
+            <button type="button" onClick={applyUpdate} className="shrink-0 rounded-full bg-rust px-3.5 py-1.5 text-xs font-extrabold text-white hover:bg-rust-strong">Update</button>
             <button type="button" onClick={() => setUpdate(null)} aria-label="Later" className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted hover:bg-oat/60"><X className="h-4 w-4" aria-hidden="true" /></button>
           </motion.div>
         )}

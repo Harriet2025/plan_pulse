@@ -2,13 +2,11 @@ import { CalendarDays, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, N
 import { useApp } from '../context/AppContext';
 import { Avatar, Logo, cardShadow } from './ui';
 
-// Each section has its own colour, so its icon is easy to tell apart at a glance
-export const TAB_COLORS = {
-  active: '#3B5BDB', planner: '#0F9488', partners: '#D6336C', journal: '#7048E8', calendar: '#1C7ED6',
-  catchup: '#E8590C', categories: '#2F9E44', history: '#B8860B', settings: '#64748B',
-};
+// Each section has its own colour (--tab-<id> in src/index.css, set for both themes), so its icon is easy to tell
+// apart at a glance and stays readable on light and dark
+export const tabColor = (id) => `rgb(var(--tab-${id}))`;
 /** The icon's colour and a soft tint of it behind, unless the tab is selected (then it is white on the primary). */
-export const tabIconStyle = (id, selected) => (selected ? undefined : { color: TAB_COLORS[id], background: `${TAB_COLORS[id]}1F` });
+export const tabIconStyle = (id, selected) => (selected ? undefined : { color: tabColor(id), background: `rgb(var(--tab-${id}) / .14)` });
 
 export const TABS = [
   { id: 'active', label: 'Dashboard', icon: LayoutDashboard },

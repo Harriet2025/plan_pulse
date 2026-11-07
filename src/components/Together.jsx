@@ -77,7 +77,7 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
         <legend className={label}>Pick a challenge for this week</legend>
         {KINDS.map((x) => (
           <label key={x.id} className={cn('flex cursor-pointer items-start gap-2.5 rounded-2xl border-2 px-3 py-2.5 transition-colors', kind === x.id ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-            <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={kind === x.id} onChange={() => setKind(x.id)} />
+            <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-rust" checked={kind === x.id} onChange={() => setKind(x.id)} />
             <span><b className="text-sm text-charcoal">{x.title} … {x.unit} this week</b><span className="block text-xs text-muted">{x.hint}</span></span>
           </label>
         ))}
@@ -93,7 +93,7 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
         <Stepper value={targets[kind]} max={k.max} unit={k.unit} onChange={(n) => setTargets((t) => ({ ...t, [kind]: n }))} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" disabled={busy} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60">{busy ? 'Saving…' : current ? 'Change challenge' : 'Start the challenge'}</button>
+        <button type="submit" disabled={busy} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-60">{busy ? 'Saving…' : current ? 'Change challenge' : 'Start the challenge'}</button>
         <button type="button" onClick={onCancel} disabled={busy} className="rounded-xl px-3 py-2.5 text-sm font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Cancel</button>
         {current && <button type="button" onClick={callOff} disabled={busy} className="ml-auto rounded-xl px-3 py-2.5 text-xs font-bold text-muted hover:bg-danger/10 hover:text-danger">Call it off</button>}
       </div>
@@ -109,7 +109,7 @@ function WeekDots({ weekStart, days, today, who }) {
       {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => {
         const key = localDate(addDays(start, i)), on = days.includes(key);
         return (
-          <span key={i} className={cn('grid h-7 w-7 place-items-center rounded-full text-[10px] font-extrabold', on ? 'bg-success text-white' : 'bg-oat text-muted', key === today && !on && 'ring-2 ring-rust/50')}>
+          <span key={i} className={cn('grid h-7 w-7 place-items-center rounded-full text-[10px] font-extrabold', on ? 'bg-success text-on-status' : 'bg-oat text-muted', key === today && !on && 'ring-2 ring-rust/50')}>
             {on ? <Check className="h-3.5 w-3.5" strokeWidth={3.5} aria-hidden="true" /> : d}
           </span>
         );
@@ -157,7 +157,7 @@ function Challenge({ entry, data, setData }) {
       ) : !c ? (
         <div className="mt-2">
           <p className="text-sm text-charcoal">Set one small thing to beat together this week. You win or lose it as a team.</p>
-          <button type="button" onClick={() => setPicking(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+          <button type="button" onClick={() => setPicking(true)} className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
             <Trophy className="h-4 w-4" aria-hidden="true" />Set a challenge
           </button>
         </div>
@@ -189,7 +189,7 @@ function Challenge({ entry, data, setData }) {
               <div className="flex flex-wrap items-center justify-between gap-2"><span className="w-14 text-xs font-bold text-charcoal">You</span><WeekDots weekStart={data.week_start} days={c.me_days} today={data.today} who="You" /><span className="text-xs font-extrabold tabular-nums">{c.me}/{c.target}</span></div>
               <div className="flex flex-wrap items-center justify-between gap-2"><span className="w-14 truncate text-xs font-bold text-charcoal">{name}</span><WeekDots weekStart={data.week_start} days={c.them_days} today={data.today} who={name} /><span className="text-xs font-extrabold tabular-nums">{c.them}/{c.target}</span></div>
               <button type="button" onClick={checkin} disabled={busy}
-                className={cn('inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-extrabold disabled:opacity-60', checkedToday ? 'bg-success/15 text-success' : 'bg-rust text-white hover:bg-rust-dark')}>
+                className={cn('inline-flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-extrabold disabled:opacity-60', checkedToday ? 'bg-success/15 text-success' : 'bg-rust text-white hover:bg-rust-strong')}>
                 <Check className="h-4 w-4" aria-hidden="true" />{checkedToday ? 'Done today · tap to undo' : 'I did it today'}
               </button>
             </div>
@@ -203,7 +203,7 @@ function Challenge({ entry, data, setData }) {
           {data.win_streak > 1 && <span className="font-bold text-rust-dark">🔥 {data.win_streak} weeks in a row</span>}
           <span className="flex items-center gap-1" aria-label="Recent weeks">
             {data.history.slice(0, 6).reverse().map((h) => (
-              <span key={h.week_start} title={`${cap(h.text)}: ${h.won ? 'won' : 'missed'}`} className={cn('grid h-5 w-5 place-items-center rounded-full text-[10px] font-extrabold', h.won ? 'bg-success text-white' : 'bg-oat text-muted')}>{h.won ? '✓' : '–'}</span>
+              <span key={h.week_start} title={`${cap(h.text)}: ${h.won ? 'won' : 'missed'}`} className={cn('grid h-5 w-5 place-items-center rounded-full text-[10px] font-extrabold', h.won ? 'bg-success text-on-status' : 'bg-oat text-muted')}>{h.won ? '✓' : '–'}</span>
             ))}
           </span>
         </div>
@@ -220,7 +220,7 @@ function Challenge({ entry, data, setData }) {
 function Tick({ on, onClick, label: text, busy, small }) {
   const box = cn('grid shrink-0 place-items-center border-[1.5px] transition-colors', small ? 'h-5 w-5 rounded-[6px]' : 'h-6 w-6 rounded-[7px]',
     on ? 'border-success bg-success' : 'border-charcoal/30 bg-soft', onClick && !on && 'hover:border-rust');
-  const mark = on && <Check className={small ? 'h-3 w-3 text-white' : 'h-3.5 w-3.5 text-white'} strokeWidth={4} aria-hidden="true" />;
+  const mark = on && <Check className={small ? 'h-3 w-3 text-on-status' : 'h-3.5 w-3.5 text-on-status'} strokeWidth={4} aria-hidden="true" />;
   if (!onClick) return <span className={box} role="img" aria-label={`${text}: ${on ? 'done' : 'not yet'}`}>{mark}</span>;
   return <motion.button type="button" whileTap={{ scale: 0.85 }} onClick={onClick} disabled={busy} aria-pressed={on} aria-label={text} className={cn(box, 'disabled:opacity-60')}>{mark}</motion.button>;
 }
@@ -343,7 +343,7 @@ function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
 
   return (
     <div className="fixed inset-0 z-40">
-      <motion.div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} />
+      <motion.div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} />
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center md:items-center md:p-6">
         <motion.form onSubmit={submit} role="dialog" aria-modal="true" aria-labelledby="teamGoalTitle"
           initial={{ y: '100%' }} animate={{ y: 0 }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}
@@ -453,12 +453,12 @@ export default function Together({ entry }) {
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-extrabold text-charcoal">Goals you share with {name}</h3>
           {live.length > 0 && (
-            <button type="button" onClick={() => setForm({})} className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-rust px-3 py-2 text-xs font-extrabold text-white hover:bg-rust-dark"><Plus className="h-3.5 w-3.5" aria-hidden="true" />New</button>
+            <button type="button" onClick={() => setForm({})} className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-rust px-3 py-2 text-xs font-extrabold text-white hover:bg-rust-strong"><Plus className="h-3.5 w-3.5" aria-hidden="true" />New</button>
           )}
         </div>
 
         {live.length === 0 ? (
-          <div className="mt-2 rounded-3xl border border-dashed border-blush bg-ivory p-5 text-center">
+          <div className="mt-2 rounded-3xl border border-dashed border-blush/50 bg-ivory p-5 text-center">
             <p className="text-3xl" aria-hidden="true">🤝</p>
             <p className="mt-1 text-sm font-extrabold text-charcoal">Plan something together</p>
             <p className="mx-auto mt-1 max-w-sm text-xs text-muted">A goal you both own, for a week, a month or a year. Split the plans: some you do together, some each of you does.</p>
@@ -467,7 +467,7 @@ export default function Together({ entry }) {
                 <button key={idea.title} type="button" onClick={() => setForm({ idea })} className="rounded-full border border-oat bg-soft px-3 py-1.5 text-xs font-semibold text-charcoal hover:border-rust">{idea.emoji} {idea.title}</button>
               ))}
             </div>
-            <button type="button" onClick={() => setForm({})} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark"><Plus className="h-4 w-4" aria-hidden="true" />Start a shared goal</button>
+            <button type="button" onClick={() => setForm({})} className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong"><Plus className="h-4 w-4" aria-hidden="true" />Start a shared goal</button>
           </div>
         ) : (
           <div className="mt-2 grid gap-3 md:grid-cols-2">

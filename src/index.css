@@ -2,26 +2,90 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Royal blue + slate palette. Values are space-separated RGB so Tailwind can add opacity.
-   The token names (ivory, rust, blush...) are older than the colours: rust is simply "the primary colour".
-   A dark theme would override these same variables; nothing else needs to change. */
+/* ------------------------------------------------------------------------------------------------------------
+   Theme: Charcoal & Electric Blue, in light and dark.
+
+   Every colour in the app is one of these semantic variables (space-separated RGB, so Tailwind can add opacity:
+   bg-rust/10). Both themes define the SAME names with different values; <html data-theme="light|dark"> picks one.
+   index.html sets data-theme before the page draws (no flash), and src/lib/theme.js changes it at run time.
+
+   The token names are older than this palette, so read them by role:
+     ivory      page background            soft      cards, panels, inputs
+     panel      secondary surfaces         raised    elevated surfaces (menus, chips on cards)
+     oat        borders, dividers, progress tracks, quiet fills
+     rust       primary accent: buttons, active nav, progress
+     rust-strong  primary hover / pressed fill (white text stays readable on it)
+     rust-dark  the primary as TEXT or an icon on a card or the page (always readable)
+     blush      secondary accent: hover borders, highlights
+     blush-dark the secondary as text or an icon
+     charcoal   main text                  muted     secondary text      faint   least important text
+     on-status  text and icons on a solid success / warning / danger / secondary fill
+     deep       a contrast panel that is dark in both themes (white text on it)
+     ink        always near-black: the dimmed backdrop behind dialogs, video letterboxing
+   Every text colour pair here meets WCAG AA (4.5:1) for normal text.
+   ------------------------------------------------------------------------------------------------------------ */
+
+/* Typography lives apart from colour, so switching theme can never change a font, size or weight */
 :root {
-  --ivory: 244 246 250;       /* #F4F6FA  page background */
-  --soft: 255 255 255;        /* #FFFFFF  cards, modals, inputs */
-  --oat: 226 231 240;         /* #E2E7F0  borders, dividers, progress tracks */
-  --rust: 59 91 219;          /* #3B5BDB  primary buttons, active nav, key actions */
-  --rust-dark: 43 68 176;     /* #2B44B0  hover, and the primary used as text (meets 4.5:1 on light) */
-  --blush: 185 198 242;       /* #B9C6F2  secondary accents, hover borders, achievements */
-  --blush-dark: 90 107 176;   /* #5A6BB0  the secondary as an icon or text colour */
-  --charcoal: 21 27 44;       /* #151B2C  headings and primary text */
-  --muted: 94 103 121;        /* #5E6779  secondary text */
+  --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
 
-  /* Status colours */
-  --success: 31 138 91;       /* green */
-  --warning: 178 107 0;       /* amber */
-  --danger: 214 60 60;        /* red */
-
+:root, :root[data-theme="light"] {
+  --ivory: 245 247 250;       /* #F5F7FA */
+  --soft: 255 255 255;        /* #FFFFFF */
+  --panel: 237 241 246;       /* #EDF1F6 */
+  --raised: 226 232 240;      /* #E2E8F0 */
+  --oat: 216 224 234;         /* #D8E0EA */
+  --rust: 53 106 203;         /* #356ACB  white on it: 5.2:1 */
+  --btn: 53 106 203;          /* solid buttons */
+  --rust-strong: 42 86 168;   /* #2A56A8  white on it: 7.1:1 */
+  --rust-dark: 42 86 168;     /* #2A56A8  on white: 7.1:1 */
+  --blush: 40 127 165;        /* #287FA5 */
+  --blush-dark: 31 106 140;   /* #1F6A8C  on white: 6.0:1 */
+  --charcoal: 32 43 56;       /* #202B38  on white: 14.6:1 */
+  --muted: 83 97 116;         /* #536174  on white: 6.4:1, on the page: 6.0:1 */
+  --faint: 104 117 135;       /* #687587  on white: 4.7:1 */
+  --success: 36 122 75;       /* #247A4B */
+  --warning: 148 96 13;       /* #94600D */
+  --danger: 184 50 50;        /* #B83232 */
+  --on-status: 255 255 255;
+  --deep: 32 43 56;           /* #202B38 */
+  --ink: 11 14 20;
+  /* The big banners: electric blue sliding into charcoal */
+  --hero-from: 53 106 203;
+  --hero-to: 27 45 82;
+  /* Each section's icon in the menu */
+  --tab-active: 53 106 203; --tab-planner: 14 124 112; --tab-partners: 190 40 96; --tab-journal: 105 70 200;
+  --tab-calendar: 25 113 194; --tab-catchup: 196 82 16; --tab-categories: 39 128 58; --tab-history: 150 108 8; --tab-settings: 83 97 116;
   color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --ivory: 23 25 30;          /* #17191E */
+  --soft: 36 40 49;           /* #242831 */
+  --panel: 44 49 59;          /* #2C313B */
+  --raised: 54 61 73;         /* #363D49 */
+  --oat: 58 65 77;            /* #3A414D */
+  --rust: 71 123 219;         /* #477BDB  accents, bars, rings */
+  --btn: 58 105 196;          /* #3A69C4  solid buttons: white on it 5.3:1 (on #477BDB it would be 4.1:1) */
+  --rust-strong: 46 89 172;   /* #2E59AC  hover / pressed, selected nav: white on it 6.4:1 */
+  --rust-dark: 138 176 242;   /* #8AB0F2  on cards: 6.8:1 */
+  --blush: 112 197 232;       /* #70C5E8 */
+  --blush-dark: 112 197 232;  /* #70C5E8  on cards: 7.7:1 */
+  --charcoal: 243 245 248;    /* #F3F5F8  on cards: 13.6:1 */
+  --muted: 184 192 204;       /* #B8C0CC  on cards: 8.4:1 */
+  --faint: 154 164 178;       /* #9AA4B2  on cards: 6.0:1 */
+  --success: 101 185 138;     /* #65B98A */
+  --warning: 230 182 109;     /* #E6B66D */
+  --danger: 228 119 119;      /* #E47777 */
+  --on-status: 23 25 30;      /* dark text on the lighter dark-mode status colours */
+  --deep: 54 61 73;           /* #363D49 */
+  --ink: 5 6 9;
+  --hero-from: 44 82 160;
+  --hero-to: 30 34 44;
+  --tab-active: 112 156 235; --tab-planner: 72 196 178; --tab-partners: 240 128 168; --tab-journal: 172 148 245;
+  --tab-calendar: 112 197 232; --tab-catchup: 240 150 92; --tab-categories: 110 200 130; --tab-history: 230 182 109; --tab-settings: 184 192 204;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -42,7 +106,7 @@
     padding: .65rem .8rem; width: 100%; color: rgb(var(--charcoal)); font-size: .875rem;
     transition: border-color .15s, box-shadow .15s;
   }
-  .field::placeholder { color: rgb(var(--muted) / .8); }
+  .field::placeholder { color: rgb(var(--faint)); }
   .field:hover { border-color: rgb(var(--blush)); }
   .field:focus { outline: none; border-color: rgb(var(--rust)); box-shadow: 0 0 0 3px rgb(var(--rust) / .18); }
   .field:disabled { opacity: .6; cursor: not-allowed; }
@@ -57,23 +121,30 @@
   .seg input { position: absolute; opacity: 0; }
   .seg span {
     display: block; text-align: center; padding: .5rem .25rem; border-radius: .6rem; font-size: .75rem; font-weight: 600; cursor: pointer;
-    border: 1px solid rgb(var(--oat)); background: rgb(var(--soft)); color: rgb(var(--charcoal) / .85);
+    border: 1px solid rgb(var(--oat)); background: rgb(var(--soft)); color: rgb(var(--charcoal));
     transition: background .15s, border-color .15s, color .15s;
   }
   .seg span:hover { border-color: rgb(var(--blush)); }
-  .seg input:checked + span { background: rgb(var(--rust)); border-color: rgb(var(--rust)); color: #fff; }
+  .seg input:checked + span { background: rgb(var(--rust-strong)); border-color: rgb(var(--rust-strong)); color: #fff; }
   .seg input:focus-visible + span { outline: 2px solid rgb(var(--rust)); outline-offset: 2px; }
 
-  /* Navigation tabs (sidebar and phone bar) */
-  .tab { color: rgb(var(--charcoal) / .85); transition: background .2s, color .2s; }
-  .tab:hover { background: rgb(var(--oat) / .6); }
-  .tab[aria-selected="true"] { background: rgb(var(--rust)); color: #fff; }
-  .tab[aria-selected="true"] .tabicon { background: rgb(255 255 255 / .2); color: #fff; }
+  /* Navigation tabs (sidebar and phone bar). The selected one uses the stronger blue so its white label stays crisp */
+  .tab { color: rgb(var(--charcoal)); transition: background .2s, color .2s; }
+  .tab:hover { background: rgb(var(--panel)); }
+  .tab[aria-selected="true"] { background: rgb(var(--rust-strong)); color: #fff; box-shadow: inset 3px 0 0 rgb(var(--blush)); }
+  .tab[aria-selected="true"] .tabicon { background: rgb(255 255 255 / .18); color: #fff; }
 
   /* Small segmented toggles (history filter, sign-in / create account) */
   .seg-btn { color: rgb(var(--muted)); transition: background .15s, color .15s; }
   .seg-btn:hover { color: rgb(var(--charcoal)); }
-  .seg-btn[aria-pressed="true"] { background: rgb(var(--rust)); color: #fff; }
+  .seg-btn[aria-pressed="true"] { background: rgb(var(--rust-strong)); color: #fff; }
+
+  /* A solid primary fill with white text (buttons, badges) uses the button blue, which keeps the label readable */
+  .bg-rust.text-white { background-color: rgb(var(--btn)); }
+  .bg-rust.text-white:hover:not(:disabled) { background-color: rgb(var(--rust-strong)); }
+
+  /* Any control that is switched off reads as off in both themes, without fading its text to nothing */
+  button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 
   .fab { box-shadow: 0 8px 18px -8px rgb(var(--rust) / .6); }
 
@@ -85,6 +156,9 @@
     background-image: linear-gradient(currentColor, currentColor); background-repeat: no-repeat; background-position: 0 58%; background-size: 0% 2px;
     transition: background-size .35s ease, color .3s; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
   .ttext[data-done="true"] { color: rgb(var(--muted)); background-size: 100% 2px; }
+
+  /* Scrollbars follow the theme on desktop */
+  * { scrollbar-color: rgb(var(--oat)) transparent; }
 
   .halo { position: absolute; inset: -30%; border-radius: 999px; filter: blur(28px); }
   .shine::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.5) 50%, transparent 65%); background-size: 250% 100%; animation: shine 2.8s linear infinite; pointer-events: none; }

@@ -116,7 +116,7 @@ const CatchUpCard = forwardRef(function CatchUpCard({ item, options, busy, onMov
             <div className="flex flex-wrap items-center gap-2 pt-3">
               <label className="sr-only" htmlFor={`pick-${item.key}`}>New {isPlan ? 'day' : 'due date'}</label>
               <input id={`pick-${item.key}`} className="field !w-auto min-w-0 flex-1 !py-2" type="date" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
-              <button type="submit" disabled={!value} className="rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60">Move it</button>
+              <button type="submit" disabled={!value} className="rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-60">Move it</button>
               <button type="button" onClick={() => setPicking(false)} className="rounded-xl px-3 py-2 text-sm font-bold text-muted hover:text-charcoal">Cancel</button>
             </div>
           </motion.form>
@@ -129,10 +129,10 @@ const CatchUpCard = forwardRef(function CatchUpCard({ item, options, busy, onMov
 function AllClear({ everSorted }) {
   const { setView, user } = useApp();
   return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-dashed border-blush bg-soft p-10 text-center">
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-dashed border-blush/50 bg-soft p-10 text-center">
       <motion.div
         initial={{ scale: 0.3, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.1 }}
-        className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success text-white"
+        className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success text-on-status"
       >
         <Check className="h-8 w-8" strokeWidth={3} aria-hidden="true" />
       </motion.div>
@@ -143,7 +143,7 @@ function AllClear({ everSorted }) {
           : 'Nothing has slipped past its date. If something does, it will show up here so you can sort it out calmly.'}
       </p>
       {user.streak_count > 0 && <p className="mt-3 text-sm font-bold text-rust-dark">Your {user.streak_count}-day streak is still going.</p>}
-      <button type="button" onClick={() => setView('active')} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+      <button type="button" onClick={() => setView('active')} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
         Back to dashboard<ArrowRight className="h-4 w-4" aria-hidden="true" />
       </button>
     </motion.div>
@@ -177,7 +177,7 @@ export default function CatchUpView() {
     <div className="mx-auto grid max-w-4xl gap-5">
       <section className="relative overflow-hidden rounded-[28px] border border-blush/60 bg-blush/15 p-5 md:p-7" aria-live="polite">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><LifeBuoy className="h-6 w-6" aria-hidden="true" /></span>
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blush-dark text-on-status"><LifeBuoy className="h-6 w-6" aria-hidden="true" /></span>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl font-extrabold tracking-tight text-charcoal md:text-2xl">
               {slipped.length ? (slipped.length === 1 ? 'One thing slipped. That’s okay.' : `${slipped.length} things slipped. That’s okay.`) : total.current ? 'All sorted.' : 'Nothing has slipped.'}

@@ -50,7 +50,7 @@ function Group({ title, items, defaultOpen, onToggle, showDay }) {
   return (
     <li className="rounded-2xl border border-oat bg-soft">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center gap-3 px-3 py-2.5 text-left">
-        <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold', all ? 'bg-success text-white' : 'bg-oat text-charcoal')}>{all ? <Check className="h-3.5 w-3.5" strokeWidth={3.5} aria-hidden="true" /> : items.length - done}</span>
+        <span className={cn('grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold', all ? 'bg-success text-on-status' : 'bg-oat text-charcoal')}>{all ? <Check className="h-3.5 w-3.5" strokeWidth={3.5} aria-hidden="true" /> : items.length - done}</span>
         <span className="min-w-0 flex-1 truncate text-sm font-extrabold text-charcoal">{title}</span>
         <span className="text-xs font-bold tabular-nums text-muted">{done}/{items.length}</span>
         <motion.span animate={{ rotate: open ? 180 : 0 }} className="text-muted"><ChevronDown className="h-4 w-4" aria-hidden="true" /></motion.span>
@@ -123,7 +123,7 @@ export default function ReviewPanel({ horizon, anchor }) {
     <div className="grid gap-5">
       <section className="flex flex-wrap items-center gap-5 rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-label="Your result">
         <div className="relative h-28 w-28 shrink-0">
-          <Ring pct={pct} track="#E2E7F0" stroke={pct >= 80 ? '#1F8A5B' : '#3B5BDB'} />
+          <Ring pct={pct} track="rgb(var(--oat))" stroke={pct >= 80 ? 'rgb(var(--success))' : 'rgb(var(--rust))'} />
           <span className="absolute inset-0 grid place-items-center text-center"><span><b className="block text-2xl font-extrabold tabular-nums text-charcoal">{pct}%</b><span className="text-[10px] font-bold uppercase tracking-wider text-muted">done</span></span></span>
         </div>
         <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export default function ReviewPanel({ horizon, anchor }) {
       )}
 
       {!total && (
-        <p className="rounded-3xl border-2 border-dashed border-blush bg-soft/60 p-8 text-center text-sm text-muted">
+        <p className="rounded-3xl border-2 border-dashed border-blush/50 bg-soft/60 p-8 text-center text-sm text-muted">
           Nothing to review for {name} yet. Plans for the day and goals for the {horizon === 'DAILY' ? 'day' : horizonOf(horizon).unit} show up here.
         </p>
       )}

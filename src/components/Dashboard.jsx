@@ -41,10 +41,10 @@ function ReviewNudge() {
   const done = () => { addReviewed(due.id); setSeen(getReviewed()); };
   return (
     <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-blush/60 bg-blush/15 p-4" aria-label="Review">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /></span>
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blush-dark text-on-status"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /></span>
       <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">{due.text} <span className="font-normal text-muted">Tick off what you managed and see your score.</span></p>
       <button type="button" onClick={() => { done(); setPlannerAt({ horizon: due.horizon, key: due.key, review: true }); setView('planner'); }}
-        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark sm:flex-none">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong sm:flex-none">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
       <button type="button" onClick={done} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not now</button>
     </motion.section>
   );
@@ -69,9 +69,9 @@ function Hero({ totals, open }) {
           <h2 className="pr-24 text-2xl font-extrabold leading-tight tracking-tight text-white md:mt-2 md:pr-0 md:text-4xl">{greeting()}, {first}</h2>
           <p className="mt-2 pr-24 text-sm leading-relaxed text-white md:pr-0 md:text-base">{sub}</p>
           <div className="mt-4 grid grid-cols-2 gap-2 md:mt-5 md:flex md:flex-wrap md:gap-3">
-            <button type="button" onClick={openNext} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-white"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
-            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-charcoal"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
-            <button type="button" onClick={() => setView('history')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-rust-dark px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-charcoal"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
+            <button type="button" onClick={openNext} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-panel"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
+            <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
+            <button type="button" onClick={() => setView('history')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
         </div>
         <div className="absolute right-0 top-0 h-20 w-20 shrink-0 md:relative md:h-44 md:w-44" role="img" aria-label="Overall progress on your goals' plans">
@@ -108,7 +108,7 @@ function StatCards({ totals, open }) {
             <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{tag}</span>
           </div>
           <div className="mt-2 text-2xl font-extrabold tabular-nums text-charcoal md:mt-4 md:text-3xl">{value}</div>
-          <p className="text-xs font-bold text-charcoal/80 md:text-sm">{title}</p>
+          <p className="text-xs font-bold text-charcoal md:text-sm">{title}</p>
           {bar !== undefined ? <Bar pct={bar} height="h-1.5" className="mt-2" fill="bg-blush-dark" label="Tasks completed" />
             : <p className="mt-1 truncate text-xs text-muted">{foot}</p>}
         </motion.div>
@@ -129,12 +129,12 @@ function CatchUpBanner() {
       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} aria-label="Things that slipped"
       className="flex flex-wrap items-center gap-4 rounded-3xl border border-blush/60 bg-blush/15 p-4 md:p-5"
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><LifeBuoy className="h-5 w-5" aria-hidden="true" /></span>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blush-dark text-on-status"><LifeBuoy className="h-5 w-5" aria-hidden="true" /></span>
       <div className="min-w-0 flex-1 basis-60">
         <p className="font-extrabold text-charcoal">{n === 1 ? 'One thing slipped past its date' : `${n} things slipped past their date`}</p>
         <p className="mt-0.5 text-sm text-muted">{names}. That happens. Sort {n === 1 ? 'it' : 'them'} out in a minute: finish, move or let go.</p>
       </div>
-      <button type="button" onClick={() => setView('catchup')} className="inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+      <button type="button" onClick={() => setView('catchup')} className="inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
         Catch up<ArrowRight className="h-4 w-4" aria-hidden="true" />
       </button>
     </motion.section>
@@ -179,7 +179,7 @@ function LoadCard() {
           {load.tasks.slice(0, 5).map((x) => (
             <li key={x.plan.id}>
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-oat/50">
-                <input type="checkbox" className="h-4 w-4 accent-[#3B5BDB]" checked={false} onChange={() => toggleDayPlan(x.plan.id, today, true)} />
+                <input type="checkbox" className="h-4 w-4 accent-rust" checked={false} onChange={() => toggleDayPlan(x.plan.id, today, true)} />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-charcoal">{x.plan.title}</span>
                 {x.start && <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted">{fmtSpan(x.start, x.minutes)}</span>}
               </label>
@@ -193,7 +193,7 @@ function LoadCard() {
         Plan today hour by hour<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
       {load.state === 'over' && (
-        <button type="button" onClick={() => openLighten(today)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+        <button type="button" onClick={() => openLighten(today)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
           Lighten today<ArrowRight className="h-4 w-4" aria-hidden="true" />
         </button>
       )}
@@ -343,16 +343,16 @@ function QuoteCard() {
   }, [qi, text, reduce]);
 
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-charcoal p-5 text-white" aria-live="polite" style={cardShadow}>
+    <section className="relative overflow-hidden rounded-3xl bg-deep p-5 text-white" aria-live="polite" style={cardShadow}>
       <LinenTexture className="opacity-70" />
       <div className="relative flex items-start gap-3">
         <Quote className="mt-0.5 h-5 w-5 shrink-0 text-blush" aria-hidden="true" />
         <div className="min-h-[5.5rem] min-w-0">
           <p className={cn('text-base font-semibold leading-relaxed text-white transition-opacity duration-500', typing && 'caret', fading && 'opacity-0')}>{text.slice(0, shown)}</p>
-          <p className={cn('mt-2 text-xs font-semibold text-white/70 transition-opacity duration-500', typing || fading ? 'opacity-0' : 'opacity-100')}>— {author}</p>
+          <p className={cn('mt-2 text-xs font-semibold text-white/90 transition-opacity duration-500', typing || fading ? 'opacity-0' : 'opacity-100')}>— {author}</p>
         </div>
       </div>
-      <button type="button" onClick={() => openGoalModal()} className="relative mt-3 rounded-lg bg-rust px-4 py-2 text-xs font-extrabold text-white hover:bg-rust-dark">Set a new goal</button>
+      <button type="button" onClick={() => openGoalModal()} className="relative mt-3 rounded-lg bg-rust px-4 py-2 text-xs font-extrabold text-white hover:bg-rust-strong">Set a new goal</button>
     </section>
   );
 }
@@ -379,7 +379,7 @@ function GoalsPanel() {
   const filtered = !!search.trim() || prio !== 'all' || horizonFilter !== 'all';
   const firstTime = !filtered && !cat && activeGoals.length === 0;
   const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length;
-  const pills = [{ id: 'all', name: 'All', color: '#3B5BDB' }, ...categories];
+  const pills = [{ id: 'all', name: 'All', color: '#4A78D4' }, ...categories];
 
   const emptyTitle = firstTime ? `Welcome, ${user.display_name.split(' ')[0]}! Let's set your first goal`
     : filtered ? 'No goals match your search' : cat ? `No ${cat.name} goals yet` : 'No goals yet';
@@ -428,8 +428,8 @@ function GoalsPanel() {
             const on = String(c.id) === String(activeCat);
             return (
               <button key={c.id} type="button" aria-pressed={on} onClick={() => setActiveCat(c.id)}
-                className={cn('flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors', !on && 'border-oat bg-soft text-charcoal/80 hover:border-rust')}
-                style={on ? { background: `${c.color}26`, borderColor: c.color, color: '#151B2C' } : undefined}>
+                className={cn('flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors', !on && 'border-oat bg-soft text-charcoal hover:border-rust')}
+                style={on ? { background: `${c.color}26`, borderColor: c.color, color: 'rgb(var(--charcoal))' } : undefined}>
                 <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />{c.name}
               </button>
             );
@@ -445,7 +445,7 @@ function GoalsPanel() {
       </div>
 
       {visibleGoals.length === 0 && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl rounded-3xl border border-dashed border-blush bg-soft p-10 text-center">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl rounded-3xl border border-dashed border-blush/50 bg-soft p-10 text-center">
           <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-rust text-white"><Target className="h-7 w-7" aria-hidden="true" /></div>
           <p className="text-lg font-extrabold text-charcoal">{emptyTitle}</p>
           <p className="mt-1 text-sm text-muted">{emptyHint}</p>

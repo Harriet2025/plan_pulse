@@ -129,6 +129,16 @@ A `pg_cron` job (`auragoal-worker`, in `supabase/jobs.sql`) calls the function e
 
 Give day plans a time or a length, and set how much time you really have in Settings → **Your day**. A day holds the day plans still to do on it, repeating ones included; rest days count as zero. The dashboard's **Today** card, the Planner and the calendar warn when a day is too full, and **Lighten today** suggests one-off plans to move (as little as possible, each to the first work day with room). Repeating plans are habits, so they stay put. **Spread them out** on Catch up fills days up to your capacity.
 
+## Light and dark mode
+
+The palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light**, **Dark** or **System** (follows the device, and changes with it) in Settings → **Appearance**, or flip between light and dark with the sun / moon button in the top bar. It switches at once, and the choice is saved on that device (`localStorage`, key `auragoal.theme`).
+
+- **One set of colour variables, two sets of values.** `src/index.css` defines every colour as a semantic CSS variable (page, card, panel, border, primary, primary-as-text, secondary, main / secondary / faint text, success, warning, danger, text on a status colour, and so on), once under `[data-theme="light"]` and once under `[data-theme="dark"]`. `tailwind.config.js` maps those variables to the Tailwind colour names the components already used (`bg-soft`, `text-muted`, `bg-rust`...), so components need no `dark:` variants. The comment at the top of `src/index.css` says what each name is for.
+- **Typography is separate.** The font is its own variable (`--font-sans`), outside both themes, so a theme can never change a font, size or weight.
+- **Readable first.** Every text colour pair meets WCAG AA (4.5:1) in both themes. Solid buttons use a slightly deeper blue than the dark theme's accent (#3A69C4 rather than #477BDB), because white on #477BDB is only 4.1:1. Text on solid success / warning / danger fills uses `text-on-status`, which is white in light mode and near-black in dark mode, where those colours are lighter.
+- **No flash.** A small script in `index.html` sets `data-theme` before anything draws; `src/lib/theme.js` changes it at run time (and keeps the browser's status-bar colour in step).
+- Category colours are chosen by people, so they stay the same in both themes; they are only used as accents (dots, stripes, tints), never as the colour of body text.
+
 ## Where things live
 
 | Path | Purpose |

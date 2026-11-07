@@ -78,7 +78,7 @@ export default function JournalView() {
 
         <div className="mt-4 grid gap-3">
           {shown.map((e) => <EntryCard key={e.id} entry={e} />)}
-          {!browsing && !entries.length && <p className="rounded-2xl border-2 border-dashed border-blush bg-ivory p-8 text-center text-sm text-muted">Your journal is empty. Write your first note above.</p>}
+          {!browsing && !entries.length && <p className="rounded-2xl border-2 border-dashed border-blush/50 bg-ivory p-8 text-center text-sm text-muted">Your journal is empty. Write your first note above.</p>}
           {!browsing && entries.length > limit && (
             <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="justify-self-center rounded-xl px-4 py-2 text-sm font-bold text-rust-dark hover:bg-oat/60">Show older entries</button>
           )}

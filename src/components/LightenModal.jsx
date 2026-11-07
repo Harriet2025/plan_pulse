@@ -42,7 +42,7 @@ export default function LightenModal() {
 
   return (
     <div className="fixed inset-0 z-40">
-      <motion.div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeLighten} />
+      <motion.div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeLighten} />
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center md:items-center md:p-6">
         <motion.div
           role="dialog" aria-modal="true" aria-labelledby="lightenTitle"
@@ -52,7 +52,7 @@ export default function LightenModal() {
           <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-oat md:hidden" />
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blush-dark text-white"><Gauge className="h-5 w-5" aria-hidden="true" /></span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blush-dark text-on-status"><Gauge className="h-5 w-5" aria-hidden="true" /></span>
               <div>
                 <h2 id="lightenTitle" className="text-lg font-extrabold leading-tight text-charcoal">Lighten {dayName}</h2>
                 <p className="mt-0.5 text-sm text-muted">{fmtMinutes(day.planned)} planned for a {fmtMinutes(day.capacity)} day, about <b className="text-danger">{fmtMinutes(day.over)}</b> too much.</p>
@@ -62,7 +62,7 @@ export default function LightenModal() {
           </div>
 
           {plan.picks.length === 0 ? (
-            <p className="mt-5 rounded-2xl border border-dashed border-blush bg-ivory p-5 text-sm text-muted">
+            <p className="mt-5 rounded-2xl border border-dashed border-blush/50 bg-ivory p-5 text-sm text-muted">
               Nothing can be moved automatically. Only one-off plans with a time or a length can move (repeating plans stay put),
               and there has to be room on a day in the next two weeks. Open the day and move or shorten something yourself.
             </p>
@@ -75,7 +75,7 @@ export default function LightenModal() {
                   return (
                     <li key={x.plan.id}>
                       <label className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-colors', on ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-                        <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={on} onChange={() => toggle(x.plan.id)} />
+                        <input type="checkbox" className="h-4 w-4 shrink-0 accent-rust" checked={on} onChange={() => toggle(x.plan.id)} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-bold text-charcoal">{x.plan.title}</span>
                           <span className="block truncate text-xs text-muted">{x.plan.start ? `${fmtSpan(x.plan.start, x.minutes)} · ` : ''}{fmtMinutes(x.minutes)}</span>
@@ -93,7 +93,7 @@ export default function LightenModal() {
               </p>
               <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
                 <button type="button" onClick={closeLighten} className="rounded-xl px-4 py-2.5 text-sm font-bold text-muted hover:text-charcoal">Not now</button>
-                <button type="button" onClick={move} disabled={busy || chosen.length === 0} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="button" onClick={move} disabled={busy || chosen.length === 0} className="rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:cursor-not-allowed disabled:opacity-60">
                   {busy ? 'Moving…' : `Move ${chosen.length} ${chosen.length === 1 ? 'plan' : 'plans'}`}
                 </button>
               </div>

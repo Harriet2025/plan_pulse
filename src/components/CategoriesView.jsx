@@ -36,7 +36,7 @@ function CategoryCard({ c, i }) {
         )}
       </div>
       <button type="button" onClick={() => { setActiveCat(c.id); setView('active'); }} className="relative mt-4 block w-full text-left">
-        <span className="flex items-center gap-2 text-lg font-extrabold text-charcoal">{c.name}<ArrowUpRight className="h-4 w-4 text-muted/60 group-hover:text-rust-dark" aria-hidden="true" /></span>
+        <span className="flex items-center gap-2 text-lg font-extrabold text-charcoal">{c.name}<ArrowUpRight className="h-4 w-4 text-faint group-hover:text-rust-dark" aria-hidden="true" /></span>
         <span className="block text-sm text-muted"><span className="font-extrabold tabular-nums text-charcoal">{gs.length}</span> active goal{gs.length === 1 ? '' : 's'}{c.personal ? ' · yours' : ''}</span>
         <Bar pct={pct} className="mt-4" fillStyle={{ background: c.color }} label={`${c.name} progress`} />
         <span className="mt-1.5 block text-xs tabular-nums text-muted">{done}/{total} plans &middot; {pct}%</span>
@@ -58,7 +58,7 @@ export default function CategoriesView() {
             <h2 className="text-lg font-extrabold text-charcoal">Your own categories</h2>
             <p className="text-sm text-muted">Make "Others" specific: add the areas that matter to you, like Content creation or Side hustle.</p>
           </div>
-          {!adding && <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New category</button>}
+          {!adding && <button type="button" onClick={() => setAdding(true)} className="inline-flex items-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New category</button>}
         </div>
         <div className={grid}>
           {adding && (
@@ -67,7 +67,7 @@ export default function CategoriesView() {
             </div>
           )}
           {mine.map((c, i) => <CategoryCard key={c.id} c={c} i={i} />)}
-          {!mine.length && !adding && <p className="rounded-3xl border-2 border-dashed border-blush bg-soft/60 p-6 text-sm text-muted sm:col-span-2">You have not added any yet. They also appear when you choose a category for a goal.</p>}
+          {!mine.length && !adding && <p className="rounded-3xl border-2 border-dashed border-blush/50 bg-soft/60 p-6 text-sm text-muted sm:col-span-2">You have not added any yet. They also appear when you choose a category for a goal.</p>}
         </div>
       </section>
       <section>

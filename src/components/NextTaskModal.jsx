@@ -42,7 +42,7 @@ export default function NextTaskModal() {
 
   return (
     <div className="fixed inset-0 z-40">
-      <motion.div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeNext} />
+      <motion.div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeNext} />
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center md:items-center md:p-6">
         <motion.div role="dialog" aria-modal="true" aria-labelledby="nextTitle"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}
@@ -105,7 +105,7 @@ export default function NextTaskModal() {
                 )}
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                   <button type="button" onClick={() => start(best)} disabled={!!focus}
-                    className="inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-dark disabled:opacity-50">
+                    className="inline-flex items-center gap-2 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white shadow-md hover:bg-rust-strong disabled:opacity-50">
                     <Play className="h-4 w-4" aria-hidden="true" />Start this task
                   </button>
                   <button type="button" onClick={skip} className="inline-flex items-center gap-1.5 rounded-xl border border-oat bg-soft px-3.5 py-2.5 text-sm font-bold text-charcoal hover:border-rust"><SkipForward className="h-4 w-4" aria-hidden="true" />Skip</button>
@@ -114,7 +114,7 @@ export default function NextTaskModal() {
                 {focus && <p className="mt-2 text-xs text-muted">You are already focusing on "{focus.title}". Finish or stop it first.</p>}
               </motion.section>
             ) : (
-              <motion.p key="none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 rounded-2xl border-2 border-dashed border-blush bg-ivory p-6 text-center text-sm text-muted">
+              <motion.p key="none" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 rounded-2xl border-2 border-dashed border-blush/50 bg-ivory p-6 text-center text-sm text-muted">
                 {all.length ? 'You have skipped everything. Tap a time or energy level to start over, or choose from the list.' : 'Nothing to do right now: no plans left for today and no unfinished goal plans. Enjoy the break, or set a new goal.'}
               </motion.p>
             )}

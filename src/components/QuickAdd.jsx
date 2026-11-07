@@ -58,7 +58,7 @@ export default function QuickAdd({ dayKey = null, className }) {
           placeholder="Quick add: gym tomorrow 6-7am" maxLength={300} autoComplete="off" enterKeyHint="done"
           value={text} onChange={(e) => setText(e.target.value)} />
         <button type="submit" disabled={!p || !!p.problem || busy} aria-label="Add the plan"
-          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl bg-rust px-3 text-xs font-extrabold text-white hover:bg-rust-dark disabled:opacity-40">
+          className="inline-flex h-9 shrink-0 items-center gap-1 rounded-xl bg-rust px-3 text-xs font-extrabold text-white hover:bg-rust-strong disabled:opacity-40">
           <Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" /><span className="hidden sm:inline">Add</span>
         </button>
       </div>

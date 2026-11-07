@@ -24,7 +24,7 @@ export default function ReflectionModal() {
   const done = goal.sub_plans.filter((t) => t.done).length;
   return (
     <div className="fixed inset-0 z-40">
-      <motion.div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeReflection} />
+      <motion.div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeReflection} />
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center md:items-center md:p-6">
         <motion.div role="dialog" aria-modal="true" aria-labelledby="reflectTitle"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}
@@ -32,7 +32,7 @@ export default function ReflectionModal() {
           style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))' }}>
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-success text-white"><BookHeart className="h-5 w-5" aria-hidden="true" /></span>
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-success text-on-status"><BookHeart className="h-5 w-5" aria-hidden="true" /></span>
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">Reflection · {horizonOf(goal.timeframe).label} goal{goal.due_date ? ` · ${periodLabel(goal.timeframe, parseDay(goal.due_date))}` : ''}</p>
                 <h2 id="reflectTitle" className="text-lg font-extrabold leading-snug text-charcoal">{goal.title}</h2>

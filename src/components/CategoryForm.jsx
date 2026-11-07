@@ -33,7 +33,7 @@ export default function CategoryForm({ initial, onSave, onCancel, saveLabel = 'A
         ))}
       </div>
       <div className="mt-3 flex items-center gap-2">
-        <button type="button" onClick={submit} disabled={busy || !name.trim()} className="rounded-lg bg-rust px-3.5 py-2 text-xs font-extrabold text-white hover:bg-rust-dark disabled:opacity-50">{busy ? 'Saving…' : saveLabel}</button>
+        <button type="button" onClick={submit} disabled={busy || !name.trim()} className="rounded-lg bg-rust px-3.5 py-2 text-xs font-extrabold text-white hover:bg-rust-strong disabled:opacity-50">{busy ? 'Saving…' : saveLabel}</button>
         {onCancel && <button type="button" onClick={onCancel} className="rounded-lg px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Cancel</button>}
       </div>
     </div>

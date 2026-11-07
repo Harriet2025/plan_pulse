@@ -35,7 +35,7 @@ function LookBack({ choices, setChoices }) {
   const done = items.filter((x) => x.done).length;
   const finished = goals.filter((g) => g.status === 'COMPLETED' && g.completed_at && last.includes(localDate(new Date(g.completed_at)))).length;
   const pick = (key, choice) => setChoices((c) => ({ ...c, [key]: choice }));
-  const chip = (on, tone = 'rust') => cn('rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors', on ? (tone === 'rust' ? 'border-rust bg-rust text-white' : 'border-charcoal/40 bg-charcoal/10 text-charcoal') : 'border-oat bg-ivory text-charcoal hover:border-rust');
+  const chip = (on, tone = 'rust') => cn('rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors', on ? (tone === 'rust' ? 'border-rust bg-rust text-white' : 'border-charcoal/40 bg-ink/10 text-charcoal') : 'border-oat bg-ivory text-charcoal hover:border-rust');
 
   return (
     <div className="grid gap-4">
@@ -88,10 +88,10 @@ function PickFocus({ focus, setFocus }) {
 
   if (!open.length) {
     return (
-      <div className="rounded-2xl border border-dashed border-blush p-5 text-center">
+      <div className="rounded-2xl border border-dashed border-blush/50 p-5 text-center">
         <p className="text-sm font-bold text-charcoal">No open goals yet</p>
         <p className="mt-1 text-xs text-muted">Set a goal for this week, month or year, then come back to plan your week around it.</p>
-        <button type="button" onClick={() => { closeWeekPlan(); openGoalModal({ timeframe: 'WEEKLY', anchor: week.key }); }} className="mt-3 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark">Set a goal</button>
+        <button type="button" onClick={() => { closeWeekPlan(); openGoalModal({ timeframe: 'WEEKLY', anchor: week.key }); }} className="mt-3 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong">Set a goal</button>
       </div>
     );
   }
@@ -147,7 +147,7 @@ function GiveTime({ rows, setRows }) {
               return (
                 <li key={r.id} className={cn('rounded-2xl border p-3', r.on && !already ? 'border-rust/50 bg-rust/5' : 'border-oat bg-ivory')}>
                   <label className="flex cursor-pointer items-start gap-2.5">
-                    <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={!!already || r.on} disabled={!!already} onChange={(e) => set(r.id, { on: e.target.checked })} />
+                    <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-rust" checked={!!already || r.on} disabled={!!already} onChange={(e) => set(r.id, { on: e.target.checked })} />
                     <span className="min-w-0 flex-1 text-sm font-semibold text-charcoal">{r.text}{already && <span className="block text-[11px] font-semibold text-success">Already on {shortDay(parseDay(already.date))}</span>}</span>
                   </label>
                   {r.on && !already && (
@@ -289,7 +289,7 @@ export default function WeeklyPlanModal() {
   const title = `Plan ${week.next ? 'next' : 'this'} week`;
   return (
     <div className="fixed inset-0 z-40">
-      <motion.div className="absolute inset-0 bg-charcoal/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeWeekPlan} />
+      <motion.div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeWeekPlan} />
       <div className="pointer-events-none absolute inset-0 flex items-end justify-center md:items-center md:p-6">
         <motion.div role="dialog" aria-modal="true" aria-labelledby="weekTitle"
           initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', stiffness: 320, damping: 32 }}
@@ -329,8 +329,8 @@ export default function WeeklyPlanModal() {
           <div className="flex items-center gap-2 border-t border-oat p-4 md:px-6" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
             {step > 0 && <button type="button" onClick={() => setStep((s) => s - 1)} disabled={busy} className="inline-flex items-center gap-1 rounded-xl px-3 py-2.5 text-sm font-bold text-muted hover:bg-oat/60 hover:text-charcoal"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Back</button>}
             {step < 3
-              ? <button type="button" onClick={next} disabled={busy} className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60">{busy ? 'Saving…' : 'Next'}<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
-              : <button type="button" onClick={finish} disabled={busy} className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark disabled:opacity-60"><Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />{busy ? 'Saving…' : 'Plan my week'}</button>}
+              ? <button type="button" onClick={next} disabled={busy} className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-60">{busy ? 'Saving…' : 'Next'}<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+              : <button type="button" onClick={finish} disabled={busy} className="ml-auto inline-flex items-center gap-1.5 rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:opacity-60"><Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />{busy ? 'Saving…' : 'Plan my week'}</button>}
           </div>
         </motion.div>
       </div>
@@ -353,7 +353,7 @@ export function WeekNudge() {
     <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-rust/30 bg-rust/5 p-4" aria-label="Plan your week">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-rust text-white"><CalendarCheck className="h-5 w-5" aria-hidden="true" /></span>
       <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">Plan {week.next ? 'next' : 'this'} week <span className="font-normal text-muted">Look back, pick your focus, and give it time. About 5 minutes.</span></p>
-      <button type="button" onClick={openWeekPlan} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-dark sm:flex-none">Start<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+      <button type="button" onClick={openWeekPlan} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong sm:flex-none">Start<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
       <button type="button" onClick={later} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not now</button>
     </motion.section>
   );

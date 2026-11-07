@@ -7,7 +7,7 @@ import { cn, computeAnalytics, fmtWhen, progressOf } from '../lib/utils';
 import { Bar, Ring, TwoTapButton } from './ui';
 
 const panel = 'mt-3 rounded-2xl border border-oat bg-soft p-5';
-const H2 = ({ children, id }) => <h2 id={id} className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal/80">{children}</h2>;
+const H2 = ({ children, id }) => <h2 id={id} className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal">{children}</h2>;
 
 function Performance({ a, badges }) {
   const o = a.overall;
@@ -17,7 +17,7 @@ function Performance({ a, badges }) {
       <div className={panel}>
         <div className="flex flex-wrap items-center gap-6">
           <div className="relative h-32 w-32 shrink-0" role="img" aria-label="Overall task completion">
-            <Ring pct={o.completion_pct} track="#E2E7F0" stroke="#3B5BDB" strokeWidth={10} />
+            <Ring pct={o.completion_pct} track="rgb(var(--oat))" stroke="rgb(var(--rust))" strokeWidth={10} />
             <div className="absolute inset-0 grid place-items-center text-center"><div><div className="text-3xl font-extrabold tabular-nums text-charcoal">{o.completion_pct}%</div><div className="text-[10px] font-bold uppercase tracking-wider text-muted">Tasks done</div></div></div>
           </div>
           <dl className="grid min-w-[14rem] flex-1 gap-3 text-sm">
@@ -101,11 +101,11 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
     <motion.article ref={ref} layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
       className="rounded-2xl border border-oat bg-soft p-4">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider', done ? 'border-success/50 bg-success/15 text-success' : 'border-blush bg-oat text-charcoal/80')}>
+        <span className={cn('inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider', done ? 'border-success/50 bg-success/15 text-success' : 'border-blush bg-oat text-charcoal')}>
           <StatusIcon className="h-3 w-3" aria-hidden="true" />{done ? 'Completed' : 'Archived'}
         </span>
         {cat && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold" style={{ background: `${cat.color}22`, borderColor: `${cat.color}88`, color: '#151B2C' }}>
+          <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold" style={{ background: `${cat.color}22`, borderColor: `${cat.color}88`, color: 'rgb(var(--charcoal))' }}>
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: cat.color }} />{cat.name}
           </span>
         )}
@@ -119,7 +119,7 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {done && (
-          <button type="button" onClick={() => openReflection(g.id)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold', reflected ? 'border border-oat bg-oat text-charcoal hover:border-rust' : 'bg-success text-white hover:opacity-90')}>
+          <button type="button" onClick={() => openReflection(g.id)} className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold', reflected ? 'border border-oat bg-oat text-charcoal hover:border-rust' : 'bg-success text-on-status hover:opacity-90')}>
             <BookHeart className="h-3.5 w-3.5" aria-hidden="true" />{reflected ? 'Read reflection' : 'Write a reflection'}
           </button>
         )}

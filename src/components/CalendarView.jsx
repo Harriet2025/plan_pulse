@@ -27,7 +27,7 @@ function buildEvents(goals, dayPlans, categories, days) {
     const cat = categories.find((c) => c.id === g.category_id);
     const completed = g.status === 'COMPLETED';
     add(g.due_date, {
-      id: `g${g.id}`, kind: 'goal', goalId: g.id, goalActive: !completed, title: g.title, color: cat?.color ?? '#3B5BDB', done: completed,
+      id: `g${g.id}`, kind: 'goal', goalId: g.id, goalActive: !completed, title: g.title, color: cat?.color ?? '#4A78D4', done: completed,
       overdue: !completed && daysUntil(g.due_date) < 0, category: cat?.name, progress: progressOf(g), time: '', horizon: g.timeframe,
     });
   }
@@ -35,7 +35,7 @@ function buildEvents(goals, dayPlans, categories, days) {
     for (const x of plansOn(dayPlans, key)) {
       const ends = x.start ? new Date(`${key}T00:00:00`).getTime() + (clockToMinutes(x.start) + (x.minutes ?? 0)) * 60000 : new Date(`${key}T23:59:59`).getTime();
       add(key, {
-        id: `p${x.plan.id}@${key}`, kind: 'plan', title: x.plan.title, color: '#3B5BDB', done: x.done, overdue: !x.done && ends < now.getTime(),
+        id: `p${x.plan.id}@${key}`, kind: 'plan', title: x.plan.title, color: '#4A78D4', done: x.done, overdue: !x.done && ends < now.getTime(),
         time: x.start ?? '', clock: x.start ? fmtClock(new Date(`${key}T${x.start}`)) : '', span: fmtSpan(x.start, x.minutes), repeats: x.plan.repeat !== 'NONE',
       });
     }
@@ -234,14 +234,14 @@ export default function CalendarView() {
             ))}
           </AnimatePresence>
           {!dayEvents.length && (
-            <p className="rounded-2xl border border-dashed border-blush bg-ivory px-4 py-6 text-center text-sm text-muted">
+            <p className="rounded-2xl border border-dashed border-blush/50 bg-ivory px-4 py-6 text-center text-sm text-muted">
               Nothing planned for this day.
             </p>
           )}
         </div>
 
         <button type="button" onClick={() => openDay(selected)}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-dark">
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-rust px-4 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong">
           <ListChecks className="h-4 w-4" aria-hidden="true" />Plan this day
         </button>
         <p className="mt-3 text-xs leading-relaxed text-muted">

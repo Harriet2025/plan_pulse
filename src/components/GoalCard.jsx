@@ -27,7 +27,7 @@ function TaskItem({ goal, task }) {
         <label className="sr-only" htmlFor={`rn-${task.id}`}>Rename plan</label>
         <input id={`rn-${task.id}`} className="field !py-1.5" maxLength={500} value={text} autoFocus onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } if (e.key === 'Escape') { setEditing(false); setText(task.text); } }} />
-        <button type="button" onClick={save} aria-label="Save the new name" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rust text-white hover:bg-rust-dark"><Check className="h-4 w-4" aria-hidden="true" /></button>
+        <button type="button" onClick={save} aria-label="Save the new name" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-rust text-white hover:bg-rust-strong"><Check className="h-4 w-4" aria-hidden="true" /></button>
         <button type="button" onClick={() => { setEditing(false); setText(task.text); }} aria-label="Cancel" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-muted hover:bg-oat/60"><X className="h-4 w-4" aria-hidden="true" /></button>
       </li>
     );
@@ -75,7 +75,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
 
   const p = PRIORITY[g.priority];
   const cat = categories.find((c) => c.id === g.category_id);
-  const color = cat ? cat.color : '#3B5BDB';
+  const color = cat ? cat.color : '#4A78D4';
   const CatIcon = catIcon(cat?.name);
   const pct = progressOf(g);
   const done = g.sub_plans.filter((t) => t.done).length;
@@ -89,7 +89,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
     setOpen(true);
     requestAnimationFrame(() => {
       ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      ref.current?.animate([{ outline: '3px solid #3B5BDB' }, { outline: '3px solid transparent' }], { duration: 1600 });
+      ref.current?.animate([{ outline: `3px solid rgb(${getComputedStyle(document.documentElement).getPropertyValue('--rust').trim()})` }, { outline: '3px solid transparent' }], { duration: 1600 });
     });
     consumeFocus();
   }, [focusReq, g.id, consumeFocus]);
@@ -160,7 +160,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
         <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success">
           <BookHeart className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0 flex-1">{reflection ? 'You wrote a reflection on this goal.' : 'Done! How did it go? Capture it while it is fresh.'}</span>
-          <button type="button" onClick={() => openReflection(g.id)} className="rounded-lg bg-success px-2.5 py-1 text-[11px] font-extrabold text-white hover:opacity-90">{reflection ? 'Read' : 'Reflect'}</button>
+          <button type="button" onClick={() => openReflection(g.id)} className="rounded-lg bg-success px-2.5 py-1 text-[11px] font-extrabold text-on-status hover:opacity-90">{reflection ? 'Read' : 'Reflect'}</button>
         </div>
       )}
 

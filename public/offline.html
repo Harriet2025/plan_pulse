@@ -3,34 +3,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#3B5BDB">
+  <meta name="theme-color" content="#F5F7FA">
   <title>Offline · AuraGoal</title>
   <link rel="icon" href="/icons/favicon-32.png">
   <style>
+    /* Same colours as the app: light, and dark when the device is in dark mode */
+    :root { --bg: #F5F7FA; --card: #FFFFFF; --line: #D8E0EA; --text: #202B38; --muted: #536174; --accent: #356ACB; --accent-hover: #2A56A8; color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) { :root { --bg: #17191E; --card: #242831; --line: #3A414D; --text: #F3F5F8; --muted: #B8C0CC; --accent: #3A69C4; --accent-hover: #2E59AC; } }
     /* Self-contained on purpose: this page must work with nothing else loaded */
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
     body {
       margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
       padding-top: max(24px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom));
-      background: #F4F6FA; color: #151B2C;
+      background: var(--bg); color: var(--text);
       font-family: Manrope, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     }
     .card {
-      width: 100%; max-width: 420px; text-align: center; background: #FFFFFF; border: 1px solid #E2E7F0;
+      width: 100%; max-width: 420px; text-align: center; background: var(--card); border: 1px solid var(--line);
       border-radius: 28px; padding: 32px 24px; box-shadow: 0 1px 2px rgba(53,45,41,.04), 0 10px 24px -14px rgba(53,45,41,.16);
     }
-    .logo { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 18px; background: #3B5BDB; display: grid; place-items: center; }
+    .logo { width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 18px; background: var(--accent); display: grid; place-items: center; }
     h1 { margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
-    p { margin: 0 0 12px; color: #5E6779; line-height: 1.5; font-size: 15px; }
-    ul { text-align: left; color: #5E6779; font-size: 14px; line-height: 1.5; margin: 0 0 20px; padding-left: 20px; }
+    p { margin: 0 0 12px; color: var(--muted); line-height: 1.5; font-size: 15px; }
+    ul { text-align: left; color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 20px; padding-left: 20px; }
     button {
-      appearance: none; border: 0; border-radius: 12px; background: #3B5BDB; color: #fff; font: inherit; font-weight: 800;
+      appearance: none; border: 0; border-radius: 12px; background: var(--accent); color: #fff; font: inherit; font-weight: 800;
       font-size: 15px; padding: 12px 22px; cursor: pointer; min-height: 44px;
     }
-    button:hover { background: #2B44B0; }
-    button:focus-visible { outline: 3px solid #151B2C; outline-offset: 3px; }
-    .status { margin-top: 14px; font-size: 13px; color: #5E6779; min-height: 1.2em; }
+    button:hover { background: var(--accent-hover); }
+    button:focus-visible { outline: 3px solid var(--text); outline-offset: 3px; }
+    .status { margin-top: 14px; font-size: 13px; color: var(--muted); min-height: 1.2em; }
   </style>
 </head>
 <body>

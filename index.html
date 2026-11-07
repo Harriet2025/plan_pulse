@@ -7,7 +7,18 @@
   <meta name="description" content="Set goals for the week, month and year, plan your days, and keep your streak with an accountability partner.">
   <!-- Installable app (PWA): see public/manifest.webmanifest and public/sw.js -->
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#3B5BDB">
+  <meta name="theme-color" content="#F5F7FA">
+  <!-- Light or dark theme before anything draws, so the wrong one never flashes. Mirrors src/lib/theme.js. -->
+  <script>
+    (function () {
+      try {
+        var c = localStorage.getItem('auragoal.theme');
+        var dark = c === 'dark' || (c !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#17191E' : '#F5F7FA');
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="AuraGoal">

@@ -240,7 +240,7 @@ export function dueInfo(iso) {
   const n = daysUntil(iso);
   if (n < 0) return { text: daysLabel(n), cls: 'text-danger' };
   if (n <= 1) return { text: daysLabel(n), cls: 'text-warning' };
-  return { text: daysLabel(n), cls: n <= 3 ? 'text-warning' : 'text-charcoal/80' };
+  return { text: daysLabel(n), cls: n <= 3 ? 'text-warning' : 'text-charcoal' };
 }
 
 export const fmtShort = (d) =>

@@ -82,7 +82,7 @@ export default function App() {
           >
             <span className="min-w-0">{toastMsg.msg}</span>
             {toastMsg.action ? (
-              <button type="button" onClick={() => { dismissToast(); toastMsg.action.onClick(); }} className="shrink-0 rounded-full bg-rust px-3.5 py-1.5 text-xs font-extrabold text-white hover:bg-rust-dark">
+              <button type="button" onClick={() => { dismissToast(); toastMsg.action.onClick(); }} className="shrink-0 rounded-full bg-rust px-3.5 py-1.5 text-xs font-extrabold text-white hover:bg-rust-strong">
                 {toastMsg.action.label}
               </button>
             ) : <span className="w-2 shrink-0" />}

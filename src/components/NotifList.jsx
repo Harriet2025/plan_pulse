@@ -33,7 +33,7 @@ export default function NotifList({ onPick, empty, className }) {
   const goGoal = (id) => { onPick?.(); openGoal(id); };
   const goDay = (key) => { onPick?.(); openDay(key); };
   const amber = 'bg-warning/15 text-warning';
-  const calm = 'bg-oat text-charcoal/80';
+  const calm = 'bg-oat text-charcoal';
 
   return (
     <ul className={className}>
