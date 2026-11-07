@@ -123,7 +123,7 @@ export default function ReviewPanel({ horizon, anchor }) {
     <div className="grid gap-5">
       <section className="flex flex-wrap items-center gap-5 rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-label="Your result">
         <div className="relative h-28 w-28 shrink-0">
-          <Ring pct={pct} track="#E8DCCB" stroke={pct >= 80 ? '#3F6B4D' : '#B85C38'} />
+          <Ring pct={pct} track="#E2E7F0" stroke={pct >= 80 ? '#1F8A5B' : '#3B5BDB'} />
           <span className="absolute inset-0 grid place-items-center text-center"><span><b className="block text-2xl font-extrabold tabular-nums text-charcoal">{pct}%</b><span className="text-[10px] font-bold uppercase tracking-wider text-muted">done</span></span></span>
         </div>
         <div className="min-w-0 flex-1">

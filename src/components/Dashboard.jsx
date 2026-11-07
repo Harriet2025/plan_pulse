@@ -4,7 +4,7 @@ import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, Clipboa
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
-import { Bar, LinenTexture, Ring, cardShadow, glassShadow } from './ui';
+import { Bar, LinenTexture, Ring, cardShadow, glassShadow, heroStyle } from './ui';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
 import { InstallNudge } from './AppStatus';
@@ -60,8 +60,8 @@ function Hero({ totals, open }) {
     : 'Everything is done. Add a new goal to keep your streak going.';
 
   return (
-    // Terracotta hero. All text on it is pure white, which is the only white that keeps 4.5:1 on rust.
-    <section className="relative overflow-hidden rounded-[28px] bg-rust p-5 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
+    // Blue hero. All text on it is white, which keeps well over 4.5:1 on every part of the gradient.
+    <section className="relative overflow-hidden rounded-[28px] bg-rust p-5 text-white md:p-8" style={heroStyle}>
       <LinenTexture />
       <div className="relative flex flex-wrap items-center justify-between gap-6">
         <div className="min-w-0 max-w-xl">
@@ -179,7 +179,7 @@ function LoadCard() {
           {load.tasks.slice(0, 5).map((x) => (
             <li key={x.plan.id}>
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-oat/50">
-                <input type="checkbox" className="h-4 w-4 accent-[#B85C38]" checked={false} onChange={() => toggleDayPlan(x.plan.id, today, true)} />
+                <input type="checkbox" className="h-4 w-4 accent-[#3B5BDB]" checked={false} onChange={() => toggleDayPlan(x.plan.id, today, true)} />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold text-charcoal">{x.plan.title}</span>
                 {x.start && <span className="shrink-0 text-[11px] font-bold tabular-nums text-muted">{fmtSpan(x.start, x.minutes)}</span>}
               </label>
@@ -379,7 +379,7 @@ function GoalsPanel() {
   const filtered = !!search.trim() || prio !== 'all' || horizonFilter !== 'all';
   const firstTime = !filtered && !cat && activeGoals.length === 0;
   const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length;
-  const pills = [{ id: 'all', name: 'All', color: '#B85C38' }, ...categories];
+  const pills = [{ id: 'all', name: 'All', color: '#3B5BDB' }, ...categories];
 
   const emptyTitle = firstTime ? `Welcome, ${user.display_name.split(' ')[0]}! Let's set your first goal`
     : filtered ? 'No goals match your search' : cat ? `No ${cat.name} goals yet` : 'No goals yet';
@@ -429,7 +429,7 @@ function GoalsPanel() {
             return (
               <button key={c.id} type="button" aria-pressed={on} onClick={() => setActiveCat(c.id)}
                 className={cn('flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors', !on && 'border-oat bg-soft text-charcoal/80 hover:border-rust')}
-                style={on ? { background: `${c.color}26`, borderColor: c.color, color: '#352D29' } : undefined}>
+                style={on ? { background: `${c.color}26`, borderColor: c.color, color: '#151B2C' } : undefined}>
                 <span className="h-2 w-2 rounded-full" style={{ background: c.color }} />{c.name}
               </button>
             );

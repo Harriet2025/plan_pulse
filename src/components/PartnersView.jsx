@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
 import { catIcon, horizonOf } from '../lib/constants';
 import { cn, fmtSpan, localDate, parseDay, periodLabel, periodStart, readInvite } from '../lib/utils';
 import Together, { weekSpan } from './Together';
-import { Avatar, Bar, cardShadow } from './ui';
+import { Avatar, Bar, cardShadow, heroStyle } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
 const QUICK = ['You got this! 💪', 'Proud of you 🎉', 'How is your day going?', 'Let’s finish strong today 🔥'];
@@ -386,8 +386,8 @@ function Sharing({ entry }) {
               return (
                 <li key={g.id}>
                   <label className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border-2 px-3 py-2.5 transition-colors', on ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#B85C38]" checked={on} onChange={() => toggle(g.id)} />
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: cat?.color ?? '#B85C38' }}><Icon className="h-3.5 w-3.5" aria-hidden="true" /></span>
+                    <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={on} onChange={() => toggle(g.id)} />
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ background: cat?.color ?? '#3B5BDB' }}><Icon className="h-3.5 w-3.5" aria-hidden="true" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-bold text-charcoal">{g.title}</span>
                       <span className="block text-[11px] text-muted">{horizonOf(g.timeframe).label} goal{cat ? ` · ${cat.name}` : ''}{g.status === 'COMPLETED' ? ' · done' : ''}</span>
@@ -400,7 +400,7 @@ function Sharing({ entry }) {
           </ul>
         )}
         <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-2xl border border-oat bg-ivory p-3">
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#B85C38]" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#3B5BDB]" checked={dayPlans} onChange={(e) => setDayPlans(e.target.checked)} />
           <span><b className="text-sm text-charcoal">My day plans</b><span className="block text-xs text-muted">{name} sees what you planned for today and what you have ticked off. You can still hide a single plan when you edit it.</span></span>
         </label>
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -441,7 +441,7 @@ function TheirGoals({ entry, view, onCheered }) {
         return (
           <article key={g.id} className="rounded-2xl border border-oat bg-soft p-4" style={cardShadow}>
             <div className="flex items-start gap-2.5">
-              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cat?.color ?? '#B85C38' }} />
+              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cat?.color ?? '#3B5BDB' }} />
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date))}{cat ? ` · ${cat.name}` : ''}</p>
                 <h4 className={cn('break-words text-base font-extrabold leading-snug', g.status === 'COMPLETED' ? 'text-success' : 'text-charcoal')}>{g.title}{g.status === 'COMPLETED' && ' ✓'}</h4>
@@ -579,7 +579,7 @@ export default function PartnersView() {
   if (!partners.length) {
     return (
       <div className="mx-auto grid max-w-3xl gap-5">
-        <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={{ boxShadow: '0 18px 36px -20px rgba(154,73,41,.55)' }}>
+        <section className="relative overflow-hidden rounded-[28px] bg-rust p-6 text-white md:p-8" style={heroStyle}>
           <Users className="h-10 w-10 text-white/90" aria-hidden="true" />
           <h2 className="mt-3 text-2xl font-extrabold tracking-tight">Better together</h2>
           <p className="mt-1 max-w-lg text-sm text-white/85">Invite a partner: your love, a friend or a coursemate. Set goals you both own, take on a challenge every week, chat, cheer each other on and nudge when one of you goes quiet. Your own goals stay private unless you share them.</p>

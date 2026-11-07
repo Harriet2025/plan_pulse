@@ -75,7 +75,7 @@ export default function LightenModal() {
                   return (
                     <li key={x.plan.id}>
                       <label className={cn('flex cursor-pointer items-center gap-3 rounded-2xl border p-3 transition-colors', on ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-                        <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#B85C38]" checked={on} onChange={() => toggle(x.plan.id)} />
+                        <input type="checkbox" className="h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={on} onChange={() => toggle(x.plan.id)} />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-bold text-charcoal">{x.plan.title}</span>
                           <span className="block truncate text-xs text-muted">{x.plan.start ? `${fmtSpan(x.plan.start, x.minutes)} · ` : ''}{fmtMinutes(x.minutes)}</span>

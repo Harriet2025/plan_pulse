@@ -2,23 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Ivory + Rust + Dusty Rose palette. Values are space-separated RGB so Tailwind can add opacity.
+/* Royal blue + slate palette. Values are space-separated RGB so Tailwind can add opacity.
+   The token names (ivory, rust, blush...) are older than the colours: rust is simply "the primary colour".
    A dark theme would override these same variables; nothing else needs to change. */
 :root {
-  --ivory: 250 246 239;       /* #FAF6EF  page background */
-  --soft: 255 252 249;        /* #FFFCF9  cards, modals, inputs */
-  --oat: 232 220 203;         /* #E8DCCB  borders, dividers, progress tracks */
-  --rust: 184 92 56;          /* #B85C38  primary buttons, active nav, key actions */
-  --rust-dark: 154 73 41;     /* #9A4929  hover, and rust used as text (meets 4.5:1 on light) */
-  --blush: 217 169 155;       /* #D9A99B  secondary accents, achievements */
-  --blush-dark: 168 104 90;   /* #A8685A  blush as an icon or text colour */
-  --charcoal: 53 45 41;       /* #352D29  headings and primary text */
-  --muted: 118 104 95;        /* #76685F  secondary text */
+  --ivory: 244 246 250;       /* #F4F6FA  page background */
+  --soft: 255 255 255;        /* #FFFFFF  cards, modals, inputs */
+  --oat: 226 231 240;         /* #E2E7F0  borders, dividers, progress tracks */
+  --rust: 59 91 219;          /* #3B5BDB  primary buttons, active nav, key actions */
+  --rust-dark: 43 68 176;     /* #2B44B0  hover, and the primary used as text (meets 4.5:1 on light) */
+  --blush: 185 198 242;       /* #B9C6F2  secondary accents, hover borders, achievements */
+  --blush-dark: 90 107 176;   /* #5A6BB0  the secondary as an icon or text colour */
+  --charcoal: 21 27 44;       /* #151B2C  headings and primary text */
+  --muted: 94 103 121;        /* #5E6779  secondary text */
 
-  /* Status colours, tuned to sit beside the palette */
-  --success: 63 107 77;       /* sage */
-  --warning: 138 95 15;       /* ochre */
-  --danger: 176 48 40;        /* brick red, clearly different from rust */
+  /* Status colours */
+  --success: 31 138 91;       /* green */
+  --warning: 178 107 0;       /* amber */
+  --danger: 214 60 60;        /* red */
 
   color-scheme: light;
 }

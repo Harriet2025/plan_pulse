@@ -41,7 +41,7 @@ export default function FocusTimer() {
   return (
     <motion.aside initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
       className="fixed bottom-24 right-3 z-[70] w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-rust/40 bg-soft p-3.5 shadow-xl md:bottom-5 md:right-5"
-      style={{ boxShadow: '0 18px 40px -18px rgba(53,45,41,.45)' }} aria-label="Focus timer" aria-live="polite">
+      style={{ boxShadow: '0 18px 40px -18px rgba(21,27,44,.45)' }} aria-label="Focus timer" aria-live="polite">
       <div className="flex items-start gap-3">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white ${up ? 'bg-success' : 'bg-rust'}`}><Timer className="h-5 w-5" aria-hidden="true" /></span>
         <div className="min-w-0 flex-1">

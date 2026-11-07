@@ -11,7 +11,7 @@ export const CATEGORIES = [
   { id: 10, name: 'Health',   color: '#5F8F6B' },
   { id: 11, name: 'Family',   color: '#B8647D' },
   { id: 12, name: 'Finance',  color: '#9A7B4F' },
-  { id: 9,  name: 'Others',   color: '#8A7F76' },
+  { id: 9,  name: 'Others',   color: '#64748B' },
 ];
 
 export const CAT_ICONS = {
@@ -51,11 +51,11 @@ export const PRIORITY = {
 };
 
 export const TIERS = {
-  1: { name: 'Bronze', emoji: '🥉', min: 50, color: '#cd7f32', glow: 'rgba(205,127,50,.55)', confetti: ['#cd7f32', '#e8a96b', '#B85C38', '#D9A99B', '#E8DCCB'],
+  1: { name: 'Bronze', emoji: '🥉', min: 50, color: '#cd7f32', glow: 'rgba(205,127,50,.55)', confetti: ['#cd7f32', '#e8a96b', '#3B5BDB', '#B9C6F2', '#E2E7F0'],
        msg: 'Halfway there and moving. Keep the momentum going.' },
-  2: { name: 'Silver', emoji: '🥈', min: 75, color: '#a9b4c4', glow: 'rgba(203,213,225,.5)', confetti: ['#e2e8f0', '#94a3b8', '#D9A99B', '#E8DCCB', '#B85C38'],
+  2: { name: 'Silver', emoji: '🥈', min: 75, color: '#a9b4c4', glow: 'rgba(203,213,225,.5)', confetti: ['#e2e8f0', '#94a3b8', '#B9C6F2', '#E2E7F0', '#3B5BDB'],
        msg: 'Three quarters done. The finish line is in sight.' },
-  3: { name: 'Gold', emoji: '🥇', min: 90, color: '#facc15', glow: 'rgba(250,204,21,.6)', confetti: ['#facc15', '#fde047', '#e0a526', '#D9A99B', '#B85C38', '#E8DCCB'],
+  3: { name: 'Gold', emoji: '🥇', min: 90, color: '#facc15', glow: 'rgba(250,204,21,.6)', confetti: ['#facc15', '#fde047', '#e0a526', '#B9C6F2', '#3B5BDB', '#E2E7F0'],
        msg: 'Outstanding. You are almost perfect at this one.' },
 };
 export const tierOf = (pct) => (pct >= 90 ? 3 : pct >= 75 ? 2 : pct >= 50 ? 1 : 0);

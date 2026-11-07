@@ -147,7 +147,7 @@ function GiveTime({ rows, setRows }) {
               return (
                 <li key={r.id} className={cn('rounded-2xl border p-3', r.on && !already ? 'border-rust/50 bg-rust/5' : 'border-oat bg-ivory')}>
                   <label className="flex cursor-pointer items-start gap-2.5">
-                    <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-[#B85C38]" checked={!!already || r.on} disabled={!!already} onChange={(e) => set(r.id, { on: e.target.checked })} />
+                    <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={!!already || r.on} disabled={!!already} onChange={(e) => set(r.id, { on: e.target.checked })} />
                     <span className="min-w-0 flex-1 text-sm font-semibold text-charcoal">{r.text}{already && <span className="block text-[11px] font-semibold text-success">Already on {shortDay(parseDay(already.date))}</span>}</span>
                   </label>
                   {r.on && !already && (

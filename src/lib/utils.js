@@ -386,7 +386,7 @@ export function computeAnalytics(goals, allCategories = []) {
     const cat = allCategories.find((c) => c.id === g.category_id);
     const key = cat ? cat.id : 'none';
     if (!groups.has(key)) {
-      groups.set(key, { id: cat?.id ?? null, name: cat?.name ?? 'Uncategorized', color: cat?.color ?? '#8A7F76', goals: [] });
+      groups.set(key, { id: cat?.id ?? null, name: cat?.name ?? 'Uncategorized', color: cat?.color ?? '#64748B', goals: [] });
     }
     groups.get(key).goals.push(g);
   }

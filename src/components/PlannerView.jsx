@@ -141,7 +141,7 @@ function DayPlanEditor({ dayKey, plan, startAt = null, onClose }) {
 
       {(dayShared.length > 0 || isPrivate) && (
         <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-semibold text-charcoal">
-          <input type="checkbox" className="h-4 w-4 accent-[#B85C38]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Hide this one
+          <input type="checkbox" className="h-4 w-4 accent-[#3B5BDB]" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} />Hide this one
           <span className="font-normal text-muted">({dayShared.map((p) => p.partner.display_name.trim().split(/\s+/)[0]).join(' and ') || 'partners'} see your day plans)</span>
         </label>
       )}

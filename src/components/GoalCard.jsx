@@ -75,7 +75,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
 
   const p = PRIORITY[g.priority];
   const cat = categories.find((c) => c.id === g.category_id);
-  const color = cat ? cat.color : '#B85C38';
+  const color = cat ? cat.color : '#3B5BDB';
   const CatIcon = catIcon(cat?.name);
   const pct = progressOf(g);
   const done = g.sub_plans.filter((t) => t.done).length;
@@ -89,7 +89,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
     setOpen(true);
     requestAnimationFrame(() => {
       ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      ref.current?.animate([{ outline: '3px solid #B85C38' }, { outline: '3px solid transparent' }], { duration: 1600 });
+      ref.current?.animate([{ outline: '3px solid #3B5BDB' }, { outline: '3px solid transparent' }], { duration: 1600 });
     });
     consumeFocus();
   }, [focusReq, g.id, consumeFocus]);

@@ -77,7 +77,7 @@ function ChallengePicker({ entry, current, onDone, onCancel }) {
         <legend className={label}>Pick a challenge for this week</legend>
         {KINDS.map((x) => (
           <label key={x.id} className={cn('flex cursor-pointer items-start gap-2.5 rounded-2xl border-2 px-3 py-2.5 transition-colors', kind === x.id ? 'border-rust bg-rust/5' : 'border-oat bg-ivory hover:border-blush')}>
-            <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-[#B85C38]" checked={kind === x.id} onChange={() => setKind(x.id)} />
+            <input type="radio" name="challengeKind" className="mt-1 h-4 w-4 shrink-0 accent-[#3B5BDB]" checked={kind === x.id} onChange={() => setKind(x.id)} />
             <span><b className="text-sm text-charcoal">{x.title} … {x.unit} this week</b><span className="block text-xs text-muted">{x.hint}</span></span>
           </label>
         ))}

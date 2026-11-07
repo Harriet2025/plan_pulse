@@ -16,7 +16,7 @@ export async function prepareAvatar(file, size = 256) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#FFFCF9';
+  ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, size, size);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, size, size);
@@ -40,7 +40,7 @@ export async function prepareChatPhoto(file, maxSide = 1600) {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#FFFCF9';   // transparent parts become the card colour
+  ctx.fillStyle = '#FFFFFF';   // transparent parts become the card colour
   ctx.fillRect(0, 0, w, h);
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(bitmap, 0, 0, w, h);

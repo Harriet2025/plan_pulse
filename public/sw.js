@@ -8,7 +8,7 @@
 //     server, past this worker, so nobody's data is stored on the device and nothing old is shown as if it were current.
 //   * Pages are fetched fresh; when that fails, the offline page is shown instead of an old copy of the app.
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `auragoal-shell-${VERSION}`;     // the offline page, icons and manifest
 const ASSETS = `auragoal-assets-${VERSION}`;   // built JS / CSS, cached as they are used
 const FONTS = `auragoal-fonts-${VERSION}`;     // Google Fonts

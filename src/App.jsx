@@ -78,7 +78,7 @@ export default function App() {
           <motion.div
             key={toastMsg.id} role="status" initial={{ opacity: 0, y: -12, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} exit={{ opacity: 0, y: -12, x: '-50%' }}
             className="fixed left-1/2 top-4 z-[80] flex w-max max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-oat bg-soft py-2 pl-4 pr-2 text-sm font-semibold text-charcoal shadow-lg"
-            style={{ boxShadow: '0 10px 30px -12px rgba(53,45,41,.35)' }}
+            style={{ boxShadow: '0 10px 30px -12px rgba(21,27,44,.35)' }}
           >
             <span className="min-w-0">{toastMsg.msg}</span>
             {toastMsg.action ? (

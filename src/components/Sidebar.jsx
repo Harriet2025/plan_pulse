@@ -2,12 +2,12 @@ import { CalendarDays, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, N
 import { useApp } from '../context/AppContext';
 import { Avatar, Logo, cardShadow } from './ui';
 
-// Each section has its own colour (from the category palette), so its icon is easy to tell apart at a glance
+// Each section has its own colour, so its icon is easy to tell apart at a glance
 export const TAB_COLORS = {
-  active: '#B85C38', planner: '#3F6F9B', partners: '#B8647D', journal: '#8A6E9B', calendar: '#3F8F83',
-  catchup: '#B38A3A', categories: '#5F8F6B', history: '#9A7B4F', settings: '#76685F',
+  active: '#3B5BDB', planner: '#0F9488', partners: '#D6336C', journal: '#7048E8', calendar: '#1C7ED6',
+  catchup: '#E8590C', categories: '#2F9E44', history: '#B8860B', settings: '#64748B',
 };
-/** The icon's colour and a soft tint of it behind, unless the tab is selected (then it is white on rust). */
+/** The icon's colour and a soft tint of it behind, unless the tab is selected (then it is white on the primary). */
 export const tabIconStyle = (id, selected) => (selected ? undefined : { color: TAB_COLORS[id], background: `${TAB_COLORS[id]}1F` });
 
 export const TABS = [

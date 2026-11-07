@@ -72,8 +72,13 @@ export function LinenTexture({ className }) {
   );
 }
 
-// One soft, warm-brown shadow style for every raised surface
-export const cardShadow = { boxShadow: '0 1px 2px rgba(53,45,41,.04), 0 10px 24px -14px rgba(53,45,41,.16)' };
+// One soft, cool shadow style for every raised surface
+export const cardShadow = { boxShadow: '0 1px 2px rgba(21,27,44,.04), 0 10px 24px -14px rgba(21,27,44,.16)' };
+// The big banners (dashboard, partners): royal blue deepening to midnight, with a soft glow beneath
+export const heroStyle = {
+  backgroundImage: 'linear-gradient(135deg, #3B5BDB 0%, #2B44B0 55%, #1A2466 100%)',
+  boxShadow: '0 18px 36px -20px rgba(43,68,176,.6)',
+};
 export const glassShadow = cardShadow;
 
 // onDark: for use on the rust brand panel (light tile, all-white wordmark)

@@ -318,14 +318,14 @@ export function AppProvider({ children }) {
       if (g.status !== 'ACTIVE' || !g.due_date || daysUntil(g.due_date) >= 0) continue;
       const cat = categories.find((x) => x.id === g.category_id);
       items.push({
-        key: `g${g.id}`, kind: 'goal', goalId: g.id, color: cat?.color ?? '#B85C38', category: cat?.name, title: g.title, timeframe: g.timeframe,
+        key: `g${g.id}`, kind: 'goal', goalId: g.id, color: cat?.color ?? '#3B5BDB', category: cat?.name, title: g.title, timeframe: g.timeframe,
         due_date: g.due_date, daysLate: -daysUntil(g.due_date), done: g.sub_plans.filter((t) => t.done).length, total: g.sub_plans.length, weight: 30,
       });
     }
     for (const p of dayPlans) {
       if (p.repeat !== 'NONE' || p.marks[p.date] || daysUntil(p.date) >= 0) continue;
       items.push({
-        key: `p${p.id}`, kind: 'plan', planId: p.id, color: '#B85C38', title: p.title, date: p.date, start: p.start, minutes: p.minutes,
+        key: `p${p.id}`, kind: 'plan', planId: p.id, color: '#3B5BDB', title: p.title, date: p.date, start: p.start, minutes: p.minutes,
         span: fmtSpan(p.start, p.minutes), daysLate: -daysUntil(p.date), weight: p.minutes ?? 30,
       });
     }

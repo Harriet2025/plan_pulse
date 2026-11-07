@@ -4,7 +4,7 @@ import { ArrowLeft, BellRing, Check, Eye, EyeOff, LayoutDashboard, ListChecks, M
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { readInvite } from '../lib/utils';
-import { LinenTexture, Logo, cardShadow } from './ui';
+import { LinenTexture, Logo, cardShadow, heroStyle } from './ui';
 
 const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted';
 const PERKS = [
@@ -100,7 +100,7 @@ export default function AuthScreen({ resetToken = null, onResetDone }) {
           className="grid w-full overflow-hidden rounded-[28px] border border-oat bg-soft lg:grid-cols-[1fr_1.05fr]" style={cardShadow}
         >
           {/* Brand panel: everything on it is pure white, the only white that keeps 4.5:1 on rust */}
-          <section className="relative flex flex-col gap-6 overflow-hidden bg-rust p-6 text-white sm:p-8 lg:justify-between lg:gap-10 lg:p-10">
+          <section style={heroStyle} className="relative flex flex-col gap-6 overflow-hidden bg-rust p-6 text-white sm:p-8 lg:justify-between lg:gap-10 lg:p-10">
             <LinenTexture />
             <div className="relative"><Logo onDark size="h-10 w-10" icon="h-5 w-5" text="text-xl" /></div>
 
