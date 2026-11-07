@@ -127,23 +127,30 @@ function PartnerList({ selected, onSelect }) {
 // One partner: scoreboard, chat, their goals and their day
 // ---------------------------------------------------------------------------------------------------------------
 
+/**
+ * A plain count of the plans each of you ticked off this week, side by side. No bars: it is not progress towards a
+ * target (that is the challenge, on Together), just who has done how much so far.
+ */
 function Scoreboard({ me, them, name }) {
-  const max = Math.max(me, them, 1);
-  const row = (label, n, lead, mine) => (
-    <div className="grid grid-cols-[4.5rem_minmax(0,1fr)_2rem] items-center gap-2 text-xs">
-      <span className="flex items-center gap-1 truncate font-bold text-charcoal">{lead && <Crown className="h-3.5 w-3.5 shrink-0 text-warning" aria-label="Leading" />}{label}</span>
-      <Bar pct={Math.round((100 * n) / max)} height="h-2" fill={mine ? 'bg-rust' : 'bg-blush-dark'} label={`${label}: ${n} plans done this week`} />
-      <span className="text-right font-extrabold tabular-nums text-charcoal">{n}</span>
+  const tile = (label, n, lead) => (
+    <div className={cn('flex items-center gap-3 rounded-xl border px-3 py-2', lead ? 'border-rust/40 bg-rust/10' : 'border-oat bg-soft')}>
+      <span className="text-2xl font-extrabold tabular-nums text-charcoal">{n}</span>
+      <span className="min-w-0 text-xs leading-tight">
+        <span className="flex items-center gap-1 font-bold text-charcoal">{label}{lead && <Crown className="h-3.5 w-3.5 shrink-0 text-warning" aria-label="ahead" />}</span>
+        <span className="text-muted">plan{n === 1 ? '' : 's'} done</span>
+      </span>
     </div>
   );
   return (
     <div className="rounded-2xl border border-oat bg-ivory p-3">
-      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">Plans done this week · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}</p>
-      <div className="grid gap-1.5">
-        {row('You', me, me > them, true)}
-        {row(name, them, them > me, false)}
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week so far · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {tile('You', me, me > them)}
+        {tile(name, them, them > me)}
       </div>
-      <p className="mt-2 text-[11px] text-muted">{me === them ? (me ? 'Neck and neck. Keep pushing each other!' : 'A fresh week. Who finishes the first plan?') : me > them ? `You are ahead. Cheer ${name} on!` : `${name} is ahead. Time to catch up!`}</p>
+      <p className="mt-2 text-[11px] text-muted">
+        Every plan either of you ticks off counts, and it starts again from 0 on Monday. {me === them ? (me ? 'Neck and neck!' : 'Who goes first?') : me > them ? `You are ahead. Cheer ${name} on!` : `${name} is ahead. Time to catch up!`}
+      </p>
     </div>
   );
 }
