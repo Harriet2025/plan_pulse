@@ -4,10 +4,74 @@ import { Archive, BookHeart, CheckCircle2, Clock, RotateCcw, Trash2 } from 'luci
 import { useApp } from '../context/AppContext';
 import { TIERS, catIcon } from '../lib/constants';
 import { cn, computeAnalytics, fmtWhen, progressOf } from '../lib/utils';
-import { Bar, Ring, TwoTapButton } from './ui';
+import { Bar, InfoTip, Ring, TwoTapButton } from './ui';
+import { POINTS, WEEK_MEDALS } from '../lib/rewards';
 
 const panel = 'mt-3 rounded-2xl border border-oat bg-soft p-5';
 const H2 = ({ children, id }) => <h2 id={id} className="text-sm font-bold uppercase tracking-[0.14em] text-charcoal">{children}</h2>;
+
+const shortWeek = (start) => {
+  const [y, m, d] = start.split('-').map(Number);
+  return `Week of ${new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+};
+
+/** Level, points, perfect days and medal weeks: the rewards for everyday effort. */
+function Trophies({ r }) {
+  const tally = [1, 2, 3].map((rank) => r.medalWeeks.filter((w) => w.medal.rank === rank).length);
+  return (
+    <section aria-labelledby="trophyH">
+      <div className="flex items-center gap-1"><H2 id="trophyH">Your rewards</H2>
+        <InfoTip label="How points work" text={`+${POINTS.plan} per plan ticked off, +${POINTS.step} per goal step, +${POINTS.perfectDay} for a perfect day (every plan that day done), +${POINTS.goal} per goal completed. Perfect days in a week earn a medal: 5 Bronze, 6 Silver, 7 Gold.`} /></div>
+      <div className={cn(panel, 'grid gap-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]')}>
+        <div className="flex items-center gap-4">
+          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-rust text-2xl font-extrabold text-white">{r.level.n}</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-wider text-muted">Level {r.level.n}</p>
+            <p className="text-xl font-extrabold text-charcoal">{r.level.name}</p>
+            <Bar pct={r.level.pct} height="h-2" className="mt-2" label="Progress to the next level" />
+            <p className="mt-1 text-xs text-muted"><span className="font-bold tabular-nums text-charcoal">{r.points.toLocaleString()} pts</span>
+              {r.level.next ? ` · ${r.level.toNext.toLocaleString()} to ${r.level.next.name}` : ' · Top level!'}</p>
+          </div>
+        </div>
+        <dl className="grid grid-cols-3 gap-2 text-center">
+          {[['⭐', r.perfectDays, 'Perfect days'], ['✅', r.counts.plans, 'Plans done'], ['🎯', r.counts.goals, 'Goals done']].map(([e, v, k]) => (
+            <div key={k} className="rounded-xl border border-oat bg-panel px-2 py-3">
+              <dd className="text-xl font-extrabold tabular-nums text-charcoal"><span aria-hidden="true">{e} </span>{v}</dd>
+              <dt className="text-[11px] font-semibold text-muted">{k}</dt>
+            </div>
+          ))}
+        </dl>
+        <div className="md:col-span-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted">Weekly medals</h3>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {[1, 2, 3].map((rank) => {
+              const M = WEEK_MEDALS[rank], n = tally[rank - 1];
+              return (
+                <div key={rank} className={cn('rounded-xl border p-2.5 text-center', n ? 'border-rust/40 bg-rust/5' : 'border-oat opacity-60')}>
+                  <div className={cn('text-3xl leading-none', !n && 'grayscale')} aria-hidden="true">{M.emoji}</div>
+                  <div className="mt-1 text-xs font-extrabold text-charcoal">{M.name}</div>
+                  <div className="text-[11px] text-muted">{n ? `${n} earned` : `${M.days} perfect days`}</div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-sm text-charcoal">
+            <span className="font-bold">This week:</span> {r.week.perfect} perfect day{r.week.perfect === 1 ? '' : 's'}
+            {r.week.medal ? ` · ${r.week.medal.emoji} ${r.week.medal.name} earned` : ''}
+            {r.week.next ? ` · ${r.week.next.days - r.week.perfect} more for ${r.week.next.emoji} ${r.week.next.name}` : ''}
+          </p>
+          {r.medalWeeks.length > 0 && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {r.medalWeeks.slice(0, 8).map((w) => (
+                <li key={w.start} className="rounded-full border border-oat bg-panel px-3 py-1 text-xs font-semibold text-charcoal">{w.medal.emoji} {shortWeek(w.start)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function Performance({ a, badges }) {
   const o = a.overall;
@@ -16,12 +80,12 @@ function Performance({ a, badges }) {
       <H2 id="perfH">Performance</H2>
       <div className={panel}>
         <div className="flex flex-wrap items-center gap-6">
-          <div className="relative h-32 w-32 shrink-0" role="img" aria-label="Overall task completion">
+          <div className="relative h-32 w-32 shrink-0" role="img" aria-label="Goal steps done">
             <Ring pct={o.completion_pct} track="rgb(var(--oat))" stroke="rgb(var(--rust))" strokeWidth={10} />
-            <div className="absolute inset-0 grid place-items-center text-center"><div><div className="text-3xl font-extrabold tabular-nums text-charcoal">{o.completion_pct}%</div><div className="text-[10px] font-bold uppercase tracking-wider text-muted">Tasks done</div></div></div>
+            <div className="absolute inset-0 grid place-items-center text-center"><div><div className="text-3xl font-extrabold tabular-nums text-charcoal">{o.completion_pct}%</div><div className="text-[10px] font-bold uppercase tracking-wider text-muted">Goal steps</div></div></div>
           </div>
           <dl className="grid min-w-[14rem] flex-1 gap-3 text-sm">
-            {[['Goals completed', `${o.goals_completed}/${o.goals_total}`], ['Tasks finished', `${o.tasks_done}/${o.tasks_total}`], ['Badges earned', badges]].map(([k, v], i, arr) => (
+            {[['Goals completed', `${o.goals_completed}/${o.goals_total}`], ['Goal steps done', `${o.tasks_done}/${o.tasks_total}`], ['Goal badges earned', badges]].map(([k, v], i, arr) => (
               <div key={k} className={cn('flex items-baseline justify-between gap-2 pb-2', i < arr.length - 1 && 'border-b border-oat')}>
                 <dt className="text-muted">{k}</dt><dd className="text-lg font-extrabold tabular-nums text-charcoal">{v}</dd>
               </div>
@@ -34,7 +98,7 @@ function Performance({ a, badges }) {
             <div key={c.name}>
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="flex min-w-0 items-center gap-2 font-bold text-charcoal"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c.color }} /><span className="truncate">{c.name}</span></span>
-                <span className="shrink-0 text-xs font-semibold tabular-nums text-muted">{c.tasks_done}/{c.tasks_total} tasks &middot; <span className="text-charcoal">{c.completion_pct}%</span></span>
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-muted">{c.tasks_done}/{c.tasks_total} steps &middot; <span className="text-charcoal">{c.completion_pct}%</span></span>
               </div>
               <Bar pct={c.completion_pct} className="mt-1.5" fillStyle={{ background: c.color }} label={`${c.name} task completion`} />
               <p className="mt-1 text-[11px] text-muted">{c.goals_completed} of {c.goals_total} goal{c.goals_total === 1 ? '' : 's'} completed</p>
@@ -136,7 +200,7 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
 });
 
 export default function HistoryView() {
-  const { goals, reviews, categories } = useApp();
+  const { goals, reviews, categories, rewards } = useApp();
   const [filter, setFilter] = useState('all');
   const analytics = useMemo(() => computeAnalytics(goals, categories), [goals, categories]);
   const past = goals
@@ -146,6 +210,7 @@ export default function HistoryView() {
 
   return (
     <div className="grid gap-8">
+      <Trophies r={rewards} />
       <div className="grid gap-6 xl:grid-cols-3">
         <Performance a={analytics} badges={reviews.length} />
         <BadgeGallery reviews={reviews} />

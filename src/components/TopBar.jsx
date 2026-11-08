@@ -77,7 +77,7 @@ function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) 
 
 // On phones one slim row, so the page gets the screen. Sound and sign out are in Settings there, and search sits with the goals.
 export default function TopBar() {
-  const { view, user, rewardsTotal, search, setSearch, prio, setPrio, soundOn, setSoundOn, openGoalModal, openNext } = useApp();
+  const { view, user, rewards, search, setSearch, prio, setPrio, soundOn, setSoundOn, openGoalModal, openNext } = useApp();
   const theme = useTheme();
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
@@ -117,7 +117,7 @@ export default function TopBar() {
               <span className="inline-flex items-center gap-0.5 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-extrabold text-charcoal"><Snowflake className="h-2.5 w-2.5" aria-hidden="true" />{user.streak_freezes}</span>
             )}
             tone={{ box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }} />
-          <Stat icon={Trophy} value={rewardsTotal} label="Rewards" className="max-md:hidden" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
+          <Stat icon={Trophy} value={rewards.points.toLocaleString()} label={`Points · Lv ${rewards.level.n}`} className="max-md:hidden" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
           <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={`${iconBtn} max-md:hidden`}><Compass className="h-4 w-4" aria-hidden="true" /></button>
           <NotificationBell />
           <button type="button" className={iconBtn} onClick={theme.toggle}

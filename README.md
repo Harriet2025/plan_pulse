@@ -129,6 +129,18 @@ A `pg_cron` job (`auragoal-worker`, in `supabase/jobs.sql`) calls the function e
 
 Give day plans a time or a length, and set how much time you really have in Settings → **Your day**. A day holds the day plans still to do on it, repeating ones included; rest days count as zero. The dashboard's **Today** card, the Planner and the calendar warn when a day is too full, and **Lighten today** suggests one-off plans to move (as little as possible, each to the first work day with room). Repeating plans are habits, so they stay put. **Spread them out** on Catch up fills days up to your capacity.
 
+## Points, levels and medals
+
+Everyday effort is rewarded, not only finished goals (`src/lib/rewards.js`). Everything is worked out from what is
+already saved, so past work counts and unticking something takes its points back.
+
+- **Points:** +10 per day plan ticked off, +15 per goal step, +25 for a perfect day (every plan of the day done),
+  +100 per completed goal, plus 50 / 100 / 200 for a Bronze / Silver / Gold week.
+- **Levels:** Starter, Mover, Builder, Doer, Achiever, Go-getter, Champion, Master, Legend, Icon.
+- **Weekly medals:** 5 perfect days in a Monday–Sunday week is Bronze, 6 Silver, 7 Gold.
+- The dashboard ring is **Overall**: today's plans and the steps in your active goals together. Goal badges
+  (Bronze / Silver / Gold when a goal is reviewed) are unchanged.
+
 ## Light and dark mode
 
 The palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light**, **Dark** or **System** (follows the device, and changes with it) in Settings → **Appearance**, or flip between light and dark with the sun / moon button in the top bar. It switches at once, and the choice is saved on that device (`localStorage`, key `auragoal.theme`).

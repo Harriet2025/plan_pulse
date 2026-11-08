@@ -3,6 +3,8 @@ import * as api from '../api';
 import { CATEGORIES, TIERS, tierOf } from '../lib/constants';
 import { playSound, setSoundEnabled } from '../lib/sound';
 import { pushFlag } from '../lib/push';
+import confetti from 'canvas-confetti';
+import { computeRewards } from '../lib/rewards';
 import { addDays, callName, daysUntil, fmtSpan, localDate, plansOn, readInvite } from '../lib/utils';
 
 const Ctx = createContext(null);
@@ -338,6 +340,29 @@ export function AppProvider({ children }) {
     return items.sort((x, y) => y.daysLate - x.daysLate || x.key.localeCompare(y.key));
   }, [goals, dayPlans, categories, now]);
 
+  // ---- Everyday rewards: points, level, perfect days, weekly medals (src/lib/rewards.js)
+  const rewards = useMemo(() => computeRewards(goals, dayPlans, now), [goals, dayPlans, now]);
+  const seenRewards = useRef(null);
+  useEffect(() => {
+    if (!user) { seenRewards.current = null; return; }
+    const prev = seenRewards.current;
+    seenRewards.current = rewards;
+    if (!prev) return;   // the first numbers after signing in are not news
+    const shout = [];
+    const burst = (n, colors) => confetti({ particleCount: n, spread: 100, startVelocity: 40, origin: { x: 0.5, y: 0.6 }, colors, disableForReducedMotion: true, zIndex: 100 });
+    if (rewards.today.perfect && !prev.today.perfect) {
+      burst(90, ['#facc15', '#4A78D4', '#70C5E8', '#65B98A']); playSound('fanfare', 1);
+      shout.push(`⭐ Perfect day! Every plan for today is done. +25 points`);
+    }
+    const m = rewards.week.medal, pm = prev.week.medal;
+    if (m && rewards.week.start === prev.week.start && m.rank > (pm?.rank ?? 0)) {
+      setTimeout(() => { burst(160, ['#cd7f32', '#a9b4c4', '#facc15', '#4A78D4']); playSound('fanfare', m.rank); }, 900);
+      shout.push(`${m.emoji} ${m.name}! ${rewards.week.perfect} perfect days this week. +${m.points} points`);
+    }
+    if (rewards.level.n > prev.level.n) shout.push(`🎉 Level up! You're now Level ${rewards.level.n}: ${rewards.level.name}`);
+    shout.forEach((msg, i) => setTimeout(() => toast(msg), i * 3200));
+  }, [rewards, user, toast]);
+
   // Connection: nothing is cached on the device, so when it comes back (or when the app is reopened after a while,
   // for example an installed app brought back from the background) the data is fetched fresh, never left stale.
   useEffect(() => {
@@ -433,7 +458,7 @@ export function AppProvider({ children }) {
     partners, refreshPartners, setPartners, partnerAction, unreadTotal, shareGoal, markTeamPlan,
     dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan, planWeek,
     weekPlanOpen, openWeekPlan: () => setWeekPlanOpen(true), closeWeekPlan: () => setWeekPlanOpen(false),
-    activeGoals, visibleGoals, rewardsTotal, notif, now, slipped, rescheduleItems,
+    activeGoals, visibleGoals, rewardsTotal, rewards, notif, now, slipped, rescheduleItems,
     toastMsg, toast, dismissToast, rewardQueue, claimReward: () => {
       const item = rewardQueue[0];
       if (!item) return;
