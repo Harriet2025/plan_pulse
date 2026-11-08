@@ -138,7 +138,7 @@ already saved, so past work counts and unticking something takes its points back
   +100 per completed goal, plus 50 / 100 / 200 for a Bronze / Silver / Gold week.
 - **Levels:** Starter, Mover, Builder, Doer, Achiever, Go-getter, Champion, Master, Legend, Icon.
 - **Weekly medals:** 5 perfect days in a Monday–Sunday week is Bronze, 6 Silver, 7 Gold.
-- The dashboard ring is **Overall**: today's plans and the steps in your active goals together. Goal badges
+- The dashboard ring shows **this week / month / year so far** (switch under the ring, shared with Your goals): the steps of that period's goals plus the day plans from the start of the period up to today. Goal badges
   (Bronze / Silver / Gold when a goal is reviewed) are unchanged.
 
 ## Light and dark mode

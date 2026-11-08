@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Search, Snowflake, Star, Target, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Search, Snowflake, Star, Target, Award, CalendarCheck, Medal, TrendingUp, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
-import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
+import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
 import { Bar, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle } from './ui';
 import { POINTS } from '../lib/rewards';
 import GoalCard from './GoalCard';
@@ -51,48 +51,57 @@ function ReviewNudge() {
   );
 }
 
-const REWARDS_HELP = `Overall counts today's plans and the steps in your goals. Points: +${POINTS.plan} per plan, +${POINTS.step} per goal step, +${POINTS.perfectDay} for a perfect day (every plan of the day done), +${POINTS.goal} per finished goal. A week with 5 perfect days earns Bronze, 6 Silver, 7 Gold.`;
+const REWARDS_HELP = `Points: +${POINTS.plan} per plan, +${POINTS.step} per goal step, +${POINTS.perfectDay} for a perfect day (every plan of the day done), +${POINTS.goal} per finished goal. 5 perfect days in a week earns Bronze, 6 Silver, 7 Gold.`;
 
-/** Today, your level and this week's medal, on the blue welcome card. */
+/** One stat on the welcome card: an icon, a number and a short caption. */
+function HeroStat({ icon: Icon, value, caption, children, onClick }) {
+  const Tag = onClick ? 'button' : 'div';
+  return (
+    <Tag {...(onClick ? { type: 'button', onClick } : {})} className={cn('flex min-w-0 items-center gap-3 text-left text-white', onClick && 'rounded-xl transition-opacity hover:opacity-85')}>
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15"><Icon className="h-[18px] w-[18px]" aria-hidden="true" /></span>
+      <span className="min-w-0">
+        <span className="block text-lg font-extrabold leading-tight tabular-nums">{value}</span>
+        <span className="block text-xs font-semibold leading-snug text-white/85">{caption}</span>
+        {children}
+      </span>
+    </Tag>
+  );
+}
+
+/** Today, your level and this week's perfect days, in one row on the welcome card. */
 function HeroRewards() {
   const { rewards: r, setView } = useApp();
-  const chip = 'flex min-w-0 items-center gap-2.5 rounded-2xl border border-white/25 bg-white/15 px-3 py-2 text-left text-white';
-  const w = r.week;
+  const t = r.today, w = r.week;
   return (
-    <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3 md:mt-5">
-      <div className={chip}>
-        <span className="text-xl leading-none" aria-hidden="true">{r.today.perfect ? '⭐' : r.today.total ? '✅' : '📝'}</span>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em]">Today</p>
-          <p className="truncate text-sm font-extrabold">{r.today.perfect ? 'Perfect day!' : r.today.total ? `${r.today.done} of ${r.today.total} plans` : 'Nothing planned'}</p>
-        </div>
-      </div>
-      <button type="button" onClick={() => setView('history')} className={cn(chip, 'hover:bg-white/25')}>
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-xs font-extrabold text-rust-dark" aria-hidden="true">{r.level.n}</span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em]">Level {r.level.n} · {r.level.name}</p>
-          <p className="truncate text-sm font-extrabold tabular-nums">{r.points.toLocaleString()} pts</p>
-          <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/25" role="progressbar" aria-label="Progress to the next level" aria-valuenow={r.level.pct} aria-valuemin={0} aria-valuemax={100}>
-            <div className="h-full rounded-full bg-white" style={{ width: `${r.level.pct}%` }} />
-          </div>
-        </div>
-      </button>
-      <div className={chip}>
-        <span className="text-xl leading-none" aria-hidden="true">{w.medal ? w.medal.emoji : '🏅'}</span>
-        <div className="min-w-0">
-          <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em]">This week{w.next ? ` · ${w.next.days - w.perfect} more for ${w.next.emoji}` : ''}</p>
-          <p className="truncate text-sm font-extrabold">{w.perfect} perfect day{w.perfect === 1 ? '' : 's'}</p>
-        </div>
-      </div>
+    <div className="relative mt-5 grid grid-cols-1 gap-4 border-t border-white/20 pt-4 pr-8 sm:grid-cols-3 sm:gap-6">
+      <InfoTip text={REWARDS_HELP} label="How points and medals work" align="right" className="absolute right-0 top-4 [&>button]:text-white [&>button:hover]:bg-white/20" />
+      <HeroStat icon={t.perfect ? Star : CalendarCheck} value={t.perfect ? 'Perfect day' : t.total ? `${t.done} / ${t.total}` : '—'}
+        caption={t.perfect ? 'Every plan for today is done' : t.total ? "Today's plans done" : 'Nothing planned today'} />
+      <HeroStat icon={Award} value={`Level ${r.level.n} · ${r.level.name}`} caption={`${r.points.toLocaleString()} points${r.level.next ? ` · ${r.level.toNext} to ${r.level.next.name}` : ''}`} onClick={() => setView('history')}>
+        <span className="mt-1.5 block h-1 w-full max-w-[9rem] overflow-hidden rounded-full bg-white/25" role="progressbar" aria-label="Progress to the next level" aria-valuenow={r.level.pct} aria-valuemin={0} aria-valuemax={100}>
+          <span className="block h-full rounded-full bg-white" style={{ width: `${r.level.pct}%` }} />
+        </span>
+      </HeroStat>
+      <HeroStat icon={Medal} value={w.medal ? w.medal.name : `${w.perfect} perfect day${w.perfect === 1 ? '' : 's'}`}
+        caption={w.next ? `This week · ${w.next.days - w.perfect} more for ${w.next.name.replace(' week', '')}` : 'This week · top medal!'} />
     </div>
   );
 }
 
 function Hero({ totals, open }) {
-  const { user, activeGoals, setView, openGoalModal, openNext, rewards } = useApp();
-  // Overall: today's plans and the steps in your active goals, together
-  const allTotal = totals.total + rewards.today.total;
-  const overall = allTotal ? Math.round((100 * (totals.done + rewards.today.done)) / allTotal) : 0;
+  const { user, activeGoals, setView, openGoalModal, openNext, rewards, dayPlans, horizonFilter, setHorizonFilter, now } = useApp();
+  // The ring: this week / month / year so far (follows the period chosen under Your goals). It counts the steps of
+  // that period's goals and the day plans from the start of the period up to today.
+  const period = HORIZONS.find((h) => h.id === horizonFilter) ?? HORIZONS[0];
+  const steps = taskTotals(activeGoals.filter((g) => g.timeframe === period.id));
+  let planDone = 0, planTotal = 0;
+  for (let d = periodStart(period.id, now); localDate(d) <= localDate(now); d = addDays(d, 1)) {
+    const list = plansOn(dayPlans, localDate(d));
+    planTotal += list.length; planDone += list.filter((x) => x.done).length;
+  }
+  const doneAll = steps.done + planDone, totalAll = steps.total + planTotal;
+  const overall = totalAll ? Math.round((100 * doneAll) / totalAll) : 0;
+  const ringHelp = `${period.this} so far: ${doneAll} of ${totalAll} done. That is the steps in your ${period.label.toLowerCase()} goals plus the plans from your Planner since the ${period.id === 'WEEKLY' ? 'week' : period.id === 'MONTHLY' ? 'month' : 'year'} started.`;
   const first = callName(user);   // their nickname, if they set one
   const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = activeGoals.length;
@@ -109,20 +118,35 @@ function Hero({ totals, open }) {
           <p className="hidden text-xs font-bold uppercase tracking-[0.2em] text-white md:block">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h2 className="pr-24 text-2xl font-extrabold leading-tight tracking-tight text-white md:mt-2 md:pr-0 md:text-4xl">{greeting()}, {first}</h2>
           <p className="mt-2 pr-24 text-sm leading-relaxed text-white md:pr-0 md:text-base">{sub}</p>
-          <HeroRewards />
-          <div className="mt-3 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-3">
+          <div className="mt-4 grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-3">
             <button type="button" onClick={openNext} className="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl bg-soft px-5 py-2.5 text-sm font-extrabold text-rust-dark hover:bg-panel"><Compass className="h-4 w-4" aria-hidden="true" />What should I do now?</button>
             <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
             <button type="button" onClick={() => setView('history')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
         </div>
-        <div className="absolute right-0 top-0 h-20 w-20 shrink-0 md:relative md:h-44 md:w-44" role="img" aria-label="Overall progress: today's plans and your goals' steps">
-          <Ring pct={overall} track="rgba(255,255,255,.25)" stroke="#fff" />
-          <div className="absolute inset-0 grid place-items-center text-center">
-            <div><div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{overall}%</div><div className="hidden items-center justify-center gap-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white md:flex">Overall<InfoTip text={REWARDS_HELP} label="How progress and points work" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" /></div></div>
+        <div className="absolute right-0 top-0 md:relative md:flex md:flex-col md:items-center md:gap-3">
+          <div className="relative h-20 w-20 md:h-40 md:w-40" role="img" aria-label={ringHelp}>
+            <Ring pct={overall} track="rgba(255,255,255,.25)" stroke="#fff" />
+            <div className="absolute inset-0 grid place-items-center text-center">
+              <div>
+                <div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{overall}%</div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-white md:text-[10px]">{period.this}</div>
+                <div className="hidden text-[11px] font-semibold tabular-nums text-white/85 md:block">{doneAll} of {totalAll} done</div>
+              </div>
+            </div>
+          </div>
+          <div className="hidden items-center gap-1 md:flex">
+            <div className="flex rounded-xl bg-white/15 p-0.5" role="group" aria-label="Progress for">
+              {HORIZONS.map((h) => (
+                <button key={h.id} type="button" aria-pressed={h.id === period.id} onClick={() => setHorizonFilter(h.id)}
+                  className={cn('rounded-lg px-2.5 py-1 text-xs font-bold transition-colors', h.id === period.id ? 'bg-white text-rust-dark' : 'text-white hover:bg-white/20')}>{h.label}</button>
+              ))}
+            </div>
+            <InfoTip text={ringHelp} label="What this percentage counts" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" />
           </div>
         </div>
       </div>
+      <div className="relative"><HeroRewards /></div>
     </section>
   );
 }
