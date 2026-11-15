@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, Flame, Moon, MoonStar, Snowflake, Sun, Trophy, Bell, Volume2, VolumeX, Plus, Compass } from 'lucide-react';
+import { Flame, Moon, MoonStar, Snowflake, Sun, Bell, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../lib/theme';
 import NotifList, { useNotifCount } from './NotifList';
@@ -33,7 +33,7 @@ function NotificationBell() {
       <button type="button" className={iconBtn} aria-label="Notifications" aria-haspopup="true" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         <Bell className="h-4 w-4" aria-hidden="true" />
         {count > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[10px] font-extrabold tabular-nums text-on-status">{count > 9 ? '9+' : count}</span>
+          <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-extrabold tabular-nums text-on-status">{count > 9 ? '9+' : count}</span>
         )}
       </button>
       <AnimatePresence>
@@ -69,63 +69,40 @@ function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) 
           <motion.div key={value} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className={`text-base font-extrabold tabular-nums ${tone.value}`}>{value}</motion.div>
           {badge}
         </div>
-        <div className={`mt-0.5 hidden text-[9px] font-bold uppercase tracking-wider md:block ${tone.label}`}>{label}</div>
+        <div className={`mt-0.5 hidden text-[10px] font-bold uppercase tracking-wider md:block ${tone.label}`}>{label}</div>
       </div>
     </div>
   );
 }
 
-// On phones one slim row, so the page gets the screen. Sound and sign out are in Settings there, and search sits with the goals.
+// One slim row that scrolls away with the page (so it never covers cards): the page name, streak, notifications,
+// light / dark and New Goal. Search sits with the goals, sound in Settings, points on the dashboard's welcome card.
 export default function TopBar() {
-  const { view, user, rewards, search, setSearch, prio, setPrio, soundOn, setSoundOn, openGoalModal, openNext } = useApp();
+  const { view, user, openGoalModal } = useApp();
   const theme = useTheme();
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
-    <header className="sticky top-2 z-20 mx-3 mt-2 rounded-2xl border border-oat bg-soft/95 px-3 py-2 backdrop-blur-xl md:top-4 md:mx-6 md:mt-4 md:px-5 md:py-3" style={cardShadow}>
-      <div className="flex items-center gap-x-2 gap-y-3 md:flex-wrap md:gap-x-4">
-        <div className="min-w-0 flex-1 md:basis-48">
-          <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-muted md:text-[11px] md:tracking-[0.18em]">{today}</p>
-          <h1 className="truncate text-lg font-extrabold tracking-tight text-charcoal md:text-2xl">{view === 'active' ? 'Active Goals' : TITLES[view]}</h1>
+    <header className="relative z-20 mx-3 mt-2 rounded-2xl border border-oat bg-soft/95 px-3 py-2 backdrop-blur-xl md:mx-6 md:mt-4 md:px-5 md:py-3" style={cardShadow}>
+      <div className="flex items-center gap-x-2 md:gap-x-4">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted md:text-[11px] md:tracking-[0.18em]">{today}</p>
+          <h1 className="truncate text-lg font-extrabold tracking-tight text-charcoal md:text-2xl">{TITLES[view]}</h1>
         </div>
 
-        {view === 'active' && (
-          <div className="order-last hidden w-full flex-wrap items-center gap-2 md:flex lg:order-none lg:w-auto lg:flex-nowrap">
-            <div className="relative min-w-0 flex-1 lg:w-44 lg:flex-none 2xl:w-64">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <label htmlFor="search" className="sr-only">Search goals and tasks</label>
-              <input id="search" type="search" className="field !pl-9" placeholder="Search goals and tasks" autoComplete="off" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-            <div className="shrink-0">
-              <label htmlFor="prioFilter" className="sr-only">Filter by priority</label>
-              <select id="prioFilter" className="field !w-auto" value={prio} onChange={(e) => setPrio(e.target.value)}>
-                <option value="all">All priorities</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        <div className="flex shrink-0 items-center gap-1.5 md:flex-wrap md:gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
           <Stat
             icon={user.rest_today && !user.streak_active_today ? Moon : Flame} value={user.streak_count}
             label={user.rest_today && !user.streak_active_today ? 'Rest day' : 'Streak'}
             title={`${user.streak_count}-day streak. Best: ${user.best_streak}. Streak freezes: ${user.streak_freezes}.${user.rest_today ? ' Today is a rest day, so your streak is safe.' : ''}`}
             badge={user.streak_freezes > 0 && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-blush/50 px-1.5 py-0.5 text-[10px] font-extrabold text-charcoal"><Snowflake className="h-2.5 w-2.5" aria-hidden="true" />{user.streak_freezes}</span>
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-blush/50 px-1.5 py-0.5 text-[11px] font-extrabold text-charcoal"><Snowflake className="h-2.5 w-2.5" aria-hidden="true" />{user.streak_freezes}</span>
             )}
             tone={{ box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }} />
-          <Stat icon={Trophy} value={rewards.points.toLocaleString()} label={`Points · Lv ${rewards.level.n}`} className="max-md:hidden" tone={{ box: 'border-blush/60 bg-blush/20', icon: 'text-blush-dark', value: 'text-charcoal', label: 'text-muted' }} />
-          <button type="button" onClick={openNext} aria-label="What should I do now?" title="What should I do now?" className={`${iconBtn} max-md:hidden`}><Compass className="h-4 w-4" aria-hidden="true" /></button>
           <NotificationBell />
           <button type="button" className={iconBtn} onClick={theme.toggle}
             aria-label={theme.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme.theme === 'dark' ? 'Light mode' : 'Dark mode'}>
             {theme.theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <MoonStar className="h-4 w-4" aria-hidden="true" />}
-          </button>
-          <button type="button" className={`${iconBtn} max-md:hidden`} aria-label={soundOn ? 'Sound on' : 'Sound off'} aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)}>
-            {soundOn ? <Volume2 className="h-4 w-4" aria-hidden="true" /> : <VolumeX className="h-4 w-4" aria-hidden="true" />}
           </button>
           <motion.button type="button" whileTap={{ scale: 0.95 }} onClick={() => openGoalModal()} aria-label="New goal"
             className="fab inline-flex h-10 items-center gap-2 rounded-xl bg-rust px-2.5 text-sm font-extrabold text-white sm:px-4">

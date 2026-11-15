@@ -58,10 +58,11 @@ const chipStyle = (ev) => ({ borderLeftColor: ev.color, background: `${ev.color}
 function Chip({ ev }) {
   return (
     <span
-      className={cn('flex items-center gap-1 truncate rounded-md border-l-[3px] px-1.5 py-0.5 text-[11px] font-semibold leading-tight', ev.done ? 'text-muted line-through' : ev.overdue ? 'text-danger' : 'text-charcoal')}
+      title={ev.title}
+      className={cn('block min-w-0 rounded-md border-l-[3px] px-1.5 py-0.5 text-[11px] font-semibold leading-snug [overflow-wrap:anywhere]', ev.done ? 'text-muted line-through' : ev.overdue ? 'text-danger' : 'text-charcoal')}
       style={chipStyle(ev)}
     >
-      <span className="truncate">{ev.clock && <span className="font-bold">{ev.clock.replace(/:00(?=\s|$)/, '')} </span>}{ev.title}</span>
+      <span>{ev.clock && <span className="font-bold">{ev.clock.replace(/:00(?=\s|$)/, '')} </span>}{ev.title}</span>
     </span>
   );
 }
@@ -81,7 +82,7 @@ function DayCell({ day, inMonth, today, selected, events, load, onSelect }) {
     >
       <span className="flex items-center justify-between gap-1">
         <span className={cn('grid h-6 w-6 place-items-center rounded-full text-xs font-bold tabular-nums', today ? 'bg-rust text-white' : 'text-charcoal')}>{day.getDate()}</span>
-        {load.planned > 0 && <span className={cn('hidden text-[10px] font-extrabold tabular-nums md:inline', LOAD_TEXT[load.state])}>{fmtMinutes(load.planned)}</span>}
+        {load.planned > 0 && <span className={cn('hidden text-[11px] font-extrabold tabular-nums md:inline', LOAD_TEXT[load.state])}>{fmtMinutes(load.planned)}</span>}
       </span>
       {/* Wide screens: titles */}
       <span className="hidden min-w-0 flex-col gap-0.5 md:flex">
@@ -113,8 +114,8 @@ function AgendaItem({ ev, onOpen, onOpenDay }) {
         {ev.done ? <Check className="h-4 w-4" aria-hidden="true" /> : <Icon className="h-4 w-4" aria-hidden="true" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className={cn('block truncate text-sm font-bold', ev.done ? 'text-muted line-through' : 'text-charcoal')}>{ev.title}</span>
-        <span className={cn('block truncate text-xs', ev.overdue ? 'font-semibold text-danger' : 'text-muted')}>{ev.overdue ? `Overdue · ${sub}` : sub}</span>
+        <span className={cn('block break-words text-sm font-bold leading-snug', ev.done ? 'text-muted line-through' : 'text-charcoal')}>{ev.title}</span>
+        <span className={cn('block text-xs', ev.overdue ? 'font-semibold text-danger' : 'text-muted')}>{ev.overdue ? `Overdue · ${sub}` : sub}</span>
       </span>
     </>
   );
@@ -191,12 +192,12 @@ export default function CalendarView() {
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-rust" />Goal due</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-blush" /><b className="font-bold text-charcoal">2 PM</b> A plan with a time</span>
-          <span className="inline-flex items-center gap-1.5"><span className="grid h-4 w-4 place-items-center rounded-full bg-rust text-[9px] font-bold text-white">{new Date().getDate()}</span>Today</span>
+          <span className="inline-flex items-center gap-1.5"><span className="grid h-4 w-4 place-items-center rounded-full bg-rust text-[10px] font-bold text-white">{new Date().getDate()}</span>Today</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-1 w-6 overflow-hidden rounded-full bg-oat"><span className="block h-full w-2/3 bg-success" /></span>Time planned (turns red when a day is too full)</span>
         </div>
       </section>
 
-      <aside className="rounded-[28px] border border-oat bg-soft p-4 md:p-6 xl:sticky xl:top-28" style={cardShadow} aria-label="Selected day">
+      <aside className="rounded-[28px] border border-oat bg-soft p-4 md:p-6 xl:sticky xl:top-6" style={cardShadow} aria-label="Selected day">
         <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rust-dark">{selected === todayKey ? 'Today' : 'Selected day'}</p>
         <h2 className="mt-0.5 text-lg font-extrabold tracking-tight text-charcoal">
           {selectedDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}

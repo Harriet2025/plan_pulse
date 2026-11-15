@@ -270,12 +270,12 @@ function AnyTime({ dayKey, items, onEdit }) {
       {list.length === 0 ? (
         <p className="mt-1 text-xs text-muted">Plans without a set time show here.</p>
       ) : (
-        <ul className="mt-2 grid gap-1">
+        <ul className="mt-2 grid grid-cols-[minmax(0,1fr)] gap-1">
           {list.map((x) => (
             <li key={x.plan.id} className="flex items-center gap-3 rounded-xl border border-oat bg-ivory px-3 py-2.5">
               <Tick done={x.done} label={x.done ? `Mark "${x.plan.title}" not done` : `Mark "${x.plan.title}" done`} onToggle={() => toggleDayPlan(x.plan.id, dayKey, !x.done)} />
               <span className="min-w-0 flex-1">
-                <span className={cn('block truncate text-sm font-semibold', x.done ? 'text-muted line-through' : 'text-charcoal')}>{x.plan.title}</span>
+                <span className={cn('block break-words text-sm font-semibold', x.done ? 'text-muted line-through' : 'text-charcoal')}>{x.plan.title}</span>
                 {(x.minutes || x.plan.repeat !== 'NONE') && (
                   <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
                     {x.minutes ? fmtMinutes(x.minutes) : ''}{x.minutes && x.plan.repeat !== 'NONE' ? ' · ' : ''}
@@ -329,7 +329,7 @@ function DayView({ dayKey }) {
           <p className="mt-2 text-2xl font-extrabold tabular-nums text-charcoal">{fmtMinutes(load.planned)} <span className="text-sm font-semibold text-muted">{load.capacity ? `planned of ${fmtMinutes(load.capacity)}` : 'planned · rest day'}</span></p>
           <Bar pct={pct} height="h-2.5" className="mt-2" fill={LOAD_FILL[load.state]} label="Time planned" />
           <p className="mt-2 text-xs text-muted">
-            {load.state === 'over' ? `About ${fmtMinutes(load.over)} more than fits.` : load.state === 'tight' ? 'A full day. Leave some slack.' : load.capacity ? `${fmtMinutes(load.free)} still free.` : 'A rest day, so anything here is extra.'}
+            {load.state === 'over' ? `About ${fmtMinutes(load.over)} too much.` : load.state === 'tight' ? 'A full day.' : load.capacity ? `${fmtMinutes(load.free)} free.` : 'Rest day.'}
             {load.unestimated > 0 && ` ${load.unestimated} still to do ${load.unestimated === 1 ? 'has' : 'have'} no length.`}
           </p>
           {load.state === 'over' && (
@@ -364,10 +364,10 @@ function WeekStrip({ anchor, onPickDay }) {
           <button key={key} type="button" onClick={() => onPickDay(key)}
             className={cn('flex min-w-0 flex-col items-center gap-1 rounded-2xl border px-1 py-2.5 transition-colors hover:border-rust', key === today ? 'border-rust bg-rust/10' : 'border-oat bg-ivory')}
             aria-label={`${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}: ${items.length} plans`}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted">{d.toLocaleDateString(undefined, { weekday: 'short' })}</span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted">{d.toLocaleDateString(undefined, { weekday: 'short' })}</span>
             <span className={cn('text-lg font-extrabold tabular-nums', key === today ? 'text-rust-dark' : 'text-charcoal')}>{d.getDate()}</span>
             <span className="h-1.5 w-full max-w-[2.5rem] overflow-hidden rounded-full bg-oat"><span className={cn('block h-full rounded-full', LOAD_FILL[load.state])} style={{ width: `${pct}%` }} /></span>
-            <span className="text-[10px] font-semibold tabular-nums text-muted">{items.length ? `${items.filter((x) => x.done).length}/${items.length}` : load.capacity === 0 ? 'Rest' : '—'}</span>
+            <span className="text-[11px] font-semibold tabular-nums text-muted">{items.length ? `${items.filter((x) => x.done).length}/${items.length}` : load.capacity === 0 ? 'Rest' : '—'}</span>
           </button>
         );
       })}

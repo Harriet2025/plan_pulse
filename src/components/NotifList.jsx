@@ -15,7 +15,7 @@ function Row({ icon: Icon, tone, title, sub, onClick }) {
     </li>
   );
 }
-const Head = ({ children }) => <li className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{children}</li>;
+const Head = ({ children }) => <li className="px-3 pb-1 pt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{children}</li>;
 
 export const useNotifCount = () => { const { notif } = useApp(); return notif.due.length + notif.urgent.length; };
 

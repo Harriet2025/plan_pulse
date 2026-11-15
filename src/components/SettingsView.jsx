@@ -302,7 +302,7 @@ function StreakCard() {
 }
 
 // 1 hour to 12 hours in half-hour steps
-const CAPACITY_OPTIONS = Array.from({ length: 23 }, (_, i) => 60 + i * 30);
+const CAPACITY_OPTIONS = Array.from({ length: 31 }, (_, i) => 60 + i * 30);   // 1 to 16 hours
 
 const WEEKDAY_LONG = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -426,7 +426,7 @@ function NotificationsCard() {
       {cfg && cfg.devices.length > 0 && (
         <ul className="mt-2 grid gap-1 text-xs text-muted" aria-label="Devices with notifications">
           {cfg.devices.map((d) => (
-            <li key={d.key} className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-success" aria-hidden="true" />{d.label}{d.added && ` · added ${new Date(d.added.replace(' ', 'T')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}{d.key === thisKey && <span className="rounded-full bg-oat px-2 py-0.5 text-[10px] font-bold text-charcoal">This device</span>}</li>
+            <li key={d.key} className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-success" aria-hidden="true" />{d.label}{d.added && ` · added ${new Date(d.added.replace(' ', 'T')).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}{d.key === thisKey && <span className="rounded-full bg-oat px-2 py-0.5 text-[11px] font-bold text-charcoal">This device</span>}</li>
           ))}
         </ul>
       )}
@@ -498,16 +498,16 @@ function AppearanceCard() {
   );
 }
 
-/** Phones only: from md up these sit in the top bar and the sidebar. */
+/** Sound for everyone; sign out here on phones only (from md up it sits in the sidebar). */
 function PhoneControls() {
   const { soundOn, setSoundOn, signOut } = useApp();
   const row = 'flex w-full items-center gap-3 rounded-2xl border border-oat bg-soft px-4 py-3 text-left text-sm font-bold';
   return (
-    <div className="grid gap-2 md:hidden">
+    <div className="grid gap-2">
       <button type="button" aria-pressed={soundOn} onClick={() => setSoundOn(!soundOn)} className={cn(row, 'text-charcoal')}>
         {soundOn ? <Volume2 className="h-5 w-5 shrink-0" aria-hidden="true" /> : <VolumeX className="h-5 w-5 shrink-0" aria-hidden="true" />}Sound {soundOn ? 'on' : 'off'}
       </button>
-      <button type="button" onClick={signOut} className={cn(row, 'text-danger')}><LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />Sign out</button>
+      <button type="button" onClick={signOut} className={cn(row, 'text-danger md:hidden')}><LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />Sign out</button>
     </div>
   );
 }

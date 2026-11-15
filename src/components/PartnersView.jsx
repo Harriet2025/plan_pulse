@@ -145,7 +145,7 @@ function Scoreboard({ me, them, name }) {
   );
   return (
     <div className="rounded-2xl border border-oat bg-ivory p-3">
-      <p className="mb-2 flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">
+      <p className="mb-2 flex items-center gap-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">
         This week so far · {weekSpan(localDate(periodStart('WEEKLY', new Date())))}
         <InfoTip label="What counts here" text="Every plan each of you ticks off from Monday to Sunday: today's plans, steps of your goals and shared plans. It starts again from 0 every Monday. It is only a count, not a target: targets are the weekly challenge, on Together." />
       </p>
@@ -178,7 +178,7 @@ function MediaBubble({ m, mine, time, onOpen }) {
         )}
         <div className="px-3 py-1.5">
           {m.body && <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>}
-          <p className={cn('text-right text-[10px]', mine ? 'text-white/90' : 'text-muted')}>{m.kind === 'VIDEO' ? '🎬 ' : ''}{time}</p>
+          <p className={cn('text-right text-[11px]', mine ? 'text-white/90' : 'text-muted')}>{m.kind === 'VIDEO' ? '🎬 ' : ''}{time}</p>
         </div>
       </div>
     </motion.div>
@@ -367,14 +367,14 @@ function Chat({ entry, onStreak }) {
           const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
           return (
             <div key={m.id}>
-              {heading && <p className="my-2 text-center"><span className="rounded-full bg-soft/95 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{heading}</span></p>}
+              {heading && <p className="my-2 text-center"><span className="rounded-full bg-soft/95 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{heading}</span></p>}
               {m.kind === 'IMAGE' || m.kind === 'VIDEO' ? (
                 <MediaBubble m={m} mine={mine} time={time} onOpen={setViewing} />
               ) : m.kind === 'TEXT' ? (
                 <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cn('my-1 flex', mine ? 'justify-end' : 'justify-start')}>
                   <div className={cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-md bg-rust text-white' : 'rounded-bl-md bg-oat text-charcoal')}>
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                    <p className={cn('mt-0.5 text-right text-[10px]', mine ? 'text-white/90' : 'text-muted')}>{time}</p>
+                    <p className={cn('mt-0.5 text-right text-[11px]', mine ? 'text-white/90' : 'text-muted')}>{time}</p>
                   </div>
                 </motion.div>
               ) : (
@@ -538,7 +538,7 @@ function TheirGoals({ entry, view, onCheered }) {
             <div className="flex items-start gap-2.5">
               <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: cat?.color ?? '#4A78D4' }} />
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date))}{cat ? ` · ${cat.name}` : ''}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date))}{cat ? ` · ${cat.name}` : ''}</p>
                 <h4 className={cn('break-words text-base font-extrabold leading-snug', g.status === 'COMPLETED' ? 'text-success' : 'text-charcoal')}>{g.title}{g.status === 'COMPLETED' && ' ✓'}</h4>
               </div>
             </div>
@@ -627,7 +627,7 @@ function NicknameHeading({ entry }) {
   );
 }
 
-function PartnerPanel({ entry, onBack }) {
+function PartnerPanel({ entry, onBack, startTab, onStarted }) {
   const { partnerAction, toast } = useApp();
   const [tab, setTab] = useState('chat');
   const [view, setView] = useState(null);
@@ -637,7 +637,8 @@ function PartnerPanel({ entry, onBack }) {
 
   useEffect(() => {
     let alive = true;
-    setView(null); setTab('chat'); setStreak(entry.chat_streak); setArmed(false);
+    setView(null); setTab(startTab || 'chat'); setStreak(entry.chat_streak); setArmed(false);
+    if (startTab) onStarted?.();
     const load = () => api.getPartnerView(entry.id).then((v) => alive && setView(v)).catch(() => {});
     load();
     const t = setInterval(load, 30000);
@@ -695,8 +696,9 @@ function PartnerPanel({ entry, onBack }) {
 // ---------------------------------------------------------------------------------------------------------------
 
 export default function PartnersView() {
-  const { partners: { partners }, refreshPartners, user, toast } = useApp();
-  const [selected, setSelected] = useState(null);
+  const { partners: { partners }, refreshPartners, user, toast, partnerOpen, consumePartnerOpen } = useApp();
+  const [selected, setSelected] = useState(() => partnerOpen?.id ?? null);
+  useEffect(() => { if (partnerOpen) setSelected(partnerOpen.id); }, [partnerOpen]);
   useEffect(() => { refreshPartners(); }, [refreshPartners]);
   useEffect(() => {
     const invite = readInvite();
@@ -740,7 +742,7 @@ export default function PartnersView() {
       {/* No exit animations or `layout` here: they would keep App's page transition from finishing */}
       {entry ? (
         <motion.div key={entry.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.18 }} className="min-w-0">
-          <PartnerPanel entry={entry} onBack={() => setSelected(null)} />
+          <PartnerPanel entry={entry} onBack={() => setSelected(null)} startTab={partnerOpen?.id === entry.id ? partnerOpen.tab : null} onStarted={consumePartnerOpen} />
         </motion.div>
       ) : (
         <div className="hidden rounded-3xl border border-dashed border-blush/50 bg-soft/60 p-10 text-center text-sm text-muted lg:block">Pick a partner to chat and see their goals.</div>

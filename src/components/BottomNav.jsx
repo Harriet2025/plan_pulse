@@ -22,13 +22,13 @@ export default function BottomNav() {
         <div className="grid grid-cols-6 gap-0.5 rounded-2xl border border-oat bg-soft p-1 backdrop-blur-md" role="tablist">
           {ITEMS.map(({ id, label, icon: Icon }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
-              className="tab relative flex flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[10px] font-bold">
+              className="tab relative flex flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[11px] font-bold">
               <Icon className="h-5 w-5" style={view === id ? undefined : { color: tabColor(id) }} aria-hidden="true" />{label}
               {id === 'partners' && unreadTotal > 0 && (
-                <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rust px-1 text-[9px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>
+                <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rust px-1 text-[10px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>
               )}
               {id === 'catchup' && slipped.length > 0 && (
-                <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-blush px-1 text-[9px] font-extrabold tabular-nums text-charcoal" aria-label={`${slipped.length} slipped`}>{slipped.length}</span>
+                <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-blush px-1 text-[10px] font-extrabold tabular-nums text-charcoal" aria-label={`${slipped.length} slipped`}>{slipped.length}</span>
               )}
             </button>
           ))}

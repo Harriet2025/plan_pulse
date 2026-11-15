@@ -33,7 +33,7 @@ export default function ShareWith({ value, onChange, disabled, compact }) {
             <button key={p.id} type="button" aria-pressed={on} disabled={disabled} onClick={() => toggle(p.id)}
               className={cn('inline-flex items-center gap-1.5 rounded-full border-2 py-0.5 pl-0.5 pr-2.5 text-xs font-bold transition-colors disabled:opacity-50',
                 on ? 'border-rust bg-rust/10 text-rust-dark' : 'border-oat bg-soft text-muted hover:border-blush')}>
-              <Avatar user={p.partner} className="h-5 w-5 text-[9px]" />
+              <Avatar user={p.partner} className="h-5 w-5 text-[10px]" />
               {firstName(p.partner.display_name)}
               {on && <Check className="h-3 w-3" strokeWidth={3} aria-hidden="true" />}
             </button>

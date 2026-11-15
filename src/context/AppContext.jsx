@@ -254,6 +254,30 @@ export function AppProvider({ children }) {
   }, [user?.id, refreshPartners]); // eslint-disable-line react-hooks/exhaustive-deps
   const unreadTotal = partners.partners.reduce((n, p) => n + p.unread, 0) + partners.incoming.length;
 
+  // Shared goals with every partner, for the dashboard: [{ ...goal, partnershipId, partnerName, mine: { done, total } }].
+  // "mine" counts the plans that are yours to do (together, each of us, or yours alone).
+  const [sharedGoals, setSharedGoals] = useState([]);
+  const [partnerOpen, setPartnerOpen] = useState(null);   // { id, tab }: open this partner at this tab (from the dashboard)
+  const partnerList = useRef([]);
+  partnerList.current = partners.partners;
+  const partnerKey = partners.partners.map((p) => p.id).join(',');
+  const refreshShared = useCallback(async () => {
+    const list = partnerList.current;
+    if (!list.length) { setSharedGoals([]); return; }
+    const views = await Promise.all(list.map((e) => api.getTogether(e.id).then((v) => ({ e, v })).catch(() => null)));
+    setSharedGoals(views.filter(Boolean).flatMap(({ e, v }) => (v.goals ?? []).filter((g) => g.status === 'ACTIVE').map((g) => {
+      const mineList = (g.plans ?? []).filter((x) => x.who !== 'THEM');
+      return { ...g, partnershipId: e.id, partnerName: e.partner.display_name,
+        mine: { total: mineList.length, done: mineList.filter((x) => (x.who === 'TOGETHER' ? x.done : x.me_done || x.done)).length } };
+    })));
+  }, []);
+  useEffect(() => {
+    if (!user) { setSharedGoals([]); return undefined; }
+    refreshShared();
+    const t = setInterval(refreshShared, 60000);
+    return () => clearInterval(t);
+  }, [user?.id, partnerKey, refreshShared]); // eslint-disable-line react-hooks/exhaustive-deps
+
   /** Ticks (or unticks) your part of a shared goal's plan. Returns the new Together view, or undefined on failure. */
   const markTeamPlan = (planId, done) => run(async () => {
     const res = await api.markTeamPlan(planId, done);
@@ -262,6 +286,7 @@ export function AppProvider({ children }) {
     messages.push(...streakMessages(res.streak));
     messages.forEach((m, i) => setTimeout(() => toast(m), i * 3000));
     if (done) refresh();   // the streak in the header
+    refreshShared();
     return res;
   });
 
@@ -455,7 +480,8 @@ export function AppProvider({ children }) {
     plannerAt, setPlannerAt,
     openPlanner: (horizon, key) => { setPlannerAt({ horizon, key }); setView('planner'); },
     openDay: (key) => { setPlannerAt({ horizon: 'DAILY', key }); setView('planner'); },
-    partners, refreshPartners, setPartners, partnerAction, unreadTotal, shareGoal, markTeamPlan,
+    partners, refreshPartners, setPartners, partnerAction, unreadTotal, sharedGoals, refreshShared, partnerOpen,
+    openPartner: (id, tab = 'chat') => { setPartnerOpen({ id, tab }); setView('partners'); }, consumePartnerOpen: () => setPartnerOpen(null), shareGoal, markTeamPlan,
     dayPlans, addDayPlan, editDayPlan, toggleDayPlan, skipDayPlan, deleteDayPlan, planWeek,
     weekPlanOpen, openWeekPlan: () => setWeekPlanOpen(true), closeWeekPlan: () => setWeekPlanOpen(false),
     activeGoals, visibleGoals, rewardsTotal, rewards, notif, now, slipped, rescheduleItems,

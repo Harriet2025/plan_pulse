@@ -309,7 +309,7 @@ export default function WeeklyPlanModal() {
               {STEPS.map((s, i) => (
                 <li key={s} aria-current={i === step ? 'step' : undefined}>
                   <div className={cn('h-1.5 rounded-full', i <= step ? 'bg-rust' : 'bg-oat')} />
-                  <p className={cn('mt-1 truncate text-[10px] font-bold uppercase tracking-wide', i === step ? 'text-rust-dark' : 'text-muted')}>{s}</p>
+                  <p className={cn('mt-1 truncate text-[11px] font-bold uppercase tracking-wide', i === step ? 'text-rust-dark' : 'text-muted')}>{s}</p>
                 </li>
               ))}
             </ol>

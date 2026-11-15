@@ -61,8 +61,8 @@ export default function RewardModal({ item }) {
               return (
                 <div key={r} className={cn('rounded-xl border px-2 py-1.5 text-center', !on && 'border-oat opacity-50')} style={on ? { borderColor: `${X.color}88`, background: `${X.color}1a` } : undefined}>
                   <div className="text-lg leading-none" aria-hidden="true">{X.emoji}</div>
-                  <div className={cn('mt-1 text-[10px] font-bold uppercase tracking-wider', on ? 'text-charcoal' : 'text-muted')}>{X.name}</div>
-                  <div className="text-[10px] tabular-nums text-muted">{X.min}%+</div>
+                  <div className={cn('mt-1 text-[11px] font-bold uppercase tracking-wider', on ? 'text-charcoal' : 'text-muted')}>{X.name}</div>
+                  <div className="text-[11px] tabular-nums text-muted">{X.min}%+</div>
                 </div>
               );
             })}

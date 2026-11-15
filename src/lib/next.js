@@ -29,18 +29,23 @@ export function recommend({ goals, dayPlans, minutes, energy = 'medium', skipped
   const today = parseDay(key);
   const out = [];
 
-  // Today's day plans that are not done: one happening now comes first; ones set for later today wait for their time
+  // Today's day plans that are not done. The plan set for this hour always comes first (it is what you planned to be
+  // doing now); ones set for a later hour wait for their time.
+  const hourEnd = (Math.floor(nowMin / 60) + 1) * 60;
   for (const x of plansOn(dayPlans, key)) {
     if (x.done) continue;
     let score = 30;
     const reasons = [];
+    let now = false;
     if (x.start) {
-      const s = clockToMinutes(x.start), e = s + (x.minutes ?? 30);
-      if (s > nowMin + 10) continue;                       // it has its own time later today
-      if (nowMin < e) { score += 100; reasons.push('Happening now'); }
-      else { score += 40; reasons.push(`Planned for ${fmtClock(new Date(`${key}T${x.start}`))}, not done yet`); }
+      const s = clockToMinutes(x.start), e = s + (x.minutes ?? 60);
+      const at = fmtClock(new Date(`${key}T${x.start}`));
+      if (s >= hourEnd) continue;                          // it has its own time later today
+      if (s > nowMin) { now = true; score += 1000; reasons.push(`Set for this hour (${at})`); }
+      else if (nowMin < e) { now = true; score += 1000 + s; reasons.push(`Planned for now (since ${at})`); }
+      else { score += 40; reasons.push(`Planned for ${at}, not done yet`); }
     } else reasons.push('On your plan for today');
-    out.push({ id: `d${x.plan.id}`, kind: 'day', title: x.plan.title, context: 'Today', minutes: x.minutes ?? null, score, reasons, ref: { planId: x.plan.id, key } });
+    out.push({ id: `d${x.plan.id}`, kind: 'day', title: x.plan.title, context: 'Today', minutes: x.minutes ?? null, score, reasons, now, ref: { planId: x.plan.id, key } });
   }
 
   // The plans of active goals: deadline and priority first
@@ -67,6 +72,7 @@ export function recommend({ goals, dayPlans, minutes, energy = 'medium', skipped
 
   // Fit to the time there is, and to the energy
   for (const c of out) {
+    if (c.now) { c.fits = null; continue; }               // planned for this hour: it stays first whatever the time or energy
     if (c.minutes) {
       c.fits = c.minutes <= minutes;
       if (c.fits) { c.score += 25; c.reasons.push(`Fits your ${fmtMinutes(minutes)}`); }

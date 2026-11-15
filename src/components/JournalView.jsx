@@ -35,13 +35,14 @@ export default function JournalView() {
   const shown = browsing ? entries : entries.slice(0, limit);
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-5">
-      <section className="rounded-3xl border border-oat bg-soft p-4 md:p-5" style={cardShadow}>
+    // Wide screens: write on the left (it stays in view), read on the right
+    <div className="mx-auto grid max-w-3xl items-start gap-5 xl:max-w-none xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
+      <section className="rounded-3xl border border-oat bg-soft p-4 md:p-5 xl:sticky xl:top-6" style={cardShadow}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-charcoal"><BookOpen className="h-5 w-5 text-rust-dark" aria-hidden="true" />Write in your journal</h2>
           <button type="button" onClick={() => setView('history')} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal"><BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />History &amp; analytics</button>
         </div>
-        <p className="mb-3 text-xs text-muted">Private notes for you to look back on at the end of each week, month and year. Partners never see them.</p>
+        <p className="mb-3 text-xs text-muted">Private to you. Partners never see it.</p>
         <NoteEditor />
       </section>
 
@@ -78,7 +79,7 @@ export default function JournalView() {
 
         <div className="mt-4 grid gap-3">
           {shown.map((e) => <EntryCard key={e.id} entry={e} />)}
-          {!browsing && !entries.length && <p className="rounded-2xl border-2 border-dashed border-blush/50 bg-ivory p-8 text-center text-sm text-muted">Your journal is empty. Write your first note above.</p>}
+          {!browsing && !entries.length && <p className="rounded-2xl border-2 border-dashed border-blush/50 bg-ivory p-8 text-center text-sm text-muted">Your journal is empty. Write your first note to start it.</p>}
           {!browsing && entries.length > limit && (
             <button type="button" onClick={() => setLimit((l) => l + PAGE)} className="justify-self-center rounded-xl px-4 py-2 text-sm font-bold text-rust-dark hover:bg-oat/60">Show older entries</button>
           )}

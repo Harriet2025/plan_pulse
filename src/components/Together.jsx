@@ -125,7 +125,7 @@ function WeekDots({ weekStart, days, today, who }) {
       {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => {
         const key = localDate(addDays(start, i)), on = days.includes(key);
         return (
-          <span key={i} className={cn('grid h-7 w-7 place-items-center rounded-full text-[10px] font-extrabold', on ? 'bg-success text-on-status' : 'bg-oat text-muted', key === today && !on && 'ring-2 ring-rust/50')}>
+          <span key={i} className={cn('grid h-7 w-7 place-items-center rounded-full text-[11px] font-extrabold', on ? 'bg-success text-on-status' : 'bg-oat text-muted', key === today && !on && 'ring-2 ring-rust/50')}>
             {on ? <Check className="h-3.5 w-3.5" strokeWidth={3.5} aria-hidden="true" /> : d}
           </span>
         );
@@ -162,7 +162,7 @@ function Challenge({ entry, data, setData }) {
     <section className={cn('rounded-3xl border-2 p-4', c?.won ? 'border-success/50 bg-success/5' : 'border-rust/30 bg-ivory')} aria-label="This week's challenge">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">This week’s challenge · {weekSpan(data.week_start)}{c ? ` · ${ends}` : ''}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">This week’s challenge · {weekSpan(data.week_start)}{c ? ` · ${ends}` : ''}</p>
           {c && !picking && (
             <h3 className="mt-0.5 flex items-center gap-1 text-base font-extrabold leading-snug text-charcoal">
               {cap(c.text)} this week
@@ -225,7 +225,7 @@ function Challenge({ entry, data, setData }) {
           {data.win_streak > 1 && <span className="font-bold text-rust-dark">🔥 {data.win_streak} weeks in a row</span>}
           <span className="flex items-center gap-1" aria-label="Recent weeks">
             {data.history.slice(0, 6).reverse().map((h) => (
-              <span key={h.week_start} title={`${cap(h.text)}: ${h.won ? 'won' : 'missed'}`} className={cn('grid h-5 w-5 place-items-center rounded-full text-[10px] font-extrabold', h.won ? 'bg-success text-on-status' : 'bg-oat text-muted')}>{h.won ? '✓' : '–'}</span>
+              <span key={h.week_start} title={`${cap(h.text)}: ${h.won ? 'won' : 'missed'}`} className={cn('grid h-5 w-5 place-items-center rounded-full text-[11px] font-extrabold', h.won ? 'bg-success text-on-status' : 'bg-oat text-muted')}>{h.won ? '✓' : '–'}</span>
             ))}
           </span>
         </div>
@@ -272,7 +272,7 @@ function TeamGoalCard({ goal, name, onData, onEdit }) {
       <div className="flex items-start gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rust/10 text-2xl" aria-hidden="true">{goal.emoji}</span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">{periodLabel(goal.timeframe, parseDay(goal.due_date))} · ends {parseDay(goal.due_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{periodLabel(goal.timeframe, parseDay(goal.due_date))} · ends {parseDay(goal.due_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
           <h4 className={cn('break-words text-base font-extrabold leading-snug', finished ? 'text-success' : 'text-charcoal')}>{goal.title}</h4>
           {goal.why && <p className="mt-0.5 text-xs italic text-muted">“{goal.why}”</p>}
         </div>

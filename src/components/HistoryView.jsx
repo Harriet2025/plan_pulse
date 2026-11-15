@@ -82,7 +82,7 @@ function Performance({ a, badges }) {
         <div className="flex flex-wrap items-center gap-6">
           <div className="relative h-32 w-32 shrink-0" role="img" aria-label="Goal steps done">
             <Ring pct={o.completion_pct} track="rgb(var(--oat))" stroke="rgb(var(--rust))" strokeWidth={10} />
-            <div className="absolute inset-0 grid place-items-center text-center"><div><div className="text-3xl font-extrabold tabular-nums text-charcoal">{o.completion_pct}%</div><div className="text-[10px] font-bold uppercase tracking-wider text-muted">Goal steps</div></div></div>
+            <div className="absolute inset-0 grid place-items-center text-center"><div><div className="text-3xl font-extrabold tabular-nums text-charcoal">{o.completion_pct}%</div><div className="text-[11px] font-bold uppercase tracking-wider text-muted">Goal steps</div></div></div>
           </div>
           <dl className="grid min-w-[14rem] flex-1 gap-3 text-sm">
             {[['Goals completed', `${o.goals_completed}/${o.goals_total}`], ['Goal steps done', `${o.tasks_done}/${o.tasks_total}`], ['Goal badges earned', badges]].map(([k, v], i, arr) => (
@@ -125,7 +125,7 @@ function BadgeGallery({ reviews }) {
                 <div className={cn('text-4xl leading-none', !n && 'grayscale')} aria-hidden="true">{T.emoji}</div>
                 <div className="mt-2 text-xs font-extrabold uppercase tracking-wider text-charcoal">{T.name}</div>
                 <div className={cn('text-lg font-extrabold tabular-nums', n ? 'text-charcoal' : 'text-muted')}>{n}</div>
-                <div className="text-[10px] text-muted">{n ? 'earned' : `${T.min}%+ to unlock`}</div>
+                <div className="text-[11px] text-muted">{n ? 'earned' : `${T.min}%+ to unlock`}</div>
               </div>
             );
           })}

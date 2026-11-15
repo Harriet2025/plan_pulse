@@ -119,7 +119,7 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-[11px] font-bold uppercase tracking-wider text-muted">{cat ? cat.name : 'No category'}</span>
-              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${p.badge}`}>
+              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider ${p.badge}`}>
                 <span className="h-1.5 w-1.5 rounded-full bg-current" style={{ boxShadow: '0 0 6px currentColor' }} />{p.label}
               </span>
             </div>

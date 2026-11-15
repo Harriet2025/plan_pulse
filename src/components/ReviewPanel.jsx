@@ -124,7 +124,7 @@ export default function ReviewPanel({ horizon, anchor }) {
       <section className="flex flex-wrap items-center gap-5 rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-label="Your result">
         <div className="relative h-28 w-28 shrink-0">
           <Ring pct={pct} track="rgb(var(--oat))" stroke={pct >= 80 ? 'rgb(var(--success))' : 'rgb(var(--rust))'} />
-          <span className="absolute inset-0 grid place-items-center text-center"><span><b className="block text-2xl font-extrabold tabular-nums text-charcoal">{pct}%</b><span className="text-[10px] font-bold uppercase tracking-wider text-muted">done</span></span></span>
+          <span className="absolute inset-0 grid place-items-center text-center"><span><b className="block text-2xl font-extrabold tabular-nums text-charcoal">{pct}%</b><span className="text-[11px] font-bold uppercase tracking-wider text-muted">done</span></span></span>
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-rust-dark">Review · {horizonOf(horizon).label}</p>
@@ -158,7 +158,7 @@ export default function ReviewPanel({ horizon, anchor }) {
               if (!plans.length && show !== 'all') return null;
               return (
                 <li key={g.id} className={cn('rounded-2xl border-2 bg-soft p-4', g.status === 'COMPLETED' ? 'border-success/40' : 'border-oat')}>
-                  <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted"><Icon className="h-3 w-3" aria-hidden="true" />{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date), now)}</p>
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-muted"><Icon className="h-3 w-3" aria-hidden="true" />{horizonOf(g.timeframe).label} goal · {periodLabel(g.timeframe, parseDay(g.due_date), now)}</p>
                   <h4 className="mt-0.5 break-words text-base font-extrabold leading-snug text-charcoal">{g.title}{g.status === 'COMPLETED' && <span className="ml-1.5 text-success">✓</span>}</h4>
                   <div className="mt-2 flex items-center gap-2"><Bar pct={g.sub_plans.length ? Math.round((100 * gd) / g.sub_plans.length) : 0} height="h-1.5" className="flex-1" fill={g.status === 'COMPLETED' ? 'bg-success' : 'bg-rust'} label={`${g.title} progress`} /><span className="text-xs font-bold tabular-nums text-muted">{gd}/{g.sub_plans.length}</span></div>
                   <ul className="mt-2 grid gap-1">

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, LifeBuoy, ListChecks, Moon, Plus, Quote, Search, Snowflake, Star, Target, Award, CalendarCheck, Medal, TrendingUp, Trophy } from 'lucide-react';
+import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, ClipboardCheck, Flame, Gauge, Handshake, LifeBuoy, Moon, Plus, Quote, Search, Snowflake, Star, Target, Award, CalendarCheck, Medal, Trophy } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
@@ -74,7 +74,7 @@ function HeroRewards() {
   const t = r.today, w = r.week;
   return (
     <div className="relative mt-5 grid grid-cols-1 gap-4 border-t border-white/20 pt-4 pr-8 sm:grid-cols-3 sm:gap-6">
-      <InfoTip text={REWARDS_HELP} label="How points and medals work" align="right" className="absolute right-0 top-4 [&>button]:text-white [&>button:hover]:bg-white/20" />
+      <span className="absolute right-0 top-4"><InfoTip text={REWARDS_HELP} label="How points and medals work" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" /></span>
       <HeroStat icon={t.perfect ? Star : CalendarCheck} value={t.perfect ? 'Perfect day' : t.total ? `${t.done} / ${t.total}` : '—'}
         caption={t.perfect ? 'Every plan for today is done' : t.total ? "Today's plans done" : 'Nothing planned today'} />
       <HeroStat icon={Award} value={`Level ${r.level.n} · ${r.level.name}`} caption={`${r.points.toLocaleString()} points${r.level.next ? ` · ${r.level.toNext} to ${r.level.next.name}` : ''}`} onClick={() => setView('history')}>
@@ -88,12 +88,16 @@ function HeroRewards() {
   );
 }
 
-function Hero({ totals, open }) {
-  const { user, activeGoals, setView, openGoalModal, openNext, rewards, dayPlans, horizonFilter, setHorizonFilter, now } = useApp();
+function Hero() {
+  const { user, activeGoals, setView, openGoalModal, openNext, rewards, dayPlans, horizonFilter, setHorizonFilter, now, sharedGoals } = useApp();
   // The ring: this week / month / year so far (follows the period chosen under Your goals). It counts the steps of
   // that period's goals and the day plans from the start of the period up to today.
   const period = HORIZONS.find((h) => h.id === horizonFilter) ?? HORIZONS[0];
-  const steps = taskTotals(activeGoals.filter((g) => g.timeframe === period.id));
+  const own = activeGoals.filter((g) => g.timeframe === period.id);
+  const sharedNow = sharedGoals.filter((g) => g.timeframe === period.id);
+  const ownSteps = taskTotals(own);
+  // Steps of this period's goals: yours, and your part of the ones shared with a partner
+  const steps = { done: ownSteps.done + sharedNow.reduce((n, g) => n + g.mine.done, 0), total: ownSteps.total + sharedNow.reduce((n, g) => n + g.mine.total, 0) };
   let planDone = 0, planTotal = 0;
   for (let d = periodStart(period.id, now); localDate(d) <= localDate(now); d = addDays(d, 1)) {
     const list = plansOn(dayPlans, localDate(d));
@@ -101,13 +105,13 @@ function Hero({ totals, open }) {
   }
   const doneAll = steps.done + planDone, totalAll = steps.total + planTotal;
   const overall = totalAll ? Math.round((100 * doneAll) / totalAll) : 0;
-  const ringHelp = `${period.this} so far: ${doneAll} of ${totalAll} done. That is the steps in your ${period.label.toLowerCase()} goals plus the plans from your Planner since the ${period.id === 'WEEKLY' ? 'week' : period.id === 'MONTHLY' ? 'month' : 'year'} started.`;
+  const ringHelp = `${period.this} so far: ${doneAll} of ${totalAll} done. That is the steps in your ${period.label.toLowerCase()} goals (shared ones too) plus the plans from your Planner since the ${period.id === 'WEEKLY' ? 'week' : period.id === 'MONTHLY' ? 'month' : 'year'} started.`;
   const first = callName(user);   // their nickname, if they set one
   const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
-  const n = activeGoals.length;
-  const sub = !n ? 'Set a goal for this week, month or year, and list the plans that will get you there.'
-    : open ? `${open} plan${open === 1 ? '' : 's'} left across ${n} goal${n === 1 ? '' : 's'}.${dated.length ? ` Next deadline: ${dated[0].title}.` : ''}`
-    : 'Everything is done. Add a new goal to keep your streak going.';
+  const n = own.length + sharedNow.length;
+  const word = period.label.toLowerCase();
+  const sub = !activeGoals.length && !sharedGoals.length ? 'Set a goal for this week, month or year, and list the plans that will get you there.'
+    : `${n ? `${n} goal${n === 1 ? '' : 's'} this ${word}${sharedNow.length ? ` (${sharedNow.length} shared)` : ''}.` : `No goals for this ${word} yet.`}${dated.length ? ` Next deadline: ${dated[0].title}.` : ''}`;
 
   return (
     // Blue hero. All text on it is white, which keeps well over 4.5:1 on every part of the gradient.
@@ -130,7 +134,7 @@ function Hero({ totals, open }) {
             <div className="absolute inset-0 grid place-items-center text-center">
               <div>
                 <div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{overall}%</div>
-                <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-white md:text-[10px]">{period.this}</div>
+                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white md:text-[11px]">{period.this}</div>
                 <div className="hidden text-[11px] font-semibold tabular-nums text-white/85 md:block">{doneAll} of {totalAll} done</div>
               </div>
             </div>
@@ -151,39 +155,6 @@ function Hero({ totals, open }) {
   );
 }
 
-function StatCards({ totals, open }) {
-  const { activeGoals, rewards } = useApp();
-  const t = rewards.today;
-  const dated = activeGoals.filter((g) => g.due_date).map((g) => ({ g, n: daysUntil(g.due_date) })).sort((a, b) => a.n - b.n);
-  const cats = new Set(activeGoals.map((g) => g.category_id).filter(Boolean)).size;
-  const cards = [
-    { icon: Target, tag: 'Goals', value: activeGoals.length, title: 'Active goals', tile: 'bg-rust',
-      foot: activeGoals.length ? `Across ${cats} categor${cats === 1 ? 'y' : 'ies'}` : 'Create your first goal' },
-    { icon: ListChecks, tag: 'Goal steps', value: open, title: 'Goal steps left', tile: 'bg-success',
-      foot: totals.total ? `${totals.done} done of ${totals.total}` : 'No steps yet' },
-    { icon: TrendingUp, tag: 'Today', value: t.total ? `${t.done}/${t.total}` : '0', title: t.perfect ? 'Perfect day ⭐' : "Today's plans done", tile: 'bg-blush-dark',
-      ...(t.total ? { bar: Math.round((100 * t.done) / t.total) } : { foot: 'Nothing planned today' }) },
-    { icon: CalendarClock, tag: 'Deadlines', value: dated.filter((x) => x.n <= 7).length, title: 'Due this week', tile: 'bg-warning',
-      foot: dated.length ? `Next: ${dated[0].g.title}` : 'No deadlines set' },
-  ];
-  return (
-    <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4" aria-label="Your overview">
-      {cards.map(({ icon: Icon, tag, value, title, tile, foot, bar }, i) => (
-        <motion.div key={tag} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-          className="rounded-3xl border border-oat bg-soft p-3 md:p-5" style={cardShadow}>
-          <div className="flex items-center justify-between">
-            <span className={`grid h-8 w-8 place-items-center rounded-xl text-white md:h-10 md:w-10 ${tile}`}><Icon className="h-4 w-4 md:h-5 md:w-5" aria-hidden="true" /></span>
-            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{tag}</span>
-          </div>
-          <div className="mt-2 text-2xl font-extrabold tabular-nums text-charcoal md:mt-4 md:text-3xl">{value}</div>
-          <p className="text-xs font-bold text-charcoal md:text-sm">{title}</p>
-          {bar !== undefined ? <Bar pct={bar} height="h-1.5" className="mt-2" fill="bg-blush-dark" label="Today's plans done" />
-            : <p className="mt-1 truncate text-xs text-muted">{foot}</p>}
-        </motion.div>
-      ))}
-    </div>
-  );
-}
 
 // A gentle nudge toward the Catch up page. Only shows when something has slipped.
 function CatchUpBanner() {
@@ -224,12 +195,12 @@ function LoadCard() {
   const heavy = nextHeavyDay(dayPlans, user, 7);
   const ui = LOAD_UI[load.state];
   const pct = load.capacity ? Math.min(100, Math.round((100 * load.planned) / load.capacity)) : load.planned ? 100 : 0;
-  const message = load.tasks.length === 0 ? 'Nothing left to do today. Add a plan for your day in the Planner.'
-    : load.state === 'rest' ? `You have ${fmtMinutes(load.planned)} planned on a rest day. Move it if you would rather rest.`
-    : load.state === 'over' ? `That is about ${fmtMinutes(load.over)} more than fits. Moving something to a lighter day would help.`
-    : load.state === 'tight' ? 'A full day. Leave some slack for the unexpected.'
-    : load.planned === 0 ? 'Give your plans a time or a length to see how full today is.'
-    : `That fits your ${fmtMinutes(load.capacity)} day with ${fmtMinutes(load.free)} to spare.`;
+  const message = load.tasks.length === 0 ? 'Nothing left for today.'
+    : load.state === 'rest' ? 'Planned on a rest day.'
+    : load.state === 'over' ? `About ${fmtMinutes(load.over)} too much.`
+    : load.state === 'tight' ? 'A full day.'
+    : load.planned === 0 ? 'Add times to see how full today is.'
+    : `${fmtMinutes(load.free)} free.`;
 
   return (
     <section className="rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-labelledby="loadH">
@@ -243,7 +214,7 @@ function LoadCard() {
       </div>
       <Bar pct={pct} height="h-2.5" className="mt-2.5" fill={ui.bar} label="Time planned today" />
       {load.tasks.length > 0 && (
-        <ul className="mt-3 grid gap-1" aria-label="Today's plans">
+        <ul className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-1" aria-label="Today's plans">
           {load.tasks.slice(0, 5).map((x) => (
             <li key={x.plan.id}>
               <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-oat/50">
@@ -268,7 +239,7 @@ function LoadCard() {
       {heavy && (
         <button type="button" onClick={() => openCalendarDay(heavy.key)} className="mt-3 flex w-full items-center gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-left text-xs font-semibold text-charcoal hover:bg-warning/15">
           <CalendarClock className="h-4 w-4 shrink-0 text-warning" aria-hidden="true" />
-          <span className="min-w-0 flex-1">Heads up: {shortDay(new Date(`${heavy.key}T00:00:00`))} looks heavy, {fmtMinutes(heavy.planned)} of {fmtMinutes(heavy.capacity)}.</span>
+          <span className="min-w-0 flex-1">{shortDay(new Date(`${heavy.key}T00:00:00`))} is full: {fmtMinutes(heavy.planned)} of {fmtMinutes(heavy.capacity)}</span>
           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden="true" />
         </button>
       )}
@@ -330,7 +301,7 @@ function WeekStrip() {
           const label = { done: 'streak day', frozen: 'covered by a freeze', rest: 'rest day', none: '' }[state];
           return (
             <div key={key} className="grid justify-items-center gap-1.5">
-              <span className="text-[10px] font-bold uppercase text-muted">{letter}</span>
+              <span className="text-[11px] font-bold uppercase text-muted">{letter}</span>
               <motion.span
                 initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.04, type: 'spring', stiffness: 300, damping: 18 }}
                 title={`${shortDay(day)}${label ? ` · ${label}` : ''}`}
@@ -373,7 +344,7 @@ function FocusAreas() {
   }).filter((x) => x.goals).sort((a, b) => b.total - a.total).slice(0, 4);
   return (
     <section className="hidden rounded-3xl border border-oat bg-soft p-5 xl:block" style={cardShadow} aria-labelledby="focusH">
-      <div className="flex items-center justify-between"><h2 id="focusH" className="text-sm font-extrabold text-charcoal">Focus areas</h2><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">By category</span></div>
+      <div className="flex items-center justify-between"><h2 id="focusH" className="text-sm font-extrabold text-charcoal">Focus areas</h2><span className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">By category</span></div>
       <div className="mt-4 grid gap-4">
         {rows.length ? rows.map(({ c, pct }) => (
           <div key={c.id}>
@@ -441,14 +412,48 @@ function RightRail() {
   );
 }
 
+/** Goals shared with a partner, for the period on show. Opens that partner's Together tab. */
+function SharedGoals({ goals }) {
+  const { openPartner } = useApp();
+  return (
+    <section className="mt-6" aria-labelledby="sharedH">
+      <h3 id="sharedH" className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Handshake className="h-4 w-4 text-rust-dark" aria-hidden="true" />Shared with partners</h3>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 min-[1180px]:grid-cols-3 xl:grid-cols-2 min-[1850px]:grid-cols-3">
+        {goals.map((g) => {
+          const pct = g.mine.total ? Math.round((100 * g.mine.done) / g.mine.total) : 0;
+          return (
+            <button key={`${g.partnershipId}-${g.id}`} type="button" onClick={() => openPartner(g.partnershipId, 'together')}
+              className="rounded-2xl border border-oat bg-soft p-4 text-left transition-colors hover:border-rust" style={cardShadow}>
+              <div className="flex items-start gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rust/10 text-xl" aria-hidden="true">{g.emoji || '🤝'}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="break-words text-sm font-extrabold leading-snug text-charcoal">{g.title}</p>
+                  <p className="text-xs font-semibold text-muted">With {g.partnerName.split(' ')[0]}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center gap-3">
+                <Bar pct={pct} height="h-1.5" className="flex-1" label={`${g.title}: your part`} />
+                <span className="text-xs font-bold tabular-nums text-charcoal">{g.mine.done}/{g.mine.total} yours</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function GoalsPanel() {
-  const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, setSearch, prio, setPrio, user, openGoalModal } = useApp();
+  const { categories, activeCat, setActiveCat, horizonFilter, setHorizonFilter, visibleGoals, activeGoals, search, setSearch, prio, setPrio, user, openGoalModal, sharedGoals } = useApp();
   const cat = categories.find((c) => String(c.id) === String(activeCat));
   const filtered = !!search.trim() || prio !== 'all';
   const period = HORIZONS.find((h) => h.id === horizonFilter) ?? HORIZONS[0];
   const periodWord = period.label.toLowerCase();
-  const firstTime = !filtered && !cat && activeGoals.length === 0;
-  const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length;
+  const firstTime = !filtered && !cat && activeGoals.length === 0 && sharedGoals.length === 0;
+  const q = search.trim().toLowerCase();
+  // Shared goals for this period (they have no category or priority, so those filters hide them)
+  const shared = cat || prio !== 'all' ? [] : sharedGoals.filter((g) => g.timeframe === period.id && (!q || g.title.toLowerCase().includes(q)));
+  const count = visibleGoals.filter((g) => g.sub_plans.length === 0 || g.status === 'ACTIVE').length + shared.length;
   const pills = [{ id: 'all', name: 'All', color: '#4A78D4' }, ...categories];
 
   const emptyTitle = firstTime ? `Welcome, ${callName(user)}! Let's set your first goal`
@@ -465,7 +470,7 @@ function GoalsPanel() {
         </div>
         <span className="rounded-full bg-soft px-3 py-1 text-xs font-bold tabular-nums text-rust-dark shadow-sm">{count} active</span>
       </div>
-      <div className="mt-3 flex gap-2 md:hidden">
+      <div className="mt-3 flex gap-2 md:max-w-xl">
         <div className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
           <label htmlFor="searchPhone" className="sr-only">Search goals and tasks</label>
@@ -514,7 +519,9 @@ function GoalsPanel() {
         </AnimatePresence>
       </div>
 
-      {visibleGoals.length === 0 && (
+      {shared.length > 0 && <SharedGoals goals={shared} />}
+
+      {visibleGoals.length === 0 && shared.length === 0 && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-xl rounded-3xl border border-dashed border-blush/50 bg-soft p-10 text-center">
           <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-rust text-white"><Target className="h-7 w-7" aria-hidden="true" /></div>
           <p className="text-lg font-extrabold text-charcoal">{emptyTitle}</p>
@@ -539,17 +546,13 @@ function GoalsPanel() {
 }
 
 export default function Dashboard() {
-  const { activeGoals } = useApp();
-  const totals = taskTotals(activeGoals);
-  const open = totals.total - totals.done;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-6">
-      <Hero totals={totals} open={open} />
+      <Hero />
       <WeekNudge />
       <ReviewNudge />
       <InstallNudge />
       <CatchUpBanner />
-      <StatCards totals={totals} open={open} />
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 md:gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
         <RightRail />
         <GoalsPanel />

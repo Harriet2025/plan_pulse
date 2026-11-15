@@ -45,7 +45,7 @@ export default function FocusTimer() {
       <div className="flex items-start gap-3">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${up ? 'bg-success text-on-status' : 'bg-rust text-white'}`}><Timer className="h-5 w-5" aria-hidden="true" /></span>
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted">{up ? 'Time is up' : 'Focusing on'}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted">{up ? 'Time is up' : 'Focusing on'}</p>
           <p className="truncate text-sm font-extrabold text-charcoal" title={focus.title}>{focus.title}</p>
           <p className="truncate text-[11px] text-muted">{focus.kind === 'day' ? 'Plan for today' : focus.context}</p>
         </div>
