@@ -7,9 +7,7 @@
 -- Blocks are stored as a JSON array: [{ "id": "...", "type": "p|h|todo|bullet|quote|callout|divider", "text": "...",
 -- "done": true|false }]. The app keeps them small; the database caps the size.
 
-create function private.touch_updated_at() returns trigger
-language plpgsql set search_path = '' as $$
-begin new.updated_at := now(); return new; end $$;
+-- updated_at is kept by private.touch_updated_at(), which schema.sql already made for goals and the journal.
 
 -- ---- Your own goals ----
 create table public.goal_pages (
