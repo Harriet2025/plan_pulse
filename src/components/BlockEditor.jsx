@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, CheckSquare, GripVertical, Heading2, Lightbulb, List, Minus, Pilcrow, Pin, PinOff, Plus, Quote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, CheckSquare, GripVertical, Heading2, Lightbulb, LineChart, List, Minus, Pilcrow, Pin, PinOff, Plus, Quote, Trash2 } from 'lucide-react';
+import ProgressLog from './ProgressLog';
 import { cn } from '../lib/utils';
 
 // A small page editor made of blocks: text, headings, to-dos, bullets, quotes, callouts and dividers.
@@ -16,6 +17,7 @@ export const BLOCK_TYPES = [
   { type: 'bullet', label: 'Bulleted list', hint: 'A simple list', icon: List },
   { type: 'quote', label: 'Quote', hint: 'Words worth keeping', icon: Quote },
   { type: 'callout', label: 'Callout', hint: 'Make something stand out', icon: Lightbulb },
+  { type: 'log', label: 'Progress log', hint: 'Track a number over time, with a chart', icon: LineChart },
   { type: 'divider', label: 'Divider', hint: 'A line between sections', icon: Minus },
 ];
 const MAX_BLOCKS = 300;
@@ -90,6 +92,13 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
       setFocusReq({ id: after.id, pos: 0 });
       return;
     }
+    if (type === 'log') {
+      const after = newBlock('p');
+      const next = latest.current.map((x) => (x.id === b.id ? { id: x.id, type: 'log', text: b.text.startsWith('/') ? '' : b.text, unit: '', target: '', entries: [], ...(x.pinned ? { pinned: true } : {}) } : x));
+      next.splice(idx + 1, 0, after);
+      commit(next);
+      return;
+    }
     replace(b.id, { type, text: b.text.startsWith('/') ? '' : b.text, ...(type === 'todo' ? { done: !!b.done } : {}) });
     setFocusReq({ id: b.id, pos: 'end' });
   };
@@ -156,6 +165,7 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
         const first = idx === 0 && list.length === 1 && !b.text;
         let body;
         if (b.type === 'divider') body = <div className="py-3"><hr className="border-oat" /></div>;
+        else if (b.type === 'log') body = <ProgressLog block={b} readOnly={readOnly} onChange={(patch) => replace(b.id, patch)} />;
         else if (b.type === 'h') body = textFor(b, idx, 'pt-3 pb-1 text-lg font-bold leading-snug text-charcoal md:text-xl', 'Heading');
         else if (b.type === 'todo') {
           body = (
@@ -204,7 +214,7 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
                 ))}
                 <div className="my-1 border-t border-oat" />
                 {b.type !== 'divider' && (
-                  <button type="button" disabled={!b.pinned && !b.text.trim()} onClick={() => { replace(b.id, { pinned: !b.pinned }); setMenu(null); }}
+                  <button type="button" disabled={!b.pinned && !b.text.trim() && b.type !== 'log'} onClick={() => { replace(b.id, { pinned: !b.pinned }); setMenu(null); }}
                     title={!b.pinned && !b.text.trim() ? 'Write something first' : undefined}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-charcoal hover:bg-panel disabled:opacity-40">
                     {b.pinned ? <PinOff className="h-4 w-4 text-muted" aria-hidden="true" /> : <Pin className="h-4 w-4 text-muted" aria-hidden="true" />}{b.pinned ? 'Unpin' : 'Pin to top'}

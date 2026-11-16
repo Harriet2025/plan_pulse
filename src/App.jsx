@@ -23,6 +23,7 @@ import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
 import AuthScreen from './components/AuthScreen';
 import GoalPage from './components/GoalPage';
+import WindDown from './components/WindDown';
 
 const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, journal: JournalView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
 
@@ -30,7 +31,7 @@ const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView,
 const readResetToken = () => /^#reset=([0-9a-f]{40,128})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
 
 export default function App() {
-  const { booted, user, view, goalPage, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus, weekPlanOpen } = useApp();
+  const { booted, user, view, goalPage, windDown, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus, weekPlanOpen } = useApp();
   const [resetToken, setResetToken] = useState(readResetToken);
   const finishReset = () => { window.history.replaceState(null, '', window.location.pathname + window.location.search); setResetToken(null); };
 
@@ -71,6 +72,7 @@ export default function App() {
       <AnimatePresence>{reflectGoal && <ReflectionModal key={`reflect-${reflectGoal}`} />}</AnimatePresence>
       <AnimatePresence>{nextOpen && <NextTaskModal key="next" />}</AnimatePresence>
       <AnimatePresence>{weekPlanOpen && <WeeklyPlanModal key="week" />}</AnimatePresence>
+      <AnimatePresence>{windDown && <WindDown key="wind" />}</AnimatePresence>
       <AnimatePresence>{focus && <FocusTimer key={`focus-${focus.id}`} />}</AnimatePresence>
       <AnimatePresence mode="wait">{rewardQueue[0] && <RewardModal key={rewardQueue[0].id} item={rewardQueue[0]} />}</AnimatePresence>
 

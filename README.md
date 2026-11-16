@@ -149,6 +149,17 @@ A **shared goal** opens into a page both partners use: the reason you agreed, th
 
 Notes are made of blocks (`src/components/BlockEditor.jsx`): type `/` for headings, to-dos, bullets, quotes, callouts and dividers, or start a line with `# `, `- `, `[] ` or `> `. The handle beside each block changes its type, moves it or deletes it. The tables and functions are in `supabase/goal_pages.sql`.
 
+## Wind-downs
+
+A few guided minutes to close a period (`src/components/WindDown.jsx`), saved to your private journal:
+
+- **Evening** (the dashboard invites you from 6 pm until it is done, or "Not tonight"): tick off today, move what is left to tomorrow or let it go, pick a mood and write what went well and what got in the way, then set up tomorrow with a quick add (with a time, for a reminder).
+- **End of a week, month or year** (the dashboard card when a period ends, or any time from the Journal page): look back at that period's own goals (tick anything done but not marked), decide for each unfinished goal (move to the next period or let it go), reflect (wins, challenges, lessons, next focus: the same reflection the Planner's review shows), and set the goals for the next one.
+
+## Progress log
+
+A block type in goal notes (type `/progress`): name what you track, a unit and an optional target, then log a number per day. It shows latest, total, best and change since the start, a line chart with the target as a dashed line (hover or tap a point for its value), and the entries as a table. It can be pinned.
+
 ## Light and dark mode, and the app colour
 
 The default palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light** or **Dark** in Settings → **Appearance** (before anyone picks, it starts from the device setting once), or flip between them with the sun / moon button in the top bar. Under it, **App colour** offers Blue, Pink, Purple, Teal, Green, Orange, Brown and Graphite. Both choices switch at once and are saved on that device (`localStorage`, keys `auragoal.theme` and `auragoal.accent`).

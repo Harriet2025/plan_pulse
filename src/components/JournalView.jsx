@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { BarChart3, BookOpen, ChevronLeft, ChevronRight, Undo2 } from 'lucide-react';
+import { BarChart3, BookOpen, Check, ChevronLeft, ChevronRight, Moon, Undo2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { horizonOf } from '../lib/constants';
 import { cn, localDate, periodEnd, periodKey, periodLabel, periodPhrase, periodRange, periodStart, shiftPeriod } from '../lib/utils';
 import { EntryCard, MOODS, NoteEditor, PeriodReflection } from './JournalParts';
 import { cardShadow } from './ui';
+import { windDownDone, windKey } from './WindDown';
 
 const TABS = [['ALL', 'All'], ['WEEKLY', 'Week'], ['MONTHLY', 'Month'], ['YEARLY', 'Year']];
 const PAGE = 30;
@@ -17,7 +18,7 @@ function entryDay(e, goals) {
 }
 
 export default function JournalView() {
-  const { journal, goals, now, setView } = useApp();
+  const { journal, goals, now, setView, openWindDown } = useApp();
   const [tab, setTab] = useState('ALL');
   const [anchor, setAnchor] = useState(() => new Date(now));
   const [limit, setLimit] = useState(PAGE);
@@ -44,6 +45,21 @@ export default function JournalView() {
         </div>
         <p className="mb-3 text-xs text-muted">Private to you. Partners never see it.</p>
         <NoteEditor />
+        <div className="mt-5 border-t border-oat pt-4">
+          <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.14em] text-muted"><Moon className="h-3.5 w-3.5" aria-hidden="true" />Wind down</p>
+          <p className="mt-1 text-xs text-muted">A guided few minutes to close a period: look back, decide what carries over, reflect, and set up the next one.</p>
+          <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[['DAILY', 'Today'], ['WEEKLY', 'This week'], ['MONTHLY', 'This month'], ['YEARLY', 'This year']].map(([h, text]) => {
+              const done = windDownDone(windKey(h, now));
+              return (
+                <button key={h} type="button" onClick={() => openWindDown(h, localDate(now))}
+                  className="flex items-center justify-between gap-1 rounded-xl border border-oat bg-ivory px-3 py-2 text-left text-sm font-semibold text-charcoal hover:border-rust">
+                  {text}{done && <Check className="h-4 w-4 shrink-0 text-success" aria-label="done" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-oat bg-soft p-4 md:p-5" style={cardShadow} aria-label="Your entries">

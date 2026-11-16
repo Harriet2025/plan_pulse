@@ -6,6 +6,7 @@ import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
 import { Bar, Emoji, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle, StreakFlame } from './ui';
 import { POINTS } from '../lib/rewards';
+import { WIND_TITLE, windDownDone, windKey } from './WindDown';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
 import { InstallNudge } from './AppStatus';
@@ -34,8 +35,28 @@ function reviewDue(today, seen) {
   return null;
 }
 
+/** From 6 pm: a gentle invitation to wind the day down, until it is done (or put off for tonight). */
+const SKIP_KEY = 'auragoal.windSkip';
+function EveningNudge() {
+  const { now, dayPlans, goals, journal, openWindDown } = useApp();
+  const today = localDate(now);
+  const [skipped, setSkipped] = useState(() => { try { return localStorage.getItem(SKIP_KEY) === today; } catch { return false; } });
+  const done = windDownDone(windKey('DAILY', now)) || journal.some((e) => e.kind === 'NOTE' && e.title === WIND_TITLE && e.date === today);
+  if (now.getHours() < 18 || done || skipped || (!goals.length && !dayPlans.length)) return null;
+  const left = plansOn(dayPlans, today).filter((x) => !x.done).length;
+  const skip = () => { try { localStorage.setItem(SKIP_KEY, today); } catch { /* ignore */ } setSkipped(true); };
+  return (
+    <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-oat bg-soft p-4" style={cardShadow} aria-label="Wind down">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-deep text-white"><Moon className="h-5 w-5" aria-hidden="true" /></span>
+      <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">Wind down your day <span className="font-normal text-muted">· 2 minutes. {left ? `${left} plan${left === 1 ? '' : 's'} still open: finish, move or let go.` : 'Reflect and set up tomorrow.'}</span></p>
+      <button type="button" onClick={() => openWindDown('DAILY', today)} className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong sm:flex-none">Start<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+      <button type="button" onClick={skip} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not tonight</button>
+    </motion.section>
+  );
+}
+
 function ReviewNudge() {
-  const { goals, dayPlans, now, setPlannerAt, setView } = useApp();
+  const { goals, dayPlans, now, setPlannerAt, setView, openWindDown } = useApp();
   const [seen, setSeen] = useState(getReviewed);
   const due = reviewDue(now, seen);
   if (!due || (!goals.length && !dayPlans.length)) return null;
@@ -43,9 +64,10 @@ function ReviewNudge() {
   return (
     <motion.section initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center gap-3 rounded-3xl border border-blush/60 bg-blush/15 p-4" aria-label="Review">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blush-dark text-on-status"><ClipboardCheck className="h-5 w-5" aria-hidden="true" /></span>
-      <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">{due.text} <span className="font-normal text-muted">Tick off what you managed and see your score.</span></p>
-      <button type="button" onClick={() => { done(); setPlannerAt({ horizon: due.horizon, key: due.key, review: true }); setView('planner'); }}
-        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong sm:flex-none">Review now<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+      <p className="min-w-0 flex-1 basis-[calc(100%-3.25rem)] text-sm font-semibold text-charcoal sm:basis-0">{due.text} <span className="font-normal text-muted">Look back, decide what carries over, and set up the next one.</span></p>
+      <button type="button" onClick={() => { done(); openWindDown(due.horizon, due.key); }}
+        className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rust px-4 py-2 text-sm font-extrabold text-white hover:bg-rust-strong sm:flex-none">Wind down<ArrowRight className="h-4 w-4" aria-hidden="true" /></button>
+      <button type="button" onClick={() => { done(); setPlannerAt({ horizon: due.horizon, key: due.key, review: true }); setView('planner'); }} className="rounded-xl px-3 py-2 text-xs font-bold text-charcoal hover:bg-oat/60">Full review</button>
       <button type="button" onClick={done} className="rounded-xl px-3 py-2 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">Not now</button>
     </motion.section>
   );
@@ -561,6 +583,7 @@ export default function Dashboard() {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:gap-6">
       <Hero />
       <WeekNudge />
+      <EveningNudge />
       <ReviewNudge />
       <InstallNudge />
       <CatchUpBanner />

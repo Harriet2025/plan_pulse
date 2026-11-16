@@ -8,6 +8,7 @@ import { useApp } from '../context/AppContext';
 import { PRIORITY, TIERS } from '../lib/constants';
 import { cn, dueInfo, fmtWhen, goalPeriodLabel, parseDay, periodLabel, progressOf } from '../lib/utils';
 import BlockEditor from './BlockEditor';
+import { logSummary } from './ProgressLog';
 import { TaskItem } from './GoalCard';
 import { sharedText } from './ShareWith';
 import { TeamGoalForm, Tick } from './Together';
@@ -100,7 +101,7 @@ function NotReady() {
 
 /** The notes pinned to the top of the page, so the important things are always in view. */
 function Pinned({ blocks, onUnpin }) {
-  const pinned = blocks.filter((b) => b.pinned && b.type !== 'divider' && b.text.trim());
+  const pinned = blocks.filter((b) => b.pinned && b.type !== 'divider' && (b.text.trim() || b.type === 'log'));
   if (!pinned.length) return null;
   const jump = (id) => {
     const el = document.getElementById(`blk-${id}`);
@@ -115,7 +116,7 @@ function Pinned({ blocks, onUnpin }) {
           <li key={b.id} className="group flex items-start gap-2 rounded-lg border border-oat bg-ivory px-3 py-2.5">
             <button type="button" onClick={() => jump(b.id)} className="min-w-0 flex-1 text-left" title="Show it in the notes">
               <span className={cn('line-clamp-3 break-words text-[13px] leading-5 text-charcoal', b.type === 'h' && 'font-bold', b.type === 'quote' && 'italic', b.type === 'todo' && b.done && 'text-muted line-through')}>
-                {b.type === 'todo' ? (b.done ? '☑ ' : '☐ ') : ''}{b.text}
+                {b.type === 'todo' ? (b.done ? '☑ ' : '☐ ') : ''}{b.type === 'log' ? logSummary(b) : b.text}
               </span>
             </button>
             <button type="button" onClick={() => onUnpin(b.id)} aria-label="Unpin" title="Unpin"

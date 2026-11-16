@@ -55,6 +55,8 @@ export function AppProvider({ children }) {
   const [soundOn, setSoundOn] = useState(true);
 
   const [goalModal, setGoalModal] = useState(null);   // null, or { draft } when the New Goal sheet is open
+  // The guided wind-down for a day, week, month or year: { horizon, key: 'YYYY-MM-DD' (a day in that period) }
+  const [windDown, setWindDown] = useState(null);
   // A goal's page, open over the current section: { kind: 'own' | 'team', id, pid (the partnership, for a shared goal) }
   const [goalPage, setGoalPage] = useState(null);
   const openGoalPage = (kind, id, pid = null) => {
@@ -490,6 +492,7 @@ export function AppProvider({ children }) {
     view, setView, activeCat, setActiveCat, horizonFilter, setHorizonFilter, search, setSearch, prio, setPrio,
     soundOn, setSoundOn, goalModal, openGoalModal: (draft = null) => setGoalModal({ draft }), closeGoalModal: () => setGoalModal(null),
     freshId, focusReq, consumeFocus: () => setFocusReq(null), openGoal, goalPage, openGoalPage, closeGoalPage,
+    windDown, openWindDown: (horizon, key) => setWindDown({ horizon, key }), closeWindDown: () => setWindDown(null),
     lighten, openLighten: (date) => setLighten({ date }), closeLighten: () => setLighten(null),
     calendarFocus, consumeCalendarFocus: () => setCalendarFocus(null),
     openCalendarDay: (key) => { setView('calendar'); setCalendarFocus({ key, n: Date.now() }); },
