@@ -131,7 +131,7 @@ export function Ring({ pct, track, stroke, strokeWidth = 9, defs, style }) {
         cx="50" cy="50" r="42" fill="none" strokeWidth={strokeWidth} strokeLinecap="round"
         strokeDasharray={RING} initial={{ strokeDashoffset: RING }}
         animate={{ strokeDashoffset: RING * (1 - pct / 100) }}
-        transition={{ type: 'spring', stiffness: 40, damping: 12 }} style={{ stroke, ...style }}
+        transition={{ type: 'spring', stiffness: 40, damping: 12 }} style={{ stroke, opacity: pct > 0 ? 1 : 0, ...style }}
       />
     </svg>
   );

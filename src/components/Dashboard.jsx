@@ -98,14 +98,14 @@ function Hero() {
   const ownSteps = taskTotals(own);
   // Steps of this period's goals: yours, and your part of the ones shared with a partner
   const steps = { done: ownSteps.done + sharedNow.reduce((n, g) => n + g.mine.done, 0), total: ownSteps.total + sharedNow.reduce((n, g) => n + g.mine.total, 0) };
-  let planDone = 0, planTotal = 0;
-  for (let d = periodStart(period.id, now); localDate(d) <= localDate(now); d = addDays(d, 1)) {
-    const list = plansOn(dayPlans, localDate(d));
-    planTotal += list.length; planDone += list.filter((x) => x.done).length;
-  }
-  const doneAll = steps.done + planDone, totalAll = steps.total + planTotal;
+  // Each period stands on its own: only that period's goals count (never another period's goals, never day plans)
+  const doneAll = steps.done, totalAll = steps.total;
   const overall = totalAll ? Math.round((100 * doneAll) / totalAll) : 0;
-  const ringHelp = `${period.this} so far: ${doneAll} of ${totalAll} done. That is the steps in your ${period.label.toLowerCase()} goals (shared ones too) plus the plans from your Planner since the ${period.id === 'WEEKLY' ? 'week' : period.id === 'MONTHLY' ? 'month' : 'year'} started.`;
+  const word0 = { WEEKLY: "weekly", MONTHLY: "monthly", YEARLY: "yearly" }[period.id];
+  const countText = totalAll ? `${doneAll} of ${totalAll} done` : `No ${word0} goals yet`;
+  const ringHelp = totalAll
+    ? `${period.this}: ${doneAll} of ${totalAll} steps done in your ${word0} goals (shared ones too). Only ${word0} goals count here.`
+    : `No ${word0} goals yet, so nothing to count. Only ${word0} goals count here.`;
   const first = callName(user);   // their nickname, if they set one
   const dated = own.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = own.length + sharedNow.length;
@@ -135,7 +135,7 @@ function Hero() {
                   className={cn('flex-1 rounded-lg px-2 py-1.5 text-xs font-bold transition-colors', h.id === period.id ? 'bg-white text-rust-dark' : 'text-white hover:bg-white/20')}>{h.label}</button>
               ))}
             </div>
-            <span className="shrink-0 text-xs font-semibold tabular-nums text-white">{doneAll} of {totalAll} done</span>
+            <span className="shrink-0 text-xs font-semibold tabular-nums text-white">{countText}</span>
             <InfoTip text={ringHelp} label="What this percentage counts" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" />
           </div>
         </div>
@@ -146,7 +146,7 @@ function Hero() {
               <div>
                 <div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{overall}%</div>
                 <div className="text-[10px] font-bold uppercase tracking-normal text-white md:text-[11px] md:tracking-[0.14em]">{period.this}</div>
-                <div className="hidden text-[11px] font-semibold tabular-nums text-white/85 md:block">{doneAll} of {totalAll} done</div>
+                <div className="hidden text-[11px] font-semibold tabular-nums text-white/85 md:block">{countText}</div>
               </div>
             </div>
           </div>
