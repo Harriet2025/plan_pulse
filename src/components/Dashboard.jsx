@@ -107,7 +107,7 @@ function Hero() {
   const overall = totalAll ? Math.round((100 * doneAll) / totalAll) : 0;
   const ringHelp = `${period.this} so far: ${doneAll} of ${totalAll} done. That is the steps in your ${period.label.toLowerCase()} goals (shared ones too) plus the plans from your Planner since the ${period.id === 'WEEKLY' ? 'week' : period.id === 'MONTHLY' ? 'month' : 'year'} started.`;
   const first = callName(user);   // their nickname, if they set one
-  const dated = activeGoals.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
+  const dated = own.filter((g) => g.due_date).sort((a, b) => daysUntil(a.due_date) - daysUntil(b.due_date));
   const n = own.length + sharedNow.length;
   const word = period.label.toLowerCase();
   const sub = !activeGoals.length && !sharedGoals.length ? 'Set a goal for this week, month or year, and list the plans that will get you there.'
@@ -127,6 +127,17 @@ function Hero() {
             <button type="button" onClick={() => openGoalModal()} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><Plus className="h-4 w-4" strokeWidth={3} aria-hidden="true" />New goal</button>
             <button type="button" onClick={() => setView('history')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/15 px-3 py-2.5 md:px-5 text-sm font-bold text-white hover:bg-white/25"><BarChart3 className="h-4 w-4" aria-hidden="true" />View progress</button>
           </div>
+          {/* Phones: which period the ring shows, and the switch to change it */}
+          <div className="mt-4 flex items-center justify-between gap-2 md:hidden">
+            <div className="flex flex-1 rounded-xl bg-white/15 p-0.5" role="group" aria-label="Progress for">
+              {HORIZONS.map((h) => (
+                <button key={h.id} type="button" aria-pressed={h.id === period.id} onClick={() => setHorizonFilter(h.id)}
+                  className={cn('flex-1 rounded-lg px-2 py-1.5 text-xs font-bold transition-colors', h.id === period.id ? 'bg-white text-rust-dark' : 'text-white hover:bg-white/20')}>{h.label}</button>
+              ))}
+            </div>
+            <span className="shrink-0 text-xs font-semibold tabular-nums text-white">{doneAll} of {totalAll} done</span>
+            <InfoTip text={ringHelp} label="What this percentage counts" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" />
+          </div>
         </div>
         <div className="absolute right-0 top-0 md:relative md:flex md:flex-col md:items-center md:gap-3">
           <div className="relative h-20 w-20 md:h-40 md:w-40" role="img" aria-label={ringHelp}>
@@ -134,7 +145,7 @@ function Hero() {
             <div className="absolute inset-0 grid place-items-center text-center">
               <div>
                 <div className="text-lg font-extrabold tabular-nums text-white md:text-4xl">{overall}%</div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-white md:text-[11px]">{period.this}</div>
+                <div className="text-[10px] font-bold uppercase tracking-normal text-white md:text-[11px] md:tracking-[0.14em]">{period.this}</div>
                 <div className="hidden text-[11px] font-semibold tabular-nums text-white/85 md:block">{doneAll} of {totalAll} done</div>
               </div>
             </div>
