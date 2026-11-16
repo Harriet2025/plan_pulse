@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
+import { BookHeart, CalendarClock, CalendarRange, Check, ChevronDown, Lock, PanelsTopLeft, Pencil, Plus, Trash2, Users, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PRIORITY, catIcon } from '../lib/constants';
 import { dueInfo, goalPeriodLabel, progressOf } from '../lib/utils';
@@ -11,7 +11,7 @@ const collapse = { initial: { height: 0, opacity: 0 }, animate: { height: 'auto'
 const SHOWN = 6;   // plans listed before "Show all"
 
 /** One of a goal's plans: tick it when it is done, rename it, or delete it. */
-function TaskItem({ goal, task }) {
+export function TaskItem({ goal, task }) {
   const { toggleTask, deleteTask, renameTask } = useApp();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(task.text);
@@ -57,7 +57,7 @@ function TaskItem({ goal, task }) {
 
 // forwardRef: AnimatePresence (popLayout) needs a ref to the card to animate it out
 const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwardedRef) {
-  const { categories, freshId, focusReq, consumeFocus, addTask, deleteGoal, shareGoal, partners, openGoalEditor, openReflection, journal } = useApp();
+  const { categories, freshId, focusReq, consumeFocus, addTask, deleteGoal, shareGoal, partners, openGoalEditor, openReflection, journal, openGoalPage } = useApp();
   const hasPartners = partners.partners.length > 0;
   const shared = g.shared_with.filter((id) => partners.partners.some((p) => p.id === id));
   const [open, setOpen] = useState(defaultOpen ?? g.id === freshId);   // the extra tools: add a plan, edit, reflect, share, delete
@@ -123,8 +123,12 @@ const GoalCard = forwardRef(function GoalCard({ goal: g, defaultOpen }, forwarde
                 <span className="h-1.5 w-1.5 rounded-full bg-current" style={{ boxShadow: '0 0 6px currentColor' }} />{p.label}
               </span>
             </div>
-            <h3 className="mt-1 break-words text-lg font-extrabold leading-snug text-charcoal">{g.title}</h3>
+            <h3 className="mt-1 break-words text-lg font-extrabold leading-snug text-charcoal">
+              <button type="button" onClick={() => openGoalPage('own', g.id)} title="Open the goal's page" className="text-left hover:underline focus-visible:underline">{g.title}</button>
+            </h3>
           </div>
+          <button type="button" onClick={() => openGoalPage('own', g.id)} aria-label={`Open the page for "${g.title}"`} title="Open page"
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-soft hover:text-charcoal"><PanelsTopLeft className="h-4 w-4" aria-hidden="true" /></button>
           <button type="button" onClick={() => openGoalEditor(g)} aria-label={`Edit the goal "${g.title}"`} title="Edit goal"
             className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-soft hover:text-charcoal"><Pencil className="h-4 w-4" aria-hidden="true" /></button>
         </div>

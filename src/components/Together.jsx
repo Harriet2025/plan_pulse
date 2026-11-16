@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Archive, Check, Minus, Pencil, Plus, RotateCcw, Trash2, Trophy, X } from 'lucide-react';
+import { Archive, Check, Minus, PanelsTopLeft, Pencil, Plus, RotateCcw, Trash2, Trophy, X } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { HORIZONS } from '../lib/constants';
@@ -239,7 +239,7 @@ function Challenge({ entry, data, setData }) {
 // ---------------------------------------------------------------------------------------------------------------
 
 /** One tick box. Read-only (for the partner's part) when onClick is missing. */
-function Tick({ on, onClick, label: text, busy, small }) {
+export function Tick({ on, onClick, label: text, busy, small }) {
   const box = cn('grid shrink-0 place-items-center border-[1.5px] transition-colors', small ? 'h-5 w-5 rounded-[6px]' : 'h-6 w-6 rounded-[7px]',
     on ? 'border-success bg-success' : 'border-charcoal/30 bg-soft', onClick && !on && 'hover:border-rust');
   const mark = on && <Check className={small ? 'h-3 w-3 text-on-status' : 'h-3.5 w-3.5 text-on-status'} strokeWidth={4} aria-hidden="true" />;
@@ -247,8 +247,8 @@ function Tick({ on, onClick, label: text, busy, small }) {
   return <motion.button type="button" whileTap={{ scale: 0.85 }} onClick={onClick} disabled={busy} aria-pressed={on} aria-label={text} className={cn(box, 'disabled:opacity-60')}>{mark}</motion.button>;
 }
 
-function TeamGoalCard({ goal, name, onData, onEdit }) {
-  const { markTeamPlan, toast } = useApp();
+function TeamGoalCard({ goal, name, pid, onData, onEdit }) {
+  const { markTeamPlan, toast, openGoalPage } = useApp();
   const [busy, setBusy] = useState(null);       // the plan being ticked
   const [armed, setArmed] = useState(false);    // delete asks twice
   const done = goal.plans.filter((p) => p.done).length, total = goal.plans.length;
@@ -273,7 +273,9 @@ function TeamGoalCard({ goal, name, onData, onEdit }) {
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rust/10 text-2xl" aria-hidden="true">{goal.emoji}</span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold uppercase tracking-wider text-muted">{periodLabel(goal.timeframe, parseDay(goal.due_date))} · ends {parseDay(goal.due_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
-          <h4 className={cn('break-words text-base font-extrabold leading-snug', finished ? 'text-success' : 'text-charcoal')}>{goal.title}</h4>
+          <h4 className={cn('break-words text-base font-extrabold leading-snug', finished ? 'text-success' : 'text-charcoal')}>
+            <button type="button" onClick={() => openGoalPage('team', goal.id, pid)} title="Open the shared page" className="text-left hover:underline focus-visible:underline">{goal.title}</button>
+          </h4>
           {goal.why && <p className="mt-0.5 text-xs italic text-muted">“{goal.why}”</p>}
         </div>
       </div>
@@ -309,6 +311,7 @@ function TeamGoalCard({ goal, name, onData, onEdit }) {
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-oat pt-2.5">
+        <button type="button" onClick={() => openGoalPage('team', goal.id, pid)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-rust-dark hover:bg-oat/60"><PanelsTopLeft className="h-3.5 w-3.5" aria-hidden="true" />Open page</button>
         {!archived && <button type="button" onClick={() => onEdit(goal)} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-charcoal hover:bg-oat/60"><Pencil className="h-3.5 w-3.5" aria-hidden="true" />Edit</button>}
         <button type="button" onClick={() => act(archived ? 'restore' : 'archive')} className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">
           {archived ? <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" /> : <Archive className="h-3.5 w-3.5" aria-hidden="true" />}{archived ? 'Restore' : 'Archive'}
@@ -326,7 +329,7 @@ let rowKey = 0;
 const newRow = (text = '', who = 'TOGETHER', id = null) => ({ key: ++rowKey, id, text, who });
 
 /** Start or change a shared goal: emoji, name, the week, month or year it is for, why, and the plans with who does each. */
-function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
+export function TeamGoalForm({ entry, goal, idea, onSaved, onClose }) {
   const { toast } = useApp();
   const name = first(entry.partner.display_name);
   const [emoji, setEmoji] = useState(goal?.emoji ?? idea?.emoji ?? '🎯');
@@ -494,7 +497,7 @@ export default function Together({ entry }) {
           </div>
         ) : (
           <div className="mt-2 grid gap-3 md:grid-cols-2">
-            {live.map((g) => <TeamGoalCard key={g.id} goal={g} name={name} onData={setData} onEdit={(goal) => setForm({ goal })} />)}
+            {live.map((g) => <TeamGoalCard key={g.id} goal={g} name={name} pid={entry.id} onData={setData} onEdit={(goal) => setForm({ goal })} />)}
           </div>
         )}
 
@@ -503,7 +506,7 @@ export default function Together({ entry }) {
             <button type="button" onClick={() => setShowArchived((s) => !s)} aria-expanded={showArchived} className="rounded-lg px-2 py-1 text-xs font-bold text-muted hover:bg-oat/60 hover:text-charcoal">
               {showArchived ? 'Hide' : 'Show'} archived ({archived.length})
             </button>
-            {showArchived && <div className="mt-2 grid gap-3 md:grid-cols-2">{archived.map((g) => <TeamGoalCard key={g.id} goal={g} name={name} onData={setData} onEdit={() => {}} />)}</div>}
+            {showArchived && <div className="mt-2 grid gap-3 md:grid-cols-2">{archived.map((g) => <TeamGoalCard key={g.id} goal={g} name={name} pid={entry.id} onData={setData} onEdit={() => {}} />)}</div>}
           </div>
         )}
       </section>

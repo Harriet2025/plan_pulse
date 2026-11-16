@@ -141,6 +141,14 @@ already saved, so past work counts and unticking something takes its points back
 - The dashboard ring shows **this week / month / year so far** (switch under the ring, shared with Your goals): only the steps of that period's own goals (yours, and your part of shared ones). Each period stands on its own: weekly goals never count toward the month or year, and day plans are not part of it. Goal badges
   (Bronze / Silver / Gold when a goal is reviewed) are unchanged.
 
+## Goal pages
+
+Every goal opens into its own page (tap its title, or the page icon on its card). The page shows the goal's details as a tidy list (status, period, due date, category, priority, progress, who can see it), then **Why it matters**, the **Steps**, and **Notes**, with an **Activity** timeline alongside (created, steps finished, badges, reflection, completed). It is private, like the goal.
+
+A **shared goal** opens into a page both partners use: the reason you agreed, the steps with who does each (tick your part there), **shared notes** that either of you can edit, a **Discussion** (a comment can be about one step; posting one says so in the chat, so the other sees it), and the activity of you both. Notes save as you type. If your partner saved while you were writing, nothing is overwritten: their version is shown and yours is kept below to restore.
+
+Notes are made of blocks (`src/components/BlockEditor.jsx`): type `/` for headings, to-dos, bullets, quotes, callouts and dividers, or start a line with `# `, `- `, `[] ` or `> `. The handle beside each block changes its type, moves it or deletes it. The tables and functions are in `supabase/goal_pages.sql`.
+
 ## Light and dark mode, and the app colour
 
 The default palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light** or **Dark** in Settings → **Appearance** (before anyone picks, it starts from the device setting once), or flip between them with the sun / moon button in the top bar. Under it, **App colour** offers Blue, Pink, Purple, Teal, Green, Orange, Brown and Graphite. Both choices switch at once and are saved on that device (`localStorage`, keys `auragoal.theme` and `auragoal.accent`).

@@ -55,6 +55,22 @@ export function AppProvider({ children }) {
   const [soundOn, setSoundOn] = useState(true);
 
   const [goalModal, setGoalModal] = useState(null);   // null, or { draft } when the New Goal sheet is open
+  // A goal's page, open over the current section: { kind: 'own' | 'team', id, pid (the partnership, for a shared goal) }
+  const [goalPage, setGoalPage] = useState(null);
+  const openGoalPage = (kind, id, pid = null) => {
+    setGoalPage({ kind, id, pid });
+    try { window.history.pushState({ auragoalPage: true }, ''); } catch { /* ignore */ }
+    window.scrollTo({ top: 0 });
+  };
+  const closeGoalPage = () => {
+    if (window.history.state?.auragoalPage) window.history.back(); else setGoalPage(null);
+  };
+  useEffect(() => {
+    const onPop = () => setGoalPage(null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  useEffect(() => { setGoalPage(null); }, [view]);   // picking a section in the menu leaves the page
   const [lighten, setLighten] = useState(null);       // null, or { date } when the "lighten this day" panel is open
   const [calendarFocus, setCalendarFocus] = useState(null); // asks the calendar to show a particular day
   const [weekPlanOpen, setWeekPlanOpen] = useState(false);   // the weekly planning ritual
@@ -473,7 +489,7 @@ export function AppProvider({ children }) {
     openGoalEditor: (goal) => setGoalModal({ draft: { edit: goal } }),
     view, setView, activeCat, setActiveCat, horizonFilter, setHorizonFilter, search, setSearch, prio, setPrio,
     soundOn, setSoundOn, goalModal, openGoalModal: (draft = null) => setGoalModal({ draft }), closeGoalModal: () => setGoalModal(null),
-    freshId, focusReq, consumeFocus: () => setFocusReq(null), openGoal,
+    freshId, focusReq, consumeFocus: () => setFocusReq(null), openGoal, goalPage, openGoalPage, closeGoalPage,
     lighten, openLighten: (date) => setLighten({ date }), closeLighten: () => setLighten(null),
     calendarFocus, consumeCalendarFocus: () => setCalendarFocus(null),
     openCalendarDay: (key) => { setView('calendar'); setCalendarFocus({ key, n: Date.now() }); },

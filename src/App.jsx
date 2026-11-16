@@ -22,6 +22,7 @@ import NewGoalModal from './components/NewGoalModal';
 import LightenModal from './components/LightenModal';
 import RewardModal from './components/RewardModal';
 import AuthScreen from './components/AuthScreen';
+import GoalPage from './components/GoalPage';
 
 const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, journal: JournalView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
 
@@ -29,7 +30,7 @@ const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView,
 const readResetToken = () => /^#reset=([0-9a-f]{40,128})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
 
 export default function App() {
-  const { booted, user, view, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus, weekPlanOpen } = useApp();
+  const { booted, user, view, goalPage, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus, weekPlanOpen } = useApp();
   const [resetToken, setResetToken] = useState(readResetToken);
   const finishReset = () => { window.history.replaceState(null, '', window.location.pathname + window.location.search); setResetToken(null); };
 
@@ -54,8 +55,8 @@ export default function App() {
           <TopBar />
           <main className="mx-auto w-full max-w-[1600px] px-3 pb-28 pt-4 md:px-6 md:pb-10 md:pt-6">
             <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                <View />
+              <motion.div key={goalPage ? `page-${goalPage.kind}-${goalPage.id}` : view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                {goalPage ? <GoalPage /> : <View />}
               </motion.div>
             </AnimatePresence>
           </main>

@@ -425,7 +425,7 @@ function RightRail() {
 
 /** Goals shared with a partner, for the period on show. Opens that partner's Together tab. */
 function SharedGoals({ goals }) {
-  const { openPartner } = useApp();
+  const { openGoalPage } = useApp();
   return (
     <section className="mt-6" aria-labelledby="sharedH">
       <h3 id="sharedH" className="flex items-center gap-2 text-sm font-extrabold text-charcoal"><Handshake className="h-4 w-4 text-rust-dark" aria-hidden="true" />Shared with partners</h3>
@@ -433,7 +433,7 @@ function SharedGoals({ goals }) {
         {goals.map((g) => {
           const pct = g.mine.total ? Math.round((100 * g.mine.done) / g.mine.total) : 0;
           return (
-            <button key={`${g.partnershipId}-${g.id}`} type="button" onClick={() => openPartner(g.partnershipId, 'together')}
+            <button key={`${g.partnershipId}-${g.id}`} type="button" onClick={() => openGoalPage('team', g.id, g.partnershipId)}
               className="rounded-2xl border border-oat bg-soft p-4 text-left transition-colors hover:border-rust" style={cardShadow}>
               <div className="flex items-start gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rust/10 text-xl" aria-hidden="true">{g.emoji || '🤝'}</span>

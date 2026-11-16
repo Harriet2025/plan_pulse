@@ -63,10 +63,10 @@ const TIER_RANK = { NONE: 0, BRONZE: 1, SILVER: 2, GOLD: 3, PLATINUM: 4 };
 
 // A goal's plan: one step in its checklist
 // `estimate` is how long it takes in minutes (null when not known), used by "What should I do now?"
-const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed, estimate: t.estimate_min ?? null });
+const fromTask = (t) => ({ id: t.id, text: t.task_description, done: !!t.is_completed, estimate: t.estimate_min ?? null, doneAt: t.completed_at ?? null });
 
 // `shared_with` lists the partnerships (partner ids) that can see the goal; a goal no one was given is private
-const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, status, focus_week, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min), reviews(reward_badge_tier), goal_shares(partnership_id)';
+const GOAL_COLUMNS = 'id, title, category_id, priority, timeframe, due_date, quote, status, focus_week, completed_at, created_at, updated_at, sub_plans(id, task_description, is_completed, estimate_min, completed_at), reviews(reward_badge_tier), goal_shares(partnership_id)';
 const fromGoal = (g) => ({
   id: g.id, title: g.title, category_id: g.category_id, priority: g.priority, timeframe: g.timeframe,
   due_date: g.due_date, quote: g.quote, status: g.status, focus_week: g.focus_week,
@@ -603,6 +603,45 @@ export async function getPartnerView(partnershipId) {
 // history: [{ week_start, text, won }], wins, win_streak }. A change that says so in the chat also pushes it to the partner.
 
 const tellPartner = (r) => { if (r?.message_id) notify('message', { id: r.message_id }).catch(() => {}); return r; };
+
+// ---- Goal pages ----------------------------------------------------------
+// A page's notes are blocks: [{ id, type: p | h | todo | bullet | quote | callout | divider, text, done }]
+
+/** Thrown when the goal pages part of the database has not been set up yet (supabase/goal_pages.sql). */
+const pagesMissing = (error) => /goal_pages|team_goal_page|save_team_page|team_goal_comment|does not exist|Could not find/i.test(error?.message ?? '');
+export class PagesNotReady extends Error { constructor() { super('Notes are not switched on yet.'); this.notReady = true; } }
+
+/** Your own goal's page: { why, blocks, updated_at } (empty when nothing was written yet). */
+export async function getGoalPage(goalId) {
+  const { data, error } = await supabase.from('goal_pages').select('why, blocks, updated_at').eq('goal_id', goalId).maybeSingle();
+  if (error) throw pagesMissing(error) ? new PagesNotReady() : new Error('The page could not be loaded. Try again.');
+  return data ?? { why: '', blocks: [], updated_at: null };
+}
+
+/** Saves your goal's page ({ why?, blocks? }). */
+export async function saveGoalPage(goalId, fields) {
+  const changes = {};
+  if ('why' in fields) changes.why = (fields.why ?? '').slice(0, 2000) || null;
+  if ('blocks' in fields) changes.blocks = fields.blocks;
+  const { data, error } = await supabase.from('goal_pages').update(changes).eq('goal_id', goalId).select('updated_at');
+  if (error) throw pagesMissing(error) ? new PagesNotReady() : new Error('Could not save. Check your connection.');
+  if (data?.length) return data[0];
+  const ins = await supabase.from('goal_pages').insert({ goal_id: goalId, ...changes }).select('updated_at').single();
+  if (ins.error) throw pagesMissing(ins.error) ? new PagesNotReady() : new Error('Could not save. Check your connection.');
+  return ins.data;
+}
+
+const pageRpc = async (name, args) => {
+  const { data, error } = await supabase.rpc(name, args);
+  if (error) throw pagesMissing(error) ? new PagesNotReady() : new Error(error.message || 'Something went wrong. Try again.');
+  return data;
+};
+/** A shared goal's page: { goal, partnership_id, notes: { blocks, updated_at, updated_by_me }, comments, activity }. */
+export const getTeamGoalPage = (teamGoalId) => pageRpc('team_goal_page', { p_goal: teamGoalId });
+/** Saves the shared notes; returns { conflict, updated_at } or, when the partner saved first, { conflict: true, blocks }. */
+export const saveTeamPage = (teamGoalId, blocks, expected) => pageRpc('save_team_page', { p_goal: teamGoalId, p_blocks: blocks, p_expected: expected });
+export const addTeamComment = async (teamGoalId, body, planId = null) => tellPartner(await pageRpc('add_team_comment', { p_goal: teamGoalId, p_body: body, p_plan: planId }));
+export const deleteTeamComment = (commentId) => pageRpc('delete_team_comment', { p_id: commentId });
 
 export const getTogether = (partnershipId) => rpc('together_view', { p_id: partnershipId });
 /** goalId null starts a new shared goal. plans: the full list, in order: [{ id?, text, who }]. */
