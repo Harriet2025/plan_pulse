@@ -642,6 +642,31 @@ export const getTeamGoalPage = (teamGoalId) => pageRpc('team_goal_page', { p_goa
 export const saveTeamPage = (teamGoalId, blocks, expected) => pageRpc('save_team_page', { p_goal: teamGoalId, p_blocks: blocks, p_expected: expected });
 export const addTeamComment = async (teamGoalId, body, planId = null) => tellPartner(await pageRpc('add_team_comment', { p_goal: teamGoalId, p_body: body, p_plan: planId }));
 export const deleteTeamComment = (commentId) => pageRpc('delete_team_comment', { p_id: commentId });
+export const REACTIONS = ['👍', '❤️', '🎉', '😂', '🙏', '🔥'];
+/** Adds your reaction to a comment, or takes it away. Returns the page. */
+export const reactToComment = (commentId, emoji) => pageRpc('react_to_comment', { p_comment: commentId, p_emoji: emoji });
+
+/**
+ * Joins a shared goal page's private live channel (only its two partners may): who else is on the page and which
+ * block they are editing, and a nudge the moment something changes. Returns { focus(blockId), changed(), leave() }.
+ * When live updates are not available, nothing breaks: the page still refreshes every few seconds.
+ */
+export function liveTeamGoal(teamGoalId, me, { onPeople, onChange }) {
+  const ch = supabase.channel(`team-goal:${teamGoalId}`, { config: { private: true, presence: { key: me.id } } });
+  let state = { name: me.name, block: null };
+  let joined = false;
+  ch.on('presence', { event: 'sync' }, () => {
+    const all = ch.presenceState();
+    onPeople(Object.entries(all).filter(([key]) => key !== me.id).map(([key, metas]) => ({ id: key, ...(metas[metas.length - 1] ?? {}) })));
+  });
+  ch.on('broadcast', { event: 'changed' }, ({ payload }) => onChange(payload));
+  ch.subscribe((status) => { if (status === 'SUBSCRIBED') { joined = true; ch.track(state).catch(() => {}); } });
+  return {
+    focus: (block) => { state = { ...state, block }; if (joined) ch.track(state).catch(() => {}); },
+    changed: (what) => { if (joined) ch.send({ type: 'broadcast', event: 'changed', payload: { what } }).catch(() => {}); },
+    leave: () => { supabase.removeChannel(ch); },
+  };
+}
 
 export const getTogether = (partnershipId) => rpc('together_view', { p_id: partnershipId });
 /** goalId null starts a new shared goal. plans: the full list, in order: [{ id?, text, who }]. */

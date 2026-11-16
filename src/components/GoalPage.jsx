@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft, BookHeart, CalendarClock, CalendarRange, ChevronRight, CircleDot, Clock3, Eye, Flag, Folder, Gauge, MessageCircle,
-  MessageSquare, Pencil, Plus, Send, Trash2, UserRound, Users,
+  MessageSquare, Pencil, Pin, PinOff, Plus, Send, SmilePlus, Trash2, UserRound, Users,
 } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
@@ -95,6 +95,80 @@ function NotReady() {
     <p className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-[13px] text-charcoal">
       Notes need a one-time database update before they can be saved. Everything else on this page works.
     </p>
+  );
+}
+
+/** The notes pinned to the top of the page, so the important things are always in view. */
+function Pinned({ blocks, onUnpin }) {
+  const pinned = blocks.filter((b) => b.pinned && b.type !== 'divider' && b.text.trim());
+  if (!pinned.length) return null;
+  const jump = (id) => {
+    const el = document.getElementById(`blk-${id}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el?.querySelector('textarea')?.focus({ preventScroll: true });
+  };
+  return (
+    <section aria-label="Pinned" className="border-b border-oat px-5 py-4 md:px-8">
+      <h2 className="mb-2.5 flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-[0.14em] text-muted"><Pin className="h-3.5 w-3.5 rotate-45" aria-hidden="true" />Pinned</h2>
+      <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {pinned.map((b) => (
+          <li key={b.id} className="group flex items-start gap-2 rounded-lg border border-oat bg-ivory px-3 py-2.5">
+            <button type="button" onClick={() => jump(b.id)} className="min-w-0 flex-1 text-left" title="Show it in the notes">
+              <span className={cn('line-clamp-3 break-words text-[13px] leading-5 text-charcoal', b.type === 'h' && 'font-bold', b.type === 'quote' && 'italic', b.type === 'todo' && b.done && 'text-muted line-through')}>
+                {b.type === 'todo' ? (b.done ? '☑ ' : '☐ ') : ''}{b.text}
+              </span>
+            </button>
+            <button type="button" onClick={() => onUnpin(b.id)} aria-label="Unpin" title="Unpin"
+              className="grid h-6 w-6 shrink-0 place-items-center rounded text-faint hover:bg-oat/60 hover:text-charcoal"><PinOff className="h-3.5 w-3.5" aria-hidden="true" /></button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+const unpin = (blocks, id) => blocks.map((b) => (b.id === id ? { ...b, pinned: false } : b));
+
+/** "Kwame is here", with a live green dot, while your partner has the page open. */
+function Presence({ people, name, partner }) {
+  if (!people.length) {
+    return <span className="inline-flex items-center gap-1.5 rounded-full border border-oat px-2.5 py-1 text-xs text-muted"><span className="h-2 w-2 rounded-full bg-faint/60" aria-hidden="true" />{name} is not here</span>;
+  }
+  const editing = people.some((p) => p.block);
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-success/40 bg-success/10 py-1 pl-1 pr-2.5 text-xs font-semibold text-charcoal" aria-live="polite">
+      <span className="relative">
+        {partner ? <Avatar user={partner} className="h-6 w-6 text-[10px]" /> : <span className="block h-6 w-6 rounded-full bg-oat" />}
+        <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-soft bg-success" aria-hidden="true">
+          <span className="absolute inset-0 animate-ping rounded-full bg-success opacity-60 motion-reduce:animate-none" />
+        </span>
+      </span>
+      {name} is {editing ? 'editing the notes' : 'here'}
+    </span>
+  );
+}
+
+/** The reactions under a comment, and a button to add one. */
+function Reactions({ list = [], onToggle, disabled }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative mt-1 flex flex-wrap items-center gap-1">
+      {list.map((r) => (
+        <button key={r.emoji} type="button" disabled={disabled} onClick={() => onToggle(r.emoji)} aria-pressed={r.mine} title={r.mine ? 'Take your reaction back' : 'React too'}
+          className={cn('inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[12px] tabular-nums', r.mine ? 'border-rust/50 bg-rust/10 font-bold text-rust-dark' : 'border-oat bg-soft text-charcoal hover:border-rust')}>
+          <span className="text-[13px] leading-none">{r.emoji}</span>{r.count}
+        </button>
+      ))}
+      <button type="button" disabled={disabled} onClick={() => setOpen((v) => !v)} aria-expanded={open} aria-label="Add a reaction" title="React"
+        className="grid h-6 w-6 place-items-center rounded-full text-faint hover:bg-oat/60 hover:text-charcoal"><SmilePlus className="h-3.5 w-3.5" aria-hidden="true" /></button>
+      {open && (
+        <span className="absolute left-0 top-7 z-20 flex gap-0.5 rounded-full border border-oat bg-soft p-1 shadow-lg" role="group" aria-label="Reactions">
+          {api.REACTIONS.map((e) => (
+            <button key={e} type="button" onClick={() => { setOpen(false); onToggle(e); }} aria-label={`React with ${e}`}
+              className="grid h-8 w-8 place-items-center rounded-full text-lg transition-transform hover:scale-125 hover:bg-panel">{e}</button>
+          ))}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -213,6 +287,7 @@ function OwnGoalPage({ id }) {
         [Eye, 'Visible to', shared.length ? sharedText(shared, partners.partners) : 'Only you'],
         [Clock3, 'Created', fmtWhen(g.created_at)],
       ]} />
+      {page && <Pinned blocks={page.blocks} onUnpin={(bid) => edit({ blocks: unpin(page.blocks, bid) })} />}
 
       <div className="grid gap-x-10 px-5 md:px-8 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 divide-y divide-oat">
@@ -273,6 +348,8 @@ function TeamGoalPage({ id, pid }) {
   const [comment, setComment] = useState('');
   const [about, setAbout] = useState('');
   const [posting, setPosting] = useState(false);
+  const [people, setPeople] = useState([]);           // who else has this page open right now
+  const live = useRef(null);
   const notesAt = useRef(null);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -300,6 +377,13 @@ function TeamGoalPage({ id, pid }) {
     return () => clearInterval(t);
   }, [load]);
 
+  // Live: who else is here, which block they are in, and an instant refresh when they change something
+  useEffect(() => {
+    const ch = api.liveTeamGoal(id, { id: user.id, name: first(user.display_name) }, { onPeople: setPeople, onChange: () => load() });
+    live.current = ch;
+    return () => { ch.leave(); live.current = null; };
+  }, [id, user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useAutosave(async () => {
     if (notReady) return;
     setState('saving');
@@ -313,6 +397,7 @@ function TeamGoalPage({ id, pid }) {
         return;
       }
       notesAt.current = r.updated_at;
+      live.current?.changed('notes');
       setState((s) => (s === 'saving' ? 'saved' : s));
     } catch (e) { if (e.notReady) setNotReady(true); setState('error'); }
   }, [blocks], state, setState);
@@ -336,18 +421,23 @@ function TeamGoalPage({ id, pid }) {
   const tick = async (plan, want) => {
     setBusy(plan.id);
     const r = await markTeamPlan(plan.id, want);
-    if (r) { await load(); refreshShared(); }
+    if (r) { await load(); refreshShared(); live.current?.changed('steps'); }
     setBusy(null);
   };
   const post = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return;
     setPosting(true);
-    try { const r = await api.addTeamComment(id, comment.trim(), about ? Number(about) : null); setData(r); setComment(''); setAbout(''); }
+    try { const r = await api.addTeamComment(id, comment.trim(), about ? Number(about) : null); setData(r); setComment(''); setAbout(''); live.current?.changed('comments'); }
     catch (ex) { toast(ex.message); }
     setPosting(false);
   };
-  const removeComment = async (cid) => { try { setData(await api.deleteTeamComment(cid)); } catch (ex) { toast(ex.message); } };
+  const removeComment = async (cid) => { try { setData(await api.deleteTeamComment(cid)); live.current?.changed('comments'); } catch (ex) { toast(ex.message); } };
+  const react = async (cid, emoji) => {
+    try { setData(await api.reactToComment(cid, emoji)); live.current?.changed('comments'); }
+    catch (ex) { toast(ex.notReady ? 'Reactions need a one-time database update first.' : ex.message); }
+  };
+  const editingBy = Object.fromEntries(people.filter((p) => p.block).map((p) => [p.block, p.name || name]));
 
   const activity = [
     { at: goal.created_at, text: `${goal.started_by_me ? 'You' : name} started this shared goal`, icon: Flag, tone: 'text-muted' },
@@ -361,6 +451,7 @@ function TeamGoalPage({ id, pid }) {
       crumbs={['Partners', name, 'Shared goals']} onBack={closeGoalPage} title={goal.title}
       icon={<span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-oat bg-ivory text-2xl" aria-hidden="true">{goal.emoji}</span>}
       actions={<>
+        <Presence people={people} name={name} partner={entry?.partner} />
         {!archived && entry && <ActionButton icon={Pencil} onClick={() => setEditing((v) => !v)} aria-expanded={editing}>Edit goal</ActionButton>}
         <ActionButton icon={MessageCircle} onClick={() => openPartner(pid, 'chat')}>Chat</ActionButton>
       </>}
@@ -374,7 +465,7 @@ function TeamGoalPage({ id, pid }) {
       <Properties rows={[
         [Users, 'Partners', <span className="flex flex-wrap items-center gap-3">
           <span className="inline-flex items-center gap-1.5"><Avatar user={user} className="h-5 w-5 text-[10px]" />You</span>
-          {entry && <span className="inline-flex items-center gap-1.5"><Avatar user={entry.partner} className="h-5 w-5 text-[10px]" />{name}</span>}
+          {entry && <span className="inline-flex items-center gap-1.5"><span className="relative"><Avatar user={entry.partner} className="h-5 w-5 text-[10px]" />{people.length > 0 && <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-soft bg-success" aria-label="here now" />}</span>{name}</span>}
         </span>],
         [CircleDot, 'Status', <Pill className={statusCls}>{statusText}</Pill>],
         [CalendarRange, 'Period', periodLabel(goal.timeframe, parseDay(goal.due_date))],
@@ -382,6 +473,7 @@ function TeamGoalPage({ id, pid }) {
         [Gauge, 'Progress', <span className="flex items-center gap-3"><Bar pct={pct} height="h-1.5" className="max-w-[10rem] flex-1" label={`${goal.title}: ${pct}%`} /><span className="tabular-nums">{done} of {total} steps</span></span>],
         [UserRound, 'Your part', <span className="tabular-nums">{mineDone} of {minePlans.length} done</span>],
       ]} />
+      <Pinned blocks={blocks} onUnpin={(bid) => { setBlocks(unpin(blocks, bid)); setState('dirty'); }} />
 
       <div className="grid gap-x-10 px-5 md:px-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="min-w-0 divide-y divide-oat">
@@ -435,7 +527,8 @@ function TeamGoalPage({ id, pid }) {
                 </div>
               </div>
             )}
-            <BlockEditor blocks={blocks} readOnly={notReady} onChange={(b) => { setBlocks(b); setState('dirty'); }} label={`Shared notes for ${goal.title}`} />
+            <BlockEditor blocks={blocks} readOnly={notReady} onChange={(b) => { setBlocks(b); setState('dirty'); }} label={`Shared notes for ${goal.title}`}
+              others={editingBy} onFocusBlock={(bid) => live.current?.focus(bid)} />
           </Section>
         </div>
 
@@ -452,6 +545,7 @@ function TeamGoalPage({ id, pid }) {
                         <p className="text-[12px] text-muted"><span className="font-semibold text-charcoal">{c.mine ? 'You' : name}</span> · {fmtWhen(c.at)}</p>
                         {c.plan_id && planText(c.plan_id) && <p className="mt-0.5 truncate text-[12px] text-muted">On “{planText(c.plan_id)}”</p>}
                         <p className="mt-0.5 whitespace-pre-wrap break-words text-[14px] leading-6 text-charcoal">{c.body}</p>
+                        <Reactions list={c.reactions} onToggle={(e) => react(c.id, e)} />
                         {c.mine && <TwoTapButton onConfirm={() => removeComment(c.id)} icon={Trash2} label="Delete this comment" confirmText="Delete?" className="mt-0.5 rounded px-1 py-0.5 text-[11px] text-muted hover:text-danger" armedClassName="text-danger" />}
                       </div>
                     </li>

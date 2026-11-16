@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, CheckSquare, GripVertical, Heading2, Lightbulb, List, Minus, Pilcrow, Plus, Quote, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, CheckSquare, GripVertical, Heading2, Lightbulb, List, Minus, Pilcrow, Pin, PinOff, Plus, Quote, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 // A small page editor made of blocks: text, headings, to-dos, bullets, quotes, callouts and dividers.
@@ -24,14 +24,14 @@ export const newBlock = (type = 'p', text = '') => ({ id: newId(), type, text, .
 const SHORTCUTS = [[/^#\s$/, 'h'], [/^[-*]\s$/, 'bullet'], [/^\[\]\s$/, 'todo'], [/^>\s$/, 'quote'], [/^---$/, 'divider']];
 
 /** A text area that grows with its text. */
-function AutoText({ value, onChange, onKeyDown, onFocus, className, placeholder, setRef, readOnly, label }) {
+function AutoText({ value, onChange, onKeyDown, onFocus, onBlur, className, placeholder, setRef, readOnly, label }) {
   const ref = useRef(null);
   const fit = () => { const el = ref.current; if (el) { el.style.height = '0px'; el.style.height = `${el.scrollHeight}px`; } };
   useLayoutEffect(fit, [value]);
   useEffect(() => { window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit); }, []);
   return (
     <textarea ref={(n) => { ref.current = n; setRef?.(n); }} rows={1} value={value} readOnly={readOnly} aria-label={label} placeholder={placeholder} maxLength={4000}
-      onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} onFocus={onFocus}
+      onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} onFocus={onFocus} onBlur={onBlur}
       className={cn('block w-full resize-none overflow-hidden bg-transparent outline-none placeholder:text-faint', className)} />
   );
 }
@@ -49,7 +49,11 @@ function Popover({ onClose, className, children }) {
   return <div ref={ref} className={cn('absolute z-30 w-64 rounded-xl border border-oat bg-soft p-1.5 shadow-xl', className)}>{children}</div>;
 }
 
-export default function BlockEditor({ blocks, onChange, readOnly = false, label = 'Notes', placeholder = 'Write anything. Type / for headings, to-dos, lists and more.' }) {
+/**
+ * others: { [blockId]: name } for blocks someone else is editing right now (shown with their name).
+ * onFocusBlock(id | null): which block you are in, for the other person to see.
+ */
+export default function BlockEditor({ blocks, onChange, readOnly = false, label = 'Notes', placeholder = 'Write anything. Type / for headings, to-dos, lists and more.', others = {}, onFocusBlock }) {
   const virtualId = useRef(newId());   // while the page is empty, one empty block to type into
   const shown = blocks.length ? blocks : [{ id: virtualId.current, type: 'p', text: '' }];
   // Always edit the newest list, even if two keys arrive before the page draws again
@@ -142,7 +146,8 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
   const textFor = (b, idx, className, ph) => (
     <AutoText value={b.text} readOnly={readOnly} label={`${label}: ${BLOCK_TYPES.find((t) => t.type === b.type)?.label ?? 'Text'}`}
       setRef={(n) => (n ? refs.current.set(b.id, n) : refs.current.delete(b.id))}
-      placeholder={ph} className={className} onChange={(t) => onText(b, idx, t)} onKeyDown={(e) => onKey(e, b, idx)} />
+      placeholder={ph} className={className} onChange={(t) => onText(b, idx, t)} onKeyDown={(e) => onKey(e, b, idx)}
+      onFocus={() => onFocusBlock?.(b.id)} onBlur={() => onFocusBlock?.(null)} />
   );
 
   return (
@@ -176,7 +181,11 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
         } else body = textFor(b, idx, 'text-[15px] leading-7 text-charcoal', first ? placeholder : (readOnly ? '' : "Type '/' for options"));
 
         return (
-          <div key={b.id} className="group relative -ml-7 flex items-start pl-0">
+          <div key={b.id} id={`blk-${b.id}`} className={cn('group relative -ml-7 flex scroll-mt-24 items-start rounded-md pl-0 transition-shadow', b.pinned && 'pr-6', others[b.id] && 'bg-rust/[.04] shadow-[inset_-3px_0_0_rgb(var(--rust)/.55)]')}>
+            {others[b.id] && (
+              <span className="pointer-events-none absolute -top-2.5 right-1 z-10 rounded-md bg-rust px-1.5 py-px text-[10px] font-bold text-white">{others[b.id]} is editing</span>
+            )}
+            {b.pinned && <Pin className="pointer-events-none absolute right-1 top-2 h-3.5 w-3.5 rotate-45 text-rust-dark" aria-label="Pinned" />}
             {!readOnly ? (
               <button type="button" onClick={() => setMenu(menu === b.id ? null : b.id)} aria-label="Block options" aria-expanded={menu === b.id}
                 className="mt-[.35rem] grid h-6 w-6 shrink-0 place-items-center rounded text-faint opacity-0 transition-opacity hover:bg-panel hover:text-charcoal focus-visible:opacity-100 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-60">
@@ -194,6 +203,13 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
                   </button>
                 ))}
                 <div className="my-1 border-t border-oat" />
+                {b.type !== 'divider' && (
+                  <button type="button" disabled={!b.pinned && !b.text.trim()} onClick={() => { replace(b.id, { pinned: !b.pinned }); setMenu(null); }}
+                    title={!b.pinned && !b.text.trim() ? 'Write something first' : undefined}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-charcoal hover:bg-panel disabled:opacity-40">
+                    {b.pinned ? <PinOff className="h-4 w-4 text-muted" aria-hidden="true" /> : <Pin className="h-4 w-4 text-muted" aria-hidden="true" />}{b.pinned ? 'Unpin' : 'Pin to top'}
+                  </button>
+                )}
                 <button type="button" disabled={idx === 0} onClick={() => { move(idx, -1); setMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-charcoal hover:bg-panel disabled:opacity-40"><ArrowUp className="h-4 w-4 text-muted" aria-hidden="true" />Move up</button>
                 <button type="button" disabled={idx === list.length - 1} onClick={() => { move(idx, 1); setMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-charcoal hover:bg-panel disabled:opacity-40"><ArrowDown className="h-4 w-4 text-muted" aria-hidden="true" />Move down</button>
                 <button type="button" onClick={() => { remove(idx); setMenu(null); }} className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm text-danger hover:bg-danger/10"><Trash2 className="h-4 w-4" aria-hidden="true" />Delete</button>
