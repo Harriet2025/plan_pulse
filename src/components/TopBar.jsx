@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Flame, Moon, MoonStar, Snowflake, Sun, Bell, Plus } from 'lucide-react';
+import { Moon, MoonStar, Snowflake, Sun, Bell, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../lib/theme';
 import NotifList, { useNotifCount } from './NotifList';
-import { cardShadow } from './ui';
+import { cardShadow, StreakFlame } from './ui';
 
 const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', journal: 'Journal', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
 const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal hover:border-rust';
@@ -60,10 +60,10 @@ function NotificationBell() {
   );
 }
 
-function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) {
+function Stat({ icon: Icon, iconNode, value, label, tone, title, badge, className = '' }) {
   return (
     <div className={`flex items-center gap-1 rounded-2xl border py-1.5 pl-2 pr-2.5 md:gap-2 md:pl-2.5 md:pr-3 ${tone.box} ${className}`} title={title ?? label}>
-      <Icon className={`h-5 w-5 ${tone.icon}`} aria-hidden="true" />
+      {iconNode ?? <Icon className={`h-5 w-5 ${tone.icon}`} aria-hidden="true" />}
       <div className="leading-none">
         <div className="flex items-center gap-1.5">
           <motion.div key={value} initial={{ scale: 1.25 }} animate={{ scale: 1 }} className={`text-base font-extrabold tabular-nums ${tone.value}`}>{value}</motion.div>
@@ -80,6 +80,7 @@ function Stat({ icon: Icon, value, label, tone, title, badge, className = '' }) 
 export default function TopBar() {
   const { view, user, openGoalModal } = useApp();
   const theme = useTheme();
+  const resting = user.rest_today && !user.streak_active_today;
   const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
 
   return (
@@ -92,13 +93,14 @@ export default function TopBar() {
 
         <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
           <Stat
-            icon={user.rest_today && !user.streak_active_today ? Moon : Flame} value={user.streak_count}
-            label={user.rest_today && !user.streak_active_today ? 'Rest day' : 'Streak'}
+            icon={Moon} iconNode={resting ? null : <StreakFlame lit={user.streak_count > 0 || user.streak_active_today} className="h-6 w-6" />} value={user.streak_count}
+            label={resting ? 'Rest day' : 'Streak'}
             title={`${user.streak_count}-day streak. Best: ${user.best_streak}. Streak freezes: ${user.streak_freezes}.${user.rest_today ? ' Today is a rest day, so your streak is safe.' : ''}`}
             badge={user.streak_freezes > 0 && (
               <span className="inline-flex items-center gap-0.5 rounded-full bg-blush/50 px-1.5 py-0.5 text-[11px] font-extrabold text-charcoal"><Snowflake className="h-2.5 w-2.5" aria-hidden="true" />{user.streak_freezes}</span>
             )}
-            tone={{ box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }} />
+            tone={resting ? { box: 'border-rust/30 bg-rust/10', icon: 'text-rust', value: 'text-charcoal', label: 'text-rust-dark' }
+              : { box: 'border-orange-400/40 bg-orange-500/10', icon: '', value: 'text-charcoal', label: 'text-muted' }} />
           <NotificationBell />
           <button type="button" className={iconBtn} onClick={theme.toggle}
             aria-label={theme.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'} title={theme.theme === 'dark' ? 'Light mode' : 'Dark mode'}>

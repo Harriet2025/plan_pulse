@@ -4,6 +4,7 @@ import { MotionConfig } from 'framer-motion';
 import { AppProvider } from './context/AppContext';
 import App from './App';
 import './index.css';
+import './accents.css';
 
 // The service worker makes AuraGoal installable, opens it quickly, shows an offline page, and shows push reminders
 // (see public/sw.js). A new version waits until the user chooses to update (an "Update" message in the app).

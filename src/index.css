@@ -170,7 +170,16 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
 }
 
+/* The streak flame: the outer flame sways and the inner one flickers, like a real fire */
+.flame-outer { transform-box: fill-box; transform-origin: 50% 100%; animation: flame-sway 1.6s ease-in-out infinite; }
+.flame-inner { transform-box: fill-box; transform-origin: 50% 100%; animation: flame-flicker .9s ease-in-out infinite; }
+.flame-glow { animation: flame-glow 1.6s ease-in-out infinite; }
+@keyframes flame-sway { 0%, 100% { transform: scale(1, 1) skewX(0deg); } 25% { transform: scale(.97, 1.04) skewX(-2deg); } 50% { transform: scale(1.02, .97) skewX(1deg); } 75% { transform: scale(.98, 1.05) skewX(2deg); } }
+@keyframes flame-flicker { 0%, 100% { transform: scale(1, 1); opacity: 1; } 30% { transform: scale(.9, 1.12); opacity: .92; } 60% { transform: scale(1.06, .9); opacity: 1; } 80% { transform: scale(.95, 1.06); } }
+@keyframes flame-glow { 0%, 100% { opacity: .45; } 50% { opacity: .75; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .flame-outer, .flame-inner, .flame-glow { animation: none; }
   .caret::after, .shine::after { animation: none; }
   .ttext { transition: none; }
 }

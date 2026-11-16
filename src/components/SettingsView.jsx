@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, Camera, Check, Eye, EyeOff, Flame, Info, LogOut, Mail, Monitor, Moon, MoonStar, Send, Snowflake, Sun, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Bell, Camera, Check, Eye, EyeOff, Info, LogOut, Mail, Moon, MoonStar, Send, Snowflake, Sun, TriangleAlert, Trash2, Trophy, Volume2, VolumeX } from 'lucide-react';
 import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { prepareAvatar } from '../lib/image';
 import { currentSubscription, disablePush, enablePush, endpointKey, pushFlag, pushPermission } from '../lib/push';
 import { cn, fmtMinutes } from '../lib/utils';
-import { Avatar, Bar, cardShadow } from './ui';
+import { Avatar, Bar, cardShadow, StreakFlame } from './ui';
 import { InstallCard } from './AppStatus';
-import { useTheme } from '../lib/theme';
+import { ACCENTS, useTheme } from '../lib/theme';
+
+const StreakIcon = () => <StreakFlame className="h-5 w-5" />;
 
 const label = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-muted';
 const primary = 'rounded-xl bg-rust px-5 py-2.5 text-sm font-extrabold text-white hover:bg-rust-strong disabled:cursor-not-allowed disabled:opacity-60';
@@ -268,7 +270,7 @@ function StreakCard() {
     <Card title="Rest days and streak"
       info={`Rest days never break your streak (pick up to ${MAX_REST_DAYS}), and plans you finish on them still count. Every ${FREEZE_EVERY} days in a row earns a streak freeze (you can hold ${MAX_FREEZES}); if you miss a day, one is used automatically and your streak carries on.`}>
       <div className="grid grid-cols-3 gap-3">
-        <StatTile icon={Flame} value={user.streak_count} label="Streak" tone="bg-rust/10 text-rust-dark" />
+        <StatTile icon={StreakIcon} value={user.streak_count} label="Streak" tone="bg-orange-500/10" />
         <StatTile icon={Trophy} value={user.best_streak} label="Best" tone="bg-blush/30 text-blush-dark" />
         <StatTile icon={Snowflake} value={`${user.streak_freezes}/${MAX_FREEZES}`} label="Freezes" tone="bg-blush/30 text-blush-dark" />
       </div>
@@ -451,45 +453,59 @@ function NotificationsCard() {
   );
 }
 
-// A miniature of each theme for the Appearance picker. These are pictures of the two themes, so their colours are
-// fixed on purpose (they must look the same whichever theme is showing); "system" shows half of each.
+// A miniature of each theme for the Appearance picker, in the chosen app colour. These are pictures of the two
+// themes, so their greys are fixed on purpose (they must look the same whichever theme is showing).
 const PREVIEW = {
-  light: { bg: '#F5F7FA', card: '#FFFFFF', line: '#D8E0EA', text: '#202B38', accent: '#356ACB' },
-  dark: { bg: '#17191E', card: '#242831', line: '#3A414D', text: '#F3F5F8', accent: '#477BDB' },
+  light: { bg: '#F5F7FA', card: '#FFFFFF', line: '#D8E0EA', text: '#202B38' },
+  dark: { bg: '#17191E', card: '#242831', line: '#3A414D', text: '#F3F5F8' },
 };
-function ThemePreview({ kind }) {
-  const half = (p) => (
-    <div className="flex h-full flex-1 flex-col gap-1 p-1.5" style={{ background: p.bg }}>
-      <div className="h-1.5 w-8 rounded-full" style={{ background: p.text }} />
-      <div className="flex flex-1 flex-col gap-1 rounded-md p-1.5" style={{ background: p.card, border: `1px solid ${p.line}` }}>
-        <div className="h-1 w-3/4 rounded-full" style={{ background: p.line }} />
-        <div className="h-1.5 w-1/2 rounded-full" style={{ background: p.accent }} />
-      </div>
-    </div>
-  );
+function ThemePreview({ kind, accent }) {
+  const p = PREVIEW[kind];
   return (
     <div className="flex h-16 w-full overflow-hidden rounded-xl border border-oat" aria-hidden="true">
-      {kind === 'system' ? <>{half(PREVIEW.light)}{half(PREVIEW.dark)}</> : half(PREVIEW[kind])}
+      <div className="flex h-full flex-1 flex-col gap-1 p-1.5" style={{ background: p.bg }}>
+        <div className="h-1.5 w-8 rounded-full" style={{ background: p.text }} />
+        <div className="flex flex-1 flex-col gap-1 rounded-md p-1.5" style={{ background: p.card, border: `1px solid ${p.line}` }}>
+          <div className="h-1 w-3/4 rounded-full" style={{ background: p.line }} />
+          <div className="h-1.5 w-1/2 rounded-full" style={{ background: accent[kind] }} />
+        </div>
+      </div>
     </div>
   );
 }
 
 function AppearanceCard() {
-  const { choice, setChoice } = useTheme();
-  const options = [['light', 'Light', Sun], ['dark', 'Dark', MoonStar], ['system', 'System', Monitor]];
+  const { theme, setChoice, accent, setAccent } = useTheme();
+  const current = ACCENTS.find((a) => a.id === accent) ?? ACCENTS[0];
+  const options = [['light', 'Light', Sun], ['dark', 'Dark', MoonStar]];
   return (
-    <Card title="Appearance" info="System follows your phone or computer: light in the day and dark at night if your device does that. Your choice is saved on this device.">
-      <div className="grid grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label="Theme">
+    <Card title="Appearance" info="Your choices are saved on this device. The app colour also changes the app icon. On Android and computers an installed app picks up the new icon within about a day. On iPhone, the home-screen icon keeps the colour it had when you added it: remove it and add it again to change it.">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3" role="radiogroup" aria-label="Theme">
         {options.map(([id, text, Icon]) => {
-          const on = choice === id;
+          const on = theme === id;
           return (
             <button key={id} type="button" role="radio" aria-checked={on} onClick={() => setChoice(id)}
               className={cn('flex flex-col gap-2 rounded-2xl border-2 p-2 text-left transition-colors sm:p-2.5', on ? 'border-rust bg-rust/10' : 'border-oat bg-soft hover:border-blush')}>
-              <ThemePreview kind={id} />
+              <ThemePreview kind={id} accent={current} />
               <span className="flex items-center gap-1.5 px-0.5 text-sm font-bold text-charcoal">
                 <Icon className={cn('h-4 w-4 shrink-0', on ? 'text-rust-dark' : 'text-muted')} aria-hidden="true" />{text}
                 {on && <Check className="ml-auto h-4 w-4 shrink-0 text-rust-dark" aria-hidden="true" />}
               </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-wider text-muted" id="accentLabel">App colour</p>
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-8" role="radiogroup" aria-labelledby="accentLabel">
+        {ACCENTS.map((a) => {
+          const on = a.id === accent;
+          return (
+            <button key={a.id} type="button" role="radio" aria-checked={on} onClick={() => setAccent(a.id)} title={a.name}
+              className={cn('flex flex-col items-center gap-1.5 rounded-2xl border-2 px-1 py-2 transition-colors', on ? 'border-rust bg-rust/10' : 'border-transparent hover:border-oat')}>
+              <span className="grid h-9 w-9 place-items-center rounded-full text-white shadow-sm" style={{ background: `linear-gradient(135deg, ${a.light}, ${a.dark})` }}>
+                {on && <Check className="h-4 w-4" strokeWidth={3} aria-hidden="true" />}
+              </span>
+              <span className="text-[11px] font-bold text-charcoal">{a.name}</span>
             </button>
           );
         })}

@@ -1,0 +1,37 @@
+{
+  "id": "/",
+  "name": "AuraGoal",
+  "short_name": "AuraGoal",
+  "description": "Set goals for the week, month and year, plan your days, and keep your streak with an accountability partner.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F9F5F7",
+  "theme_color": "#D5296E",
+  "lang": "en",
+  "categories": [
+    "productivity",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/icons/pink/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pink/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pink/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

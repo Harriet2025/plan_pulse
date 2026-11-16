@@ -8,24 +8,32 @@
   <!-- Installable app (PWA): see public/manifest.webmanifest and public/sw.js -->
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#F5F7FA">
-  <!-- Light or dark theme before anything draws, so the wrong one never flashes. Mirrors src/lib/theme.js. -->
-  <script>
-    (function () {
-      try {
-        var c = localStorage.getItem('auragoal.theme');
-        var dark = c === 'dark' || (c !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-        document.querySelector('meta[name="theme-color"]').setAttribute('content', dark ? '#17191E' : '#F5F7FA');
-      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
-    })();
-  </script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="AuraGoal">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%233B5BDB'/%3E%3Cpath d='M16 6l2.4 6.6L25 15l-6.6 2.4L16 24l-2.4-6.6L7 15l6.6-2.4z' fill='%23fff'/%3E%3C/svg%3E">
+  <!-- Light or dark, and the app colour (with its icon), before anything draws, so the wrong look never flashes.
+       Mirrors src/lib/theme.js. -->
+  <script>
+    (function () {
+      var d = document.documentElement;
+      try {
+        var c = localStorage.getItem("auragoal.theme");
+        var dark = c === "dark" || (c !== "light" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        d.setAttribute("data-theme", dark ? "dark" : "light");
+        var a = localStorage.getItem("auragoal.accent");
+        if (!/^(pink|purple|teal|green|orange|brown|graphite)$/.test(a || "")) a = "blue";
+        d.setAttribute("data-accent", a);
+        var base = a === "blue" ? "/icons" : "/icons/" + a;
+        document.querySelector("link[rel=icon]").setAttribute("href", base + "/favicon-32.png");
+        document.querySelector("link[rel=apple-touch-icon]").setAttribute("href", base + "/apple-touch-icon.png");
+        document.querySelector("link[rel=manifest]").setAttribute("href", a === "blue" ? "/manifest.webmanifest" : "/manifest-" + a + ".webmanifest");
+        if (dark) document.querySelector("meta[name=theme-color]").setAttribute("content", "#17191E");
+      } catch (e) { d.setAttribute("data-theme", "light"); d.setAttribute("data-accent", "blue"); }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">

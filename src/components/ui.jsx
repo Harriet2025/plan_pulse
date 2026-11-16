@@ -5,6 +5,31 @@ import { avatarUrl } from '../api';
 import { RING } from '../lib/constants';
 import { cn } from '../lib/utils';
 
+/**
+ * The streak flame. Lit (orange and yellow, gently burning) while there is a streak; grey when there is none.
+ * Pass burning={false} to keep it lit but still. Colours are fixed: fire looks like fire in every theme and app colour.
+ */
+export function StreakFlame({ lit = true, burning = true, className = "h-5 w-5" }) {
+  const id = useRef(`fl${Math.random().toString(36).slice(2, 8)}`).current;
+  const move = lit && burning;
+  return (
+    <svg viewBox="0 0 24 24" className={cn("shrink-0 overflow-visible", className)} aria-hidden="true">
+      {lit && (
+        <defs>
+          <linearGradient id={`${id}o`} x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#E8380D" /><stop offset=".55" stopColor="#FF7A1A" /><stop offset="1" stopColor="#FFA733" /></linearGradient>
+          <linearGradient id={`${id}i`} x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#FFB830" /><stop offset="1" stopColor="#FFE680" /></linearGradient>
+          <radialGradient id={`${id}g`}><stop offset="0" stopColor="#FF8A1F" stopOpacity=".55" /><stop offset="1" stopColor="#FF8A1F" stopOpacity="0" /></radialGradient>
+        </defs>
+      )}
+      {lit && <ellipse className={move ? "flame-glow" : undefined} cx="12" cy="16" rx="10" ry="8" fill={`url(#${id}g)`} />}
+      <path className={move ? "flame-outer" : undefined} fill={lit ? `url(#${id}o)` : "rgb(var(--faint) / .55)"}
+        d="M12 1.5c.7 3.3 3.2 5.1 4.9 7.4 1.5 2.1 2.6 4.1 2.6 6.4 0 4.3-3.3 7.2-7.5 7.2s-7.5-2.9-7.5-7.2c0-2.7 1.4-4.9 3.1-6.6.2 1.8 1 3.1 2.2 3.8C9.4 8.6 10.4 4.7 12 1.5z" />
+      <path className={move ? "flame-inner" : undefined} fill={lit ? `url(#${id}i)` : "rgb(var(--faint) / .35)"}
+        d="M12.2 11.2c.4 1.9 1.9 3 2.8 4.3.6.9.9 1.7.9 2.6 0 2.2-1.7 3.6-3.9 3.6S8.1 20.3 8.1 18.1c0-1.5.8-2.7 1.8-3.6.1.9.5 1.5 1.1 1.8-.1-1.9.3-3.6 1.2-5.1z" />
+    </svg>
+  );
+}
+
 const spring = { type: 'spring', stiffness: 90, damping: 14 };
 
 /**

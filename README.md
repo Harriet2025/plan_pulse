@@ -141,9 +141,12 @@ already saved, so past work counts and unticking something takes its points back
 - The dashboard ring shows **this week / month / year so far** (switch under the ring, shared with Your goals): the steps of that period's goals plus the day plans from the start of the period up to today. Goal badges
   (Bronze / Silver / Gold when a goal is reviewed) are unchanged.
 
-## Light and dark mode
+## Light and dark mode, and the app colour
 
-The palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light**, **Dark** or **System** (follows the device, and changes with it) in Settings → **Appearance**, or flip between light and dark with the sun / moon button in the top bar. It switches at once, and the choice is saved on that device (`localStorage`, key `auragoal.theme`).
+The default palette is **Charcoal & Electric Blue**, in a light and a dark theme. Pick **Light** or **Dark** in Settings → **Appearance** (before anyone picks, it starts from the device setting once), or flip between them with the sun / moon button in the top bar. Under it, **App colour** offers Blue, Pink, Purple, Teal, Green, Orange, Brown and Graphite. Both choices switch at once and are saved on that device (`localStorage`, keys `auragoal.theme` and `auragoal.accent`).
+
+- **App colours are generated and checked.** `node scripts/make-accents.mjs` builds `src/accents.css` (every colour token for `[data-accent="…"]` in both themes), the app icon in each colour (`public/icons/<colour>/`) and an install file for each (`public/manifest-<colour>.webmanifest`). Each shade is found by searching lightness until it meets a contrast target, and the script stops if any text pairing would fall under 4.5:1. Blue is the hand-tuned palette in `src/index.css`, with its icons in `public/icons/`.
+- **The icon follows the colour.** Picking a colour swaps the browser-tab icon, the Apple home-screen icon and the linked install file. An installed app on Android or a computer picks up the new icon when the browser next checks the install file (usually within a day). iPhone keeps the icon it was added with, so re-add it to change it.
 
 - **One set of colour variables, two sets of values.** `src/index.css` defines every colour as a semantic CSS variable (page, card, panel, border, primary, primary-as-text, secondary, main / secondary / faint text, success, warning, danger, text on a status colour, and so on), once under `[data-theme="light"]` and once under `[data-theme="dark"]`. `tailwind.config.js` maps those variables to the Tailwind colour names the components already used (`bg-soft`, `text-muted`, `bg-rust`...), so components need no `dark:` variants. The comment at the top of `src/index.css` says what each name is for.
 - **Typography is separate.** The font is its own variable (`--font-sans`), outside both themes, so a theme can never change a font, size or weight.

@@ -8,7 +8,7 @@ import { cn, fmtSpan, localDate, parseDay, periodLabel, periodStart, readInvite 
 import { WALLPAPERS, wallpaperStyle } from '../lib/wallpapers';
 import EmojiPicker from './EmojiPicker';
 import Together, { weekSpan } from './Together';
-import { Avatar, Bar, InfoTip, cardShadow, heroStyle } from './ui';
+import { Avatar, Bar, InfoTip, cardShadow, heroStyle, StreakFlame } from './ui';
 
 const CHEERS = ['🔥', '👏', '💪', '❤️', '🎉', '⭐'];
 const QUICK = ['You got this! 💪', 'Proud of you 🎉', 'How is your day going?', 'Let’s finish strong today 🔥'];
@@ -23,7 +23,7 @@ function ChatStreak({ streak, name, compact }) {
   return (
     <span className={cn('inline-flex items-center gap-1.5 rounded-full font-bold', compact ? 'text-[11px]' : 'px-3 py-1 text-xs', alive ? 'bg-rust/10 text-rust-dark' : 'bg-oat text-muted', compact && 'bg-transparent px-0')}
       title="Days in a row you both sent a message (UTC days)">
-      <Flame className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} aria-hidden="true" />
+      <StreakFlame lit={alive} className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
       {streak.count}{compact ? '' : `-day chat streak · ${text}`}
     </span>
   );
@@ -655,7 +655,7 @@ function PartnerPanel({ entry, onBack, startTab, onStarted }) {
           <NicknameHeading entry={entry} />
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             <span className="inline-flex items-center gap-1 rounded-full bg-oat px-2.5 py-1 text-xs font-bold text-charcoal" title={`${name}'s own planning streak`}>
-              <Flame className="h-3.5 w-3.5 text-rust" aria-hidden="true" />{entry.partner.streak_count}-day streak{entry.partner.streak_active_today ? ' · active today' : ''}
+              <StreakFlame lit={entry.partner.streak_count > 0} className="h-4 w-4" />{entry.partner.streak_count}-day streak{entry.partner.streak_active_today ? ' · active today' : ''}
             </span>
             <ChatStreak streak={streak} name={name} />
           </div>

@@ -4,7 +4,7 @@ import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, Clipboa
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
-import { Bar, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle } from './ui';
+import { Bar, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle, StreakFlame } from './ui';
 import { POINTS } from '../lib/rewards';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
@@ -301,7 +301,7 @@ function WeekStrip() {
     <section className="rounded-3xl border border-oat bg-soft p-5" style={cardShadow} aria-labelledby="weekH">
       <div className="flex items-center justify-between gap-2">
         <h2 id="weekH" className="text-sm font-extrabold text-charcoal">This week</h2>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-rust/10 px-2.5 py-1 text-xs font-bold text-rust-dark"><Flame className="h-3.5 w-3.5" aria-hidden="true" />{streak} day streak</span>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-2.5 py-1 text-xs font-bold text-charcoal"><StreakFlame lit={streak > 0} className="h-4 w-4" />{streak} day streak</span>
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-1.5 text-center">
