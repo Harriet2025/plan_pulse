@@ -16,9 +16,48 @@ export const SECTION_EMOJI = { active: 'dashboard', planner: 'planner', partners
  */
 export function Emoji({ name, char, label, className = 'h-6 w-6' }) {
   const file = name ?? EMOJI_FILES[char];
+  if (MEDAL_OF[file]) return <Medal metal={MEDAL_OF[file]} label={label} className={className} />;
   if (!file) return <span className={className} aria-hidden={label ? undefined : true} aria-label={label}>{char}</span>;
   return <img src={`/emoji/${file}.webp`} alt={label ?? ''} aria-hidden={label ? undefined : true} draggable={false} decoding="async"
     className={cn('inline-block shrink-0 select-none object-contain', className)} />;
+}
+
+// Medals are drawn, not pictures: polished metal with a bevelled rim, a raised star and a dark ribbon, so the
+// badges look like real awards rather than cartoons. 'medal' (no tier yet) is plain steel.
+const MEDAL_OF = { gold: 'gold', silver: 'silver', bronze: 'bronze', medal: 'steel' };
+const METALS = {
+  gold: { hi: '#FFF4C7', mid: '#E2B33C', lo: '#8C5E0C', edge: '#6E4806', stripe: '#E2B33C' },
+  silver: { hi: '#FFFFFF', mid: '#C3CBD6', lo: '#6F7B8B', edge: '#56606E', stripe: '#C3CBD6' },
+  bronze: { hi: '#FFE0C4', mid: '#C27A45', lo: '#6E3A17', edge: '#552B0F', stripe: '#C27A45' },
+  steel: { hi: '#F4F6F9', mid: '#A9B3C0', lo: '#5D6775', edge: '#4A5360', stripe: '#A9B3C0' },
+};
+export function Medal({ metal = 'gold', label, className = 'h-10 w-10' }) {
+  const m = METALS[metal] ?? METALS.gold;
+  const id = useRef(`md${Math.random().toString(36).slice(2, 8)}`).current;
+  return (
+    <svg viewBox="0 0 64 64" className={cn('inline-block shrink-0', className)} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      <defs>
+        <linearGradient id={`${id}r`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor={m.hi} /><stop offset=".45" stopColor={m.mid} /><stop offset="1" stopColor={m.lo} /></linearGradient>
+        <linearGradient id={`${id}rr`} x1="1" y1="1" x2="0" y2="0"><stop offset="0" stopColor={m.hi} /><stop offset=".5" stopColor={m.mid} /><stop offset="1" stopColor={m.lo} /></linearGradient>
+        <radialGradient id={`${id}f`} cx=".38" cy=".32" r=".8"><stop offset="0" stopColor={m.hi} /><stop offset=".55" stopColor={m.mid} /><stop offset="1" stopColor={m.lo} /></radialGradient>
+        <linearGradient id={`${id}b`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#1F2A44" /><stop offset="1" stopColor="#141B2E" /></linearGradient>
+      </defs>
+      {/* Ribbon */}
+      <path d="M19 2h10l7 22h-10z" fill={`url(#${id}b)`} />
+      <path d="M35 2h10l-7 22H28z" fill={`url(#${id}b)`} />
+      <path d="M22.6 2h2.8l7 22h-2.8z" fill={m.stripe} opacity=".9" />
+      <path d="M38.6 2h2.8l-7 22h-2.8z" fill={m.stripe} opacity=".9" />
+      {/* Medal: rim, face, inner ring, raised star, shine */}
+      <circle cx="32" cy="41" r="20" fill={m.edge} />
+      <circle cx="32" cy="40.4" r="19.2" fill={`url(#${id}r)`} />
+      <circle cx="32" cy="40.4" r="15.4" fill={`url(#${id}rr)`} />
+      <circle cx="32" cy="40.4" r="14.4" fill={`url(#${id}f)`} />
+      <circle cx="32" cy="40.4" r="12.2" fill="none" stroke={m.lo} strokeOpacity=".35" strokeWidth=".8" />
+      <path d="M32 31.2l2.75 5.6 6.15.9-4.45 4.33 1.05 6.12L32 45.3l-5.5 2.9 1.05-6.12-4.45-4.33 6.15-.9z" fill={m.lo} opacity=".55" transform="translate(.6 .8)" />
+      <path d="M32 31.2l2.75 5.6 6.15.9-4.45 4.33 1.05 6.12L32 45.3l-5.5 2.9 1.05-6.12-4.45-4.33 6.15-.9z" fill={`url(#${id}r)`} />
+      <ellipse cx="25" cy="32" rx="7" ry="3.2" fill="#fff" opacity=".28" transform="rotate(-35 25 32)" />
+    </svg>
+  );
 }
 
 /**
