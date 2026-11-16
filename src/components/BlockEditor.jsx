@@ -51,26 +51,32 @@ function Popover({ onClose, className, children }) {
 
 export default function BlockEditor({ blocks, onChange, readOnly = false, label = 'Notes', placeholder = 'Write anything. Type / for headings, to-dos, lists and more.' }) {
   const virtualId = useRef(newId());   // while the page is empty, one empty block to type into
-  const list = blocks.length ? blocks : [{ id: virtualId.current, type: 'p', text: '' }];
+  const shown = blocks.length ? blocks : [{ id: virtualId.current, type: 'p', text: '' }];
+  // Always edit the newest list, even if two keys arrive before the page draws again
+  const latest = useRef(shown);
+  latest.current = shown;
+  const list = shown;
   const refs = useRef(new Map());
   const [focusReq, setFocusReq] = useState(null);    // { id, pos: number | 'end' }
   const [slash, setSlash] = useState(null);          // { id, query, index }
   const [menu, setMenu] = useState(null);            // the block whose options are open
 
-  useEffect(() => {
+  // Moves the cursor before the browser handles the next key, so fast typing after Enter lands in the new block
+  useLayoutEffect(() => {
     if (!focusReq) return;
     const el = refs.current.get(focusReq.id);
     if (el) { el.focus(); const p = focusReq.pos === 'end' ? el.value.length : Math.min(focusReq.pos, el.value.length); el.setSelectionRange(p, p); }
     setFocusReq(null);
   }, [focusReq, blocks]);
 
-  const commit = (next) => onChange(next.slice(0, MAX_BLOCKS));
-  const replace = (id, patch) => commit(list.map((b) => (b.id === id ? { ...b, ...patch } : b)));
-  const insertAfter = (idx, block) => { const next = [...list]; next.splice(idx + 1, 0, block); commit(next); return block; };
-  const remove = (idx) => { const next = list.filter((_, i) => i !== idx); commit(next); };
-  const move = (idx, by) => { const j = idx + by; if (j < 0 || j >= list.length) return; const next = [...list]; [next[idx], next[j]] = [next[j], next[idx]]; commit(next); };
+  const commit = (next) => { const v = next.slice(0, MAX_BLOCKS); latest.current = v; onChange(v); };
+  const replace = (id, patch) => commit(latest.current.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  const insertAfter = (idx, block) => { const next = [...latest.current]; next.splice(idx + 1, 0, block); commit(next); return block; };
+  const remove = (idx) => { const next = latest.current.filter((_, i) => i !== idx); commit(next); };
+  const move = (idx, by) => { const j = idx + by; if (j < 0 || j >= latest.current.length) return; const next = [...latest.current]; [next[idx], next[j]] = [next[j], next[idx]]; commit(next); };
 
   const setType = (b, idx, type) => {
+    const list = latest.current;
     setSlash(null); setMenu(null);
     if (type === 'divider') {
       const next = list.map((x) => (x.id === b.id ? { id: x.id, type: 'divider', text: '' } : x));
@@ -95,6 +101,7 @@ export default function BlockEditor({ blocks, onChange, readOnly = false, label 
   const matches = slash ? BLOCK_TYPES.filter((t) => t.label.toLowerCase().includes(slash.query) || t.type.startsWith(slash.query)) : [];
 
   const onKey = (e, b, idx) => {
+    const list = latest.current;
     const el = e.currentTarget;
     if (slash?.id === b.id && matches.length) {
       if (e.key === 'ArrowDown') { e.preventDefault(); setSlash({ ...slash, index: (slash.index + 1) % matches.length }); return; }
