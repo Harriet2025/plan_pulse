@@ -5,7 +5,7 @@ import * as api from '../api';
 import { useApp } from '../context/AppContext';
 import { HORIZONS } from '../lib/constants';
 import { addDays, cn, localDate, parseDay, periodEnd, periodKey, periodLabel, shiftPeriod } from '../lib/utils';
-import { Bar, InfoTip, cardShadow } from './ui';
+import { Bar, Emoji, InfoTip, cardShadow } from './ui';
 
 // What two partners do together: this week's challenge, then the goals they share.
 // Weeks run Monday to Sunday (UTC), the same as the scoreboard.
@@ -186,7 +186,7 @@ function Challenge({ entry, data, setData }) {
         <div className="mt-3 grid gap-2.5">
           {c.won && (
             <motion.p initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex items-center gap-2 rounded-2xl bg-success/15 px-3 py-2 text-sm font-extrabold text-success">
-              <Trophy className="h-5 w-5" aria-hidden="true" />You did it together! Challenge won 🎉
+              <Emoji name="trophy" className="h-7 w-7" />You did it together! Challenge won <Emoji name="party" className="h-5 w-5" />
             </motion.p>
           )}
           {(c.kind === 'EACH_GOALS' || c.kind === 'EACH_PLANS') && <>{row('You', c.me, true)}{row(name, c.them, false)}</>}
@@ -221,7 +221,7 @@ function Challenge({ entry, data, setData }) {
 
       {(data.wins > 0 || data.history.length > 0) && !picking && (
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-oat pt-2.5 text-xs text-muted">
-          <span className="inline-flex items-center gap-1 font-bold text-charcoal"><Trophy className="h-3.5 w-3.5 text-warning" aria-hidden="true" />{data.wins} won</span>
+          <span className="inline-flex items-center gap-1 font-bold text-charcoal"><Emoji name="trophy" className="h-4 w-4" />{data.wins} won</span>
           {data.win_streak > 1 && <span className="font-bold text-rust-dark">🔥 {data.win_streak} weeks in a row</span>}
           <span className="flex items-center gap-1" aria-label="Recent weeks">
             {data.history.slice(0, 6).reverse().map((h) => (

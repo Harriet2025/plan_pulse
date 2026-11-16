@@ -5,6 +5,22 @@ import { avatarUrl } from '../api';
 import { RING } from '../lib/constants';
 import { cn } from '../lib/utils';
 
+// Full-colour 3D icons (Microsoft Fluent Emoji, MIT licence: public/emoji/LICENSE.txt), so each section and reward
+// can be recognised without reading. Saved as small 128px WebP files in public/emoji/.
+const EMOJI_FILES = { '🥉': 'bronze', '🥈': 'silver', '🥇': 'gold', '🏆': 'trophy', '🏅': 'medal', '⭐': 'star', '🌟': 'star', '✅': 'check', '🎯': 'target', '🎉': 'party' };
+/** A section's picture, by the id used for the menu. */
+export const SECTION_EMOJI = { active: 'dashboard', planner: 'planner', partners: 'partners', journal: 'journal', calendar: 'calendar', catchup: 'catchup', categories: 'categories', history: 'history', settings: 'settings' };
+/**
+ * One 3D icon: by file name (`name`, e.g. "journal") or by the emoji it stands for (`char`, e.g. "🥉"). An emoji
+ * with no picture is shown as itself. Decorative unless a `label` is given.
+ */
+export function Emoji({ name, char, label, className = 'h-6 w-6' }) {
+  const file = name ?? EMOJI_FILES[char];
+  if (!file) return <span className={className} aria-hidden={label ? undefined : true} aria-label={label}>{char}</span>;
+  return <img src={`/emoji/${file}.webp`} alt={label ?? ''} aria-hidden={label ? undefined : true} draggable={false} decoding="async"
+    className={cn('inline-block shrink-0 select-none object-contain', className)} />;
+}
+
 /**
  * The streak flame. Lit (orange and yellow, gently burning) while there is a streak; grey when there is none.
  * Pass burning={false} to keep it lit but still. Colours are fixed: fire looks like fire in every theme and app colour.

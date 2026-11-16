@@ -4,7 +4,7 @@ import { ArrowRight, BarChart3, Compass, BellRing, CalendarClock, Check, Clipboa
 import { useApp } from '../context/AppContext';
 import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
-import { Bar, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle, StreakFlame } from './ui';
+import { Bar, Emoji, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle, StreakFlame } from './ui';
 import { POINTS } from '../lib/rewards';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
@@ -54,11 +54,11 @@ function ReviewNudge() {
 const REWARDS_HELP = `Points: +${POINTS.plan} per plan, +${POINTS.step} per goal step, +${POINTS.perfectDay} for a perfect day (every plan of the day done), +${POINTS.goal} per finished goal. 5 perfect days in a week earns Bronze, 6 Silver, 7 Gold.`;
 
 /** One stat on the welcome card: an icon, a number and a short caption. */
-function HeroStat({ icon: Icon, value, caption, children, onClick }) {
+function HeroStat({ emoji, value, caption, children, onClick }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag {...(onClick ? { type: 'button', onClick } : {})} className={cn('flex min-w-0 items-center gap-3 text-left text-white', onClick && 'rounded-xl transition-opacity hover:opacity-85')}>
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15"><Icon className="h-[18px] w-[18px]" aria-hidden="true" /></span>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15"><Emoji {...emoji} className="h-8 w-8" /></span>
       <span className="min-w-0">
         <span className="block text-lg font-extrabold leading-tight tabular-nums">{value}</span>
         <span className="block text-xs font-semibold leading-snug text-white/85">{caption}</span>
@@ -75,14 +75,14 @@ function HeroRewards() {
   return (
     <div className="relative mt-5 grid grid-cols-1 gap-4 border-t border-white/20 pt-4 pr-8 sm:grid-cols-3 sm:gap-6">
       <span className="absolute right-0 top-4"><InfoTip text={REWARDS_HELP} label="How points and medals work" align="right" className="[&>button]:text-white [&>button:hover]:bg-white/20" /></span>
-      <HeroStat icon={t.perfect ? Star : CalendarCheck} value={t.perfect ? 'Perfect day' : t.total ? `${t.done} / ${t.total}` : '—'}
+      <HeroStat emoji={t.perfect ? { name: 'star' } : { name: 'check' }} value={t.perfect ? 'Perfect day' : t.total ? `${t.done} / ${t.total}` : '—'}
         caption={t.perfect ? 'Every plan for today is done' : t.total ? "Today's plans done" : 'Nothing planned today'} />
-      <HeroStat icon={Award} value={`Level ${r.level.n} · ${r.level.name}`} caption={`${r.points.toLocaleString()} points${r.level.next ? ` · ${r.level.toNext} to ${r.level.next.name}` : ''}`} onClick={() => setView('history')}>
+      <HeroStat emoji={{ name: 'trophy' }} value={`Level ${r.level.n} · ${r.level.name}`} caption={`${r.points.toLocaleString()} points${r.level.next ? ` · ${r.level.toNext} to ${r.level.next.name}` : ''}`} onClick={() => setView('history')}>
         <span className="mt-1.5 block h-1 w-full max-w-[9rem] overflow-hidden rounded-full bg-white/25" role="progressbar" aria-label="Progress to the next level" aria-valuenow={r.level.pct} aria-valuemin={0} aria-valuemax={100}>
           <span className="block h-full rounded-full bg-white" style={{ width: `${r.level.pct}%` }} />
         </span>
       </HeroStat>
-      <HeroStat icon={Medal} value={w.medal ? w.medal.name : `${w.perfect} perfect day${w.perfect === 1 ? '' : 's'}`}
+      <HeroStat emoji={w.medal ? { char: w.medal.emoji } : { name: 'medal' }} value={w.medal ? w.medal.name : `${w.perfect} perfect day${w.perfect === 1 ? '' : 's'}`}
         caption={w.next ? `This week · ${w.next.days - w.perfect} more for ${w.next.name.replace(' week', '')}` : 'This week · top medal!'} />
     </div>
   );

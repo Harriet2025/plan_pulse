@@ -57,6 +57,7 @@
   /* Each section's icon in the menu */
   --tab-active: 53 106 203; --tab-planner: 14 124 112; --tab-partners: 190 40 96; --tab-journal: 105 70 200;
   --tab-calendar: 25 113 194; --tab-catchup: 196 82 16; --tab-categories: 39 128 58; --tab-history: 150 108 8; --tab-settings: 83 97 116;
+  --wp: 2.1; --wp-veil: .12;   /* chat wallpapers: patterns need more strength on a near-white page */
   color-scheme: light;
 }
 
@@ -85,6 +86,7 @@
   --hero-to: 30 34 44;
   --tab-active: 112 156 235; --tab-planner: 72 196 178; --tab-partners: 240 128 168; --tab-journal: 172 148 245;
   --tab-calendar: 112 197 232; --tab-catchup: 240 150 92; --tab-categories: 110 200 130; --tab-history: 230 182 109; --tab-settings: 184 192 204;
+  --wp: 1.2; --wp-veil: .35;
   color-scheme: dark;
 }
 

@@ -1,6 +1,6 @@
 import { ClipboardList, LayoutDashboard, LifeBuoy, NotebookPen, Settings, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { tabColor } from './Sidebar';
+import { Emoji, SECTION_EMOJI } from './ui';
 
 // Six fit on a phone: Categories is in the dashboard's filters, the Calendar opens from the Planner, and History
 // from the Journal page (and the dashboard's "View progress")
@@ -20,10 +20,10 @@ export default function BottomNav() {
     <nav className="fixed inset-x-0 bottom-0 z-30 md:hidden" aria-label="Main">
       <div className="px-3" style={{ paddingBottom: 'calc(.5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="grid grid-cols-6 gap-0.5 rounded-2xl border border-oat bg-soft p-1 backdrop-blur-md" role="tablist">
-          {ITEMS.map(({ id, label, icon: Icon }) => (
+          {ITEMS.map(({ id, label }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
               className="tab relative flex flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[11px] font-bold">
-              <Icon className="h-5 w-5" style={view === id ? undefined : { color: tabColor(id) }} aria-hidden="true" />{label}
+              <Emoji name={SECTION_EMOJI[id]} className="h-6 w-6" />{label}
               {id === 'partners' && unreadTotal > 0 && (
                 <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rust px-1 text-[10px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>
               )}

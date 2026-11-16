@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import { TIERS } from '../lib/constants';
 import { playSound } from '../lib/sound';
 import { cn } from '../lib/utils';
+import { Emoji } from './ui';
 
 function burstConfetti(rank) {
   const base = { colors: TIERS[rank].confetti, disableForReducedMotion: true, zIndex: 100, ticks: 260 };
@@ -46,7 +47,7 @@ export default function RewardModal({ item }) {
             className="shine relative grid h-32 w-32 place-items-center rounded-full border-2 text-[4.5rem] leading-none"
             style={{ borderColor: T.color, background: `radial-gradient(circle at 30% 25%, ${T.color}55, ${T.color}14 70%)`, boxShadow: `0 0 40px ${T.glow}` }}
           >
-            <span aria-hidden="true">{T.emoji}</span>
+            <Emoji char={T.emoji} className="h-20 w-20" />
           </motion.div>
         </div>
         <h2 id="rwTitle" className="mt-5 text-2xl font-extrabold text-charcoal">{T.name} Tier Badge</h2>
@@ -60,7 +61,7 @@ export default function RewardModal({ item }) {
               const on = r <= item.rank, X = TIERS[r];
               return (
                 <div key={r} className={cn('rounded-xl border px-2 py-1.5 text-center', !on && 'border-oat opacity-50')} style={on ? { borderColor: `${X.color}88`, background: `${X.color}1a` } : undefined}>
-                  <div className="text-lg leading-none" aria-hidden="true">{X.emoji}</div>
+                  <Emoji char={X.emoji} className="mx-auto h-7 w-7" />
                   <div className={cn('mt-1 text-[11px] font-bold uppercase tracking-wider', on ? 'text-charcoal' : 'text-muted')}>{X.name}</div>
                   <div className="text-[11px] tabular-nums text-muted">{X.min}%+</div>
                 </div>
@@ -68,7 +69,7 @@ export default function RewardModal({ item }) {
             })}
           </div>
         </div>
-        <p className="mt-4 flex items-center justify-center gap-1.5 text-sm font-extrabold text-rust-dark"><Trophy className="h-4 w-4" aria-hidden="true" />+1 reward</p>
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-sm font-extrabold text-rust-dark"><Emoji name="trophy" className="h-5 w-5" />+1 reward</p>
         <button type="button" autoFocus onClick={claimReward} className="mt-4 w-full rounded-xl bg-rust py-3 text-sm font-extrabold text-white active:scale-[.99]">Claim reward</button>
       </motion.div>
     </div>

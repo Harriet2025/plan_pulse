@@ -168,7 +168,7 @@ function MediaBubble({ m, mine, time, onOpen }) {
   const ratio = m.media.w && m.media.h ? `${m.media.w} / ${m.media.h}` : undefined;
   return (
     <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cn('my-1 flex', mine ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[78%] overflow-hidden rounded-2xl', mine ? 'rounded-br-md bg-rust text-white' : 'rounded-bl-md bg-oat text-charcoal')}>
+      <div className={cn('max-w-[78%] overflow-hidden rounded-2xl', mine ? 'rounded-br-md bg-rust text-white shadow-sm' : 'rounded-bl-md bg-oat text-charcoal shadow-sm')}>
         {m.kind === 'IMAGE' ? (
           <button type="button" onClick={() => onOpen(m)} className="block" aria-label="Open the photo">
             <img src={src} alt={m.body || 'Photo'} loading="lazy" className="block max-h-80 w-full max-w-[18rem] bg-oat object-cover" style={{ aspectRatio: ratio }} />
@@ -193,19 +193,22 @@ const dayHeading = (d) => {
   return d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' });
 };
 
-/** Choose the chat's background: one of the designs, or a photo of your own. Only you see your choice. */
-function WallpaperPicker({ entry, onClose }) {
+/** Choose the chat's background: one of the designs, or a photo. It changes for both of you. */
+function WallpaperPicker({ entry, value: shown, onSaved, onClose }) {
   const { toast, refreshPartners } = useApp();
   const [busy, setBusy] = useState(false);
   const file = useRef(null);
-  const current = entry.wallpaper ?? 'preset:plain';
+  const current = shown ?? 'preset:plain';
 
   const save = async (value) => {
     setBusy(true);
     try {
-      const old = entry.wallpaper;
-      await api.setPartnerPrefs(entry.id, { wallpaper: value === 'preset:plain' ? null : value });
-      await refreshPartners();
+      const old = shown;
+      const next = value === 'preset:plain' ? null : value;
+      await api.setChatWallpaper(entry.id, next);
+      onSaved(next);
+      toast(`Wallpaper changed for you and ${first(entry.partner.display_name)}.`);
+      refreshPartners();
       if (old?.startsWith('photo:') && old !== value) api.removeWallpaperPhoto(old).catch(() => {});   // the old photo is no longer needed
       onClose();
     } catch (e) { toast(e.message); }
@@ -220,7 +223,7 @@ function WallpaperPicker({ entry, onClose }) {
   return (
     <div className="mb-2 rounded-2xl border border-oat bg-soft p-3" role="group" aria-label="Chat wallpaper">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-sm font-extrabold text-charcoal">Wallpaper</p>
+        <p className="text-sm font-extrabold text-charcoal">Wallpaper <span className="font-semibold text-muted">· you both see it</span></p>
         <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel"><X className="h-4 w-4" aria-hidden="true" /></button>
       </div>
       <div className="grid grid-cols-5 gap-2 sm:grid-cols-10">
@@ -253,6 +256,9 @@ function Chat({ entry, onStreak }) {
   const [emojis, setEmojis] = useState(false);
   const [choosingWallpaper, setChoosingWallpaper] = useState(false);
   const [photoUrl, setPhotoUrl] = useState(null);      // the wallpaper photo's link, when it is one
+  const [wall, setWall] = useState(entry.wallpaper);    // the shared wallpaper, kept fresh while the chat is open
+  const wallRef = useRef(entry.wallpaper);
+  const showWall = (v) => { wallRef.current = v; setWall(v); };
   const lastId = useRef(0);
   const scroller = useRef(null);
   const picker = useRef(null);
@@ -262,9 +268,10 @@ function Chat({ entry, onStreak }) {
   useEffect(() => {
     let alive = true;
     setPhotoUrl(null);
-    if (entry.wallpaper?.startsWith('photo:')) api.wallpaperUrl(entry.wallpaper).then((u) => alive && setPhotoUrl(u));
+    if (wall?.startsWith('photo:')) api.wallpaperUrl(wall).then((u) => alive && setPhotoUrl(u));
     return () => { alive = false; };
-  }, [entry.wallpaper]);
+  }, [wall]);
+  useEffect(() => { showWall(entry.wallpaper); }, [entry.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Puts an emoji where the cursor is in the message box. */
   const insertEmoji = (e) => {
@@ -320,6 +327,12 @@ function Chat({ entry, onStreak }) {
         if (!alive) return;
         if (lastId.current === 0) setMessages([]);
         merge(r.messages); onStreak(r.chat_streak);
+        // The wallpaper is shared: when your partner changes it, it changes here too
+        const w = await api.getChatWallpaper(entry.id);
+        if (alive && w.wallpaper !== wallRef.current) {
+          if (w.set_by && w.set_by !== user.id) toast(`${name} changed the chat wallpaper.`);
+          showWall(w.wallpaper);
+        }
       } catch { /* try again on the next tick */ }
     };
     load().then(refreshPartners);
@@ -344,13 +357,13 @@ function Chat({ entry, onStreak }) {
   let lastDay = '';
   return (
     <div className="flex min-h-0 flex-col">
-      {choosingWallpaper && <WallpaperPicker entry={entry} onClose={() => setChoosingWallpaper(false)} />}
+      {choosingWallpaper && <WallpaperPicker entry={entry} value={wall} onSaved={showWall} onClose={() => setChoosingWallpaper(false)} />}
       <div className="relative">
         <button type="button" onClick={() => setChoosingWallpaper((s) => !s)} aria-expanded={choosingWallpaper} aria-label="Change the chat wallpaper" title="Wallpaper"
           className="absolute right-2 top-2 z-10 grid h-9 w-9 place-items-center rounded-full border border-oat bg-soft/95 text-muted shadow-sm hover:text-charcoal">
           <Paintbrush className="h-4 w-4" aria-hidden="true" />
         </button>
-      <div ref={scroller} className="h-[min(52vh,460px)] overflow-y-auto rounded-2xl border border-oat p-3" style={wallpaperStyle(entry.wallpaper, photoUrl)} aria-live="polite" aria-label={`Chat with ${entry.partner.display_name}`}>
+      <div ref={scroller} className="h-[min(52vh,460px)] overflow-y-auto rounded-2xl border border-oat p-3" style={wallpaperStyle(wall, photoUrl)} aria-live="polite" aria-label={`Chat with ${entry.partner.display_name}`}>
         {messages === null && <p className="py-10 text-center text-sm text-muted">Loading…</p>}
         {messages?.length === 0 && (
           <div className="grid h-full place-items-center text-center">
@@ -372,7 +385,7 @@ function Chat({ entry, onStreak }) {
                 <MediaBubble m={m} mine={mine} time={time} onOpen={setViewing} />
               ) : m.kind === 'TEXT' ? (
                 <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={cn('my-1 flex', mine ? 'justify-end' : 'justify-start')}>
-                  <div className={cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-md bg-rust text-white' : 'rounded-bl-md bg-oat text-charcoal')}>
+                  <div className={cn('max-w-[80%] rounded-2xl px-3.5 py-2 text-sm', mine ? 'rounded-br-md bg-rust text-white shadow-sm' : 'rounded-bl-md bg-oat text-charcoal shadow-sm')}>
                     <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     <p className={cn('mt-0.5 text-right text-[11px]', mine ? 'text-white/90' : 'text-muted')}>{time}</p>
                   </div>

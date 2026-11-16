@@ -4,7 +4,7 @@ import { Archive, BookHeart, CheckCircle2, Clock, RotateCcw, Trash2 } from 'luci
 import { useApp } from '../context/AppContext';
 import { TIERS, catIcon } from '../lib/constants';
 import { cn, computeAnalytics, fmtWhen, progressOf } from '../lib/utils';
-import { Bar, InfoTip, Ring, TwoTapButton } from './ui';
+import { Bar, Emoji, InfoTip, Ring, TwoTapButton } from './ui';
 import { POINTS, WEEK_MEDALS } from '../lib/rewards';
 
 const panel = 'mt-3 rounded-2xl border border-oat bg-soft p-5';
@@ -36,7 +36,7 @@ function Trophies({ r }) {
         <dl className="grid grid-cols-3 gap-2 text-center">
           {[['⭐', r.perfectDays, 'Perfect days'], ['✅', r.counts.plans, 'Plans done'], ['🎯', r.counts.goals, 'Goals done']].map(([e, v, k]) => (
             <div key={k} className="rounded-xl border border-oat bg-panel px-2 py-3">
-              <dd className="text-xl font-extrabold tabular-nums text-charcoal"><span aria-hidden="true">{e} </span>{v}</dd>
+              <dd className="flex items-center justify-center gap-1.5 text-xl font-extrabold tabular-nums text-charcoal"><Emoji char={e} className="h-6 w-6" />{v}</dd>
               <dt className="text-[11px] font-semibold text-muted">{k}</dt>
             </div>
           ))}
@@ -48,7 +48,7 @@ function Trophies({ r }) {
               const M = WEEK_MEDALS[rank], n = tally[rank - 1];
               return (
                 <div key={rank} className={cn('rounded-xl border p-2.5 text-center', n ? 'border-rust/40 bg-rust/5' : 'border-oat opacity-60')}>
-                  <div className={cn('text-3xl leading-none', !n && 'grayscale')} aria-hidden="true">{M.emoji}</div>
+                  <Emoji char={M.emoji} className={cn('mx-auto h-10 w-10', !n && 'grayscale')} />
                   <div className="mt-1 text-xs font-extrabold text-charcoal">{M.name}</div>
                   <div className="text-[11px] text-muted">{n ? `${n} earned` : `${M.days} perfect days`}</div>
                 </div>
@@ -57,13 +57,13 @@ function Trophies({ r }) {
           </div>
           <p className="mt-3 text-sm text-charcoal">
             <span className="font-bold">This week:</span> {r.week.perfect} perfect day{r.week.perfect === 1 ? '' : 's'}
-            {r.week.medal ? ` · ${r.week.medal.emoji} ${r.week.medal.name} earned` : ''}
-            {r.week.next ? ` · ${r.week.next.days - r.week.perfect} more for ${r.week.next.emoji} ${r.week.next.name}` : ''}
+            {r.week.medal && <> · <Emoji char={r.week.medal.emoji} className="h-5 w-5 align-[-4px]" /> {r.week.medal.name} earned</>}
+            {r.week.next && <> · {r.week.next.days - r.week.perfect} more for <Emoji char={r.week.next.emoji} className="h-5 w-5 align-[-4px]" /> {r.week.next.name}</>}
           </p>
           {r.medalWeeks.length > 0 && (
             <ul className="mt-2 flex flex-wrap gap-2">
               {r.medalWeeks.slice(0, 8).map((w) => (
-                <li key={w.start} className="rounded-full border border-oat bg-panel px-3 py-1 text-xs font-semibold text-charcoal">{w.medal.emoji} {shortWeek(w.start)}</li>
+                <li key={w.start} className="inline-flex items-center gap-1 rounded-full border border-oat bg-panel px-3 py-1 text-xs font-semibold text-charcoal"><Emoji char={w.medal.emoji} className="h-4 w-4" />{shortWeek(w.start)}</li>
               ))}
             </ul>
           )}
@@ -122,7 +122,7 @@ function BadgeGallery({ reviews }) {
             return (
               <div key={r} className={cn('rounded-2xl border p-3 text-center', !n && 'border-oat bg-soft opacity-60')}
                 style={n ? { borderColor: `${T.color}88`, background: `${T.color}14` } : undefined}>
-                <div className={cn('text-4xl leading-none', !n && 'grayscale')} aria-hidden="true">{T.emoji}</div>
+                <Emoji char={T.emoji} className={cn('mx-auto h-12 w-12', !n && 'grayscale')} />
                 <div className="mt-2 text-xs font-extrabold uppercase tracking-wider text-charcoal">{T.name}</div>
                 <div className={cn('text-lg font-extrabold tabular-nums', n ? 'text-charcoal' : 'text-muted')}>{n}</div>
                 <div className="text-[11px] text-muted">{n ? 'earned' : `${T.min}%+ to unlock`}</div>
@@ -136,7 +136,7 @@ function BadgeGallery({ reviews }) {
             const T = TIERS[Math.min(3, b.tier)];
             return (
               <li key={b.id} className="flex items-center gap-3 rounded-xl border border-oat bg-soft px-3 py-2">
-                <span className="text-2xl" aria-hidden="true">{T.emoji}</span>
+                <Emoji char={T.emoji} className="h-8 w-8" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-charcoal">{b.goal_title}</p>
                   <p className="text-[11px] text-muted">{T.name} badge &middot; {Math.round(b.pct)}% &middot; {fmtWhen(b.reviewed_at)}</p>
@@ -173,7 +173,7 @@ const HistoryCard = forwardRef(function HistoryCard({ g }, ref) {
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: cat.color }} />{cat.name}
           </span>
         )}
-        {T && <span className="ml-auto text-xl leading-none" title={`${T.name} badge`} aria-label={`${T.name} badge`}>{T.emoji}</span>}
+        {T && <span className="ml-auto" title={`${T.name} badge`}><Emoji char={T.emoji} label={`${T.name} badge`} className="h-7 w-7" /></span>}
       </div>
       <h3 className="mt-2.5 break-words text-base font-extrabold leading-snug text-charcoal">{g.title}</h3>
       <p className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted"><Clock className="h-3.5 w-3.5" aria-hidden="true" />{when}</p>

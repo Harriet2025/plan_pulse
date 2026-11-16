@@ -482,21 +482,38 @@ export async function getPartners() {
 
 /**
  * Adds your own choices for each partner: the nickname you gave them (shown everywhere in place of their name;
- * `partner.real_name` keeps theirs) and your chat wallpaper. Nobody else sees these.
+ * `partner.real_name` keeps theirs; only you see it) and the chat wallpaper, which both partners share: whoever
+ * changes it changes it for both.
  */
 async function withPrefs(r) {
   if (!r?.partners?.length) return r;
-  const { data } = await supabase.from('partner_prefs').select('partnership_id, nickname, wallpaper');
+  const [{ data }, { data: walls }] = await Promise.all([
+    supabase.from('partner_prefs').select('partnership_id, nickname'),
+    supabase.from('chat_wallpapers').select('partnership_id, wallpaper, set_by'),
+  ]);
   const prefs = new Map((data ?? []).map((p) => [p.partnership_id, p]));
+  const wall = new Map((walls ?? []).map((w) => [w.partnership_id, w]));
   r.partners = r.partners.map((p) => {
     const mine = prefs.get(p.id);
-    return { ...p, nickname: mine?.nickname ?? null, wallpaper: mine?.wallpaper ?? null,
+    return { ...p, nickname: mine?.nickname ?? null, wallpaper: wall.get(p.id)?.wallpaper ?? null,
       partner: { ...p.partner, real_name: p.partner.display_name, display_name: mine?.nickname || p.partner.display_name } };
   });
   return r;
 }
 
-/** Saves your nickname for a partner and/or your chat wallpaper with them ({ nickname, wallpaper }; null clears). */
+/** The chat's shared wallpaper: { wallpaper, set_by } (wallpaper null = plain). */
+export async function getChatWallpaper(partnershipId) {
+  const rows = await q(supabase.from('chat_wallpapers').select('wallpaper, set_by').eq('partnership_id', partnershipId));
+  return rows?.[0] ?? { wallpaper: null, set_by: null };
+}
+
+/** Sets the chat wallpaper for both partners (null = plain). */
+export async function setChatWallpaper(partnershipId, wallpaper) {
+  const updated = await q(supabase.from('chat_wallpapers').update({ wallpaper }).eq('partnership_id', partnershipId).select('partnership_id'));
+  if (!updated?.length) await q(supabase.from('chat_wallpapers').insert({ partnership_id: partnershipId, wallpaper }));
+}
+
+/** Saves your nickname for a partner ({ nickname }; empty clears). */
 export async function setPartnerPrefs(partnershipId, fields) {
   const row = { partnership_id: partnershipId };
   if ('nickname' in fields) {
