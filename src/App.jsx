@@ -1,31 +1,44 @@
-import { useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useApp } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
 import Dashboard from './components/Dashboard';
-import CategoriesView from './components/CategoriesView';
-import HistoryView from './components/HistoryView';
-import SettingsView from './components/SettingsView';
-import CalendarView from './components/CalendarView';
-import CatchUpView from './components/CatchUpView';
-import PlannerView from './components/PlannerView';
-import PartnersView from './components/PartnersView';
-import JournalView from './components/JournalView';
-import ReflectionModal from './components/ReflectionModal';
-import NextTaskModal from './components/NextTaskModal';
-import WeeklyPlanModal from './components/WeeklyPlan';
-import FocusTimer from './components/FocusTimer';
 import AppStatus from './components/AppStatus';
-import NewGoalModal from './components/NewGoalModal';
-import LightenModal from './components/LightenModal';
-import RewardModal from './components/RewardModal';
 import AuthScreen from './components/AuthScreen';
-import GoalPage from './components/GoalPage';
-import WindDown from './components/WindDown';
+import ErrorBoundary from './components/ErrorBoundary';
 
-const VIEWS = { active: Dashboard, planner: PlannerView, partners: PartnersView, journal: JournalView, calendar: CalendarView, catchup: CatchUpView, categories: CategoriesView, history: HistoryView, settings: SettingsView };
+// The dashboard comes with the first download; everything else is its own small file, fetched quietly right after
+// sign-in (so opening a section stays instant) and kept by the browser between visits.
+const LOADERS = {
+  planner: () => import('./components/PlannerView'), partners: () => import('./components/PartnersView'),
+  journal: () => import('./components/JournalView'), calendar: () => import('./components/CalendarView'),
+  catchup: () => import('./components/CatchUpView'), categories: () => import('./components/CategoriesView'),
+  history: () => import('./components/HistoryView'), settings: () => import('./components/SettingsView'),
+  goalPage: () => import('./components/GoalPage'), windDown: () => import('./components/WindDown'),
+  newGoal: () => import('./components/NewGoalModal'), next: () => import('./components/NextTaskModal'),
+  week: () => import('./components/WeeklyPlan'), reflect: () => import('./components/ReflectionModal'),
+  lighten: () => import('./components/LightenModal'), reward: () => import('./components/RewardModal'),
+  focus: () => import('./components/FocusTimer'),
+};
+const L = Object.fromEntries(Object.entries(LOADERS).map(([k, f]) => [k, lazy(f)]));
+const VIEWS = { active: Dashboard, planner: L.planner, partners: L.partners, journal: L.journal, calendar: L.calendar, catchup: L.catchup, categories: L.categories, history: L.history, settings: L.settings };
+const GoalPage = L.goalPage, WindDown = L.windDown, NewGoalModal = L.newGoal, NextTaskModal = L.next, WeeklyPlanModal = L.week;
+const ReflectionModal = L.reflect, LightenModal = L.lighten, RewardModal = L.reward, FocusTimer = L.focus;
+
+/** What shows for the moment a section is still arriving: the page's outline, never a blank screen. */
+function PageLoading() {
+  return (
+    <div className="grid gap-4" aria-busy="true" aria-label="Loading">
+      <div className="h-36 animate-pulse rounded-3xl bg-oat/60 motion-reduce:animate-none" />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="h-48 animate-pulse rounded-3xl bg-oat/50 motion-reduce:animate-none" />
+        <div className="h-48 animate-pulse rounded-3xl bg-oat/50 motion-reduce:animate-none" />
+      </div>
+    </div>
+  );
+}
 
 // The emailed reset link looks like  https://the-site/#reset=<token hash>, from the template in Supabase's Auth settings
 const readResetToken = () => /^#reset=([0-9a-f]{40,128})$/i.exec(window.location.hash)?.[1]?.toLowerCase() ?? null;
@@ -46,6 +59,17 @@ export default function App() {
     );
   }
   if (!user || resetToken) return <AuthScreen resetToken={resetToken} onResetDone={finishReset} />;
+  return <SignedIn />;
+}
+
+function SignedIn() {
+  const { view, goalPage, windDown, goalModal, lighten, rewardQueue, toastMsg, dismissToast, reflectGoal, nextOpen, focus, weekPlanOpen } = useApp();
+  // Fetch the other sections while the browser is idle, so they open instantly later
+  useEffect(() => {
+    const go = () => Object.values(LOADERS).forEach((f) => f().catch(() => {}));
+    const id = 'requestIdleCallback' in window ? window.requestIdleCallback(go, { timeout: 2500 }) : setTimeout(go, 1200);
+    return () => ('cancelIdleCallback' in window ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
 
   const View = VIEWS[view];
   return (
@@ -57,7 +81,9 @@ export default function App() {
           <main className="mx-auto w-full max-w-[1600px] px-3 pb-28 pt-4 md:px-6 md:pb-10 md:pt-6">
             <AnimatePresence mode="wait" initial={false}>
               <motion.div key={goalPage ? `page-${goalPage.kind}-${goalPage.id}` : view} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                {goalPage ? <GoalPage /> : <View />}
+                <ErrorBoundary resetKey={goalPage ? `p${goalPage.id}` : view}>
+                  <Suspense fallback={<PageLoading />}>{goalPage ? <GoalPage /> : <View />}</Suspense>
+                </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </main>
@@ -67,6 +93,7 @@ export default function App() {
       <BottomNav />
       <AppStatus />
 
+      <ErrorBoundary quiet><Suspense fallback={null}>
       <AnimatePresence>{goalModal && <NewGoalModal key="goal" />}</AnimatePresence>
       <AnimatePresence>{lighten && <LightenModal key="lighten" />}</AnimatePresence>
       <AnimatePresence>{reflectGoal && <ReflectionModal key={`reflect-${reflectGoal}`} />}</AnimatePresence>
@@ -75,6 +102,7 @@ export default function App() {
       <AnimatePresence>{windDown && <WindDown key="wind" />}</AnimatePresence>
       <AnimatePresence>{focus && <FocusTimer key={`focus-${focus.id}`} />}</AnimatePresence>
       <AnimatePresence mode="wait">{rewardQueue[0] && <RewardModal key={rewardQueue[0].id} item={rewardQueue[0]} />}</AnimatePresence>
+      </Suspense></ErrorBoundary>
 
       <AnimatePresence>
         {toastMsg && (

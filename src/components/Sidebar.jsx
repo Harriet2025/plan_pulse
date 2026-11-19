@@ -1,6 +1,6 @@
 import { CalendarDays, ChevronRight, ClipboardList, LayoutDashboard, LifeBuoy, NotebookPen, Tags, BarChart3, Settings, LogOut, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Avatar, Emoji, Logo, SECTION_EMOJI, cardShadow } from './ui';
+import { Avatar, Logo, SectionIcon, cardShadow } from './ui';
 
 // Each section has its own colour (--tab-<id> in src/index.css, set for both themes), so its icon is easy to tell
 // apart at a glance and stays readable on light and dark
@@ -45,7 +45,7 @@ export default function Sidebar() {
         {TABS.map(({ id, label }) => (
           <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
             className="tab flex items-center gap-3 rounded-2xl px-2.5 py-2 text-left text-sm font-bold">
-            <span className="tabicon grid h-9 w-9 place-items-center rounded-xl" style={tabIconStyle(id, view === id)}><Emoji name={SECTION_EMOJI[id]} className="h-7 w-7" /></span>
+            <SectionIcon id={id} ring={view === id} />
             {label}
             {id === 'partners' && unreadTotal > 0 && (
               <span className="ml-auto rounded-full bg-rust px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>

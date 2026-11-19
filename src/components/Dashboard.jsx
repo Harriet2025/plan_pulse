@@ -6,7 +6,7 @@ import { HORIZONS, QUOTES, TEMPLATES, catIcon } from '../lib/constants';
 import { addDays, callName, cn, dayLoad, daysUntil, fmtMinutes, fmtSpan, greeting, isRestDate, isoWeekday, localDate, nextHeavyDay, periodEnd, periodKey, periodStart, plansOn, shiftPeriod, shortDay, taskTotals } from '../lib/utils';
 import { Bar, Emoji, InfoTip, LinenTexture, Ring, cardShadow, glassShadow, heroStyle, StreakFlame } from './ui';
 import { POINTS } from '../lib/rewards';
-import { WIND_TITLE, windDownDone, windKey } from './WindDown';
+import { WIND_TITLE, windDownDone, windKey } from '../lib/winddown';
 import GoalCard from './GoalCard';
 import NotifList from './NotifList';
 import { InstallNudge } from './AppStatus';
@@ -80,7 +80,7 @@ function HeroStat({ emoji, value, caption, children, onClick }) {
   const Tag = onClick ? 'button' : 'div';
   return (
     <Tag {...(onClick ? { type: 'button', onClick } : {})} className={cn('flex min-w-0 items-center gap-3 text-left text-white', onClick && 'rounded-xl transition-opacity hover:opacity-85')}>
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15"><Emoji {...emoji} className="h-8 w-8" /></span>
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/15"><Emoji {...emoji} className={emoji.char || emoji.name === 'medal' ? 'h-8 w-8' : 'h-5 w-5'} /></span>
       <span className="min-w-0">
         <span className="block text-lg font-extrabold leading-tight tabular-nums">{value}</span>
         <span className="block text-xs font-semibold leading-snug text-white/85">{caption}</span>

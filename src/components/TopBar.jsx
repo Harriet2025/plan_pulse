@@ -4,7 +4,7 @@ import { Moon, MoonStar, Snowflake, Sun, Bell, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useTheme } from '../lib/theme';
 import NotifList, { useNotifCount } from './NotifList';
-import { cardShadow, Emoji, SECTION_EMOJI, StreakFlame } from './ui';
+import { cardShadow, SectionIcon, StreakFlame } from './ui';
 
 const TITLES = { active: 'Dashboard', planner: 'Planner', partners: 'Partners', journal: 'Journal', calendar: 'Calendar', catchup: 'Catch up', categories: 'Categories', history: 'History & Analytics', settings: 'Settings' };
 const iconBtn = 'relative grid h-10 w-10 place-items-center rounded-xl border border-oat bg-soft text-charcoal hover:border-rust';
@@ -86,7 +86,7 @@ export default function TopBar() {
   return (
     <header className="relative z-20 mx-3 mt-2 rounded-2xl border border-oat bg-soft/95 px-3 py-2 backdrop-blur-xl md:mx-6 md:mt-4 md:px-5 md:py-3" style={cardShadow}>
       <div className="flex items-center gap-x-2 md:gap-x-4">
-        <Emoji name={SECTION_EMOJI[view]} className="hidden h-11 w-11 sm:inline-block" />
+        <SectionIcon id={view} className="hidden h-10 w-10 rounded-xl sm:grid" iconClassName="h-5 w-5" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted md:text-[11px] md:tracking-[0.18em]">{today}</p>
           <h1 className="truncate text-lg font-extrabold tracking-tight text-charcoal md:text-2xl">{TITLES[view]}</h1>

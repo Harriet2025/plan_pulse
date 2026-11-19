@@ -6,6 +6,7 @@ import { horizonOf } from '../lib/constants';
 import { addDays, cn, localDate, parseDay, periodEnd, periodKey, periodLabel, periodPhrase, periodStart, plansOn, shiftPeriod } from '../lib/utils';
 import { MoodPicker, PERIOD_PROMPTS } from './JournalParts';
 import { Bar } from './ui';
+import { WIND_TITLE, markWindDownDone, windKey } from '../lib/winddown';
 
 // The wind-down: a few calm minutes to close a day, a week, a month or a year.
 //   Evening (DAILY): tick off today, move or let go of what is left, a mood and a line or two, then set up tomorrow.
@@ -13,12 +14,7 @@ import { Bar } from './ui';
 //   (the same reflection the Planner's review shows), and set the goals for the next one.
 // What you write is saved to your journal (private). A finished evening wind-down is remembered for the day.
 
-export const WIND_TITLE = 'Evening wind-down';
-const DONE_KEY = 'auragoal.windDown';
-export const windDownDone = (key) => { try { return JSON.parse(localStorage.getItem(DONE_KEY) || '[]').includes(key); } catch { return false; } };
-const markDone = (key) => { try { const s = JSON.parse(localStorage.getItem(DONE_KEY) || '[]'); localStorage.setItem(DONE_KEY, JSON.stringify([...s.filter((k) => k !== key), key].slice(-120))); } catch { /* ignore */ } };
-/** The id a wind-down is remembered by: DAILY:2026-11-16, WEEKLY:2026-11-16 (the period's first day), … */
-export const windKey = (horizon, date) => `${horizon}:${horizon === 'DAILY' ? localDate(date) : periodKey(horizon, date)}`;
+const markDone = markWindDownDone;
 
 // ---- Small shared pieces ----------------------------------------------------------------------------------------
 

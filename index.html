@@ -39,7 +39,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <!-- Shown until the app has loaded (the app replaces it) -->
+    <div style="position:fixed;inset:0;display:grid;place-items:center;background:rgb(var(--ivory,245 247 250));font-family:Manrope,system-ui,sans-serif">
+      <div style="text-align:center">
+        <div style="margin:0 auto;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:rgb(var(--btn,53 106 203));box-shadow:0 10px 24px -10px rgb(var(--btn,53 106 203) / .6)">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4l2.9 8.1L27 15l-8.1 2.9L16 26l-2.9-8.1L5 15l8.1-2.9z" fill="#fff"/></svg>
+        </div>
+        <p style="margin:14px 0 0;font-size:15px;font-weight:800;color:rgb(var(--charcoal,32 43 56))">AuraGoal</p>
+        <div style="margin:12px auto 0;width:120px;height:3px;border-radius:3px;background:rgb(var(--oat,216 224 234));overflow:hidden">
+          <div style="width:40%;height:100%;border-radius:3px;background:rgb(var(--btn,53 106 203));animation:ag-load 1.1s ease-in-out infinite"></div>
+        </div>
+      </div>
+    </div>
+    <style>@keyframes ag-load{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}@media (prefers-reduced-motion:reduce){#root div{animation:none!important}}</style>
+  </div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

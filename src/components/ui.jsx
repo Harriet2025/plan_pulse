@@ -1,25 +1,48 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Info, Sparkles } from 'lucide-react';
+import { AlarmClock, CalendarDays, ChartColumn, CircleCheck, ClipboardList, Handshake, House, Info, NotebookPen, PartyPopper, Settings, Sparkles, Star, Tags, Target, Trophy } from 'lucide-react';
 import { avatarUrl } from '../api';
 import { RING } from '../lib/constants';
 import { cn } from '../lib/utils';
 
-// Full-colour 3D icons (Microsoft Fluent Emoji, MIT licence: public/emoji/LICENSE.txt), so each section and reward
-// can be recognised without reading. Saved as small 128px WebP files in public/emoji/.
+// Which icon stands for a reward emoji
 const EMOJI_FILES = { '🥉': 'bronze', '🥈': 'silver', '🥇': 'gold', '🏆': 'trophy', '🏅': 'medal', '⭐': 'star', '🌟': 'star', '✅': 'check', '🎯': 'target', '🎉': 'party' };
-/** A section's picture, by the id used for the menu. */
-export const SECTION_EMOJI = { active: 'dashboard', planner: 'planner', partners: 'partners', journal: 'journal', calendar: 'calendar', catchup: 'catchup', categories: 'categories', history: 'history', settings: 'settings' };
+// Each section's icon: a white symbol on its own colour, like the icons in a phone's settings. The colours are the
+// same in light and dark mode (they are the section's mark), each dark enough that the white symbol stands out.
+// The dashboard uses the app colour the person picked.
+const SECTIONS = {
+  active: [House, 'rgb(var(--btn))'],
+  planner: [ClipboardList, '#0E8478'],
+  partners: [Handshake, '#C92A62'],
+  journal: [NotebookPen, '#6A45D0'],
+  calendar: [CalendarDays, '#2563C9'],
+  catchup: [AlarmClock, '#D9480F'],
+  categories: [Tags, '#2B8A3E'],
+  history: [ChartColumn, '#A86A12'],
+  settings: [Settings, '#5B6778'],
+};
+export function SectionIcon({ id, className = 'h-9 w-9', iconClassName = 'h-[18px] w-[18px]', ring = false }) {
+  const [Icon, color] = SECTIONS[id] ?? SECTIONS.active;
+  return (
+    <span aria-hidden="true" className={cn('grid shrink-0 place-items-center rounded-[10px] text-white', ring && 'ring-2 ring-white/70', className)}
+      style={{ background: `linear-gradient(150deg, color-mix(in srgb, ${color} 88%, white), ${color} 55%, color-mix(in srgb, ${color} 82%, black))`, backgroundColor: color, boxShadow: 'inset 0 1px 0 rgb(255 255 255 / .22), 0 1px 2px rgb(0 0 0 / .18)' }}>
+      <Icon className={iconClassName} strokeWidth={2.2} />
+    </span>
+  );
+}
+
+// Rewards and achievements: drawn metal medals, and clean line icons for the rest (in the surrounding text colour)
+const LINE_ICONS = { check: CircleCheck, star: Star, target: Target, trophy: Trophy, party: PartyPopper };
 /**
- * One 3D icon: by file name (`name`, e.g. "journal") or by the emoji it stands for (`char`, e.g. "🥉"). An emoji
- * with no picture is shown as itself. Decorative unless a `label` is given.
+ * A reward's icon: by name ("trophy", "gold", …) or by the emoji it stands for (`char`, e.g. "🥉"). Medals are drawn
+ * in metal; the rest are line icons. An emoji with no icon is shown as itself. Decorative unless a `label` is given.
  */
 export function Emoji({ name, char, label, className = 'h-6 w-6' }) {
   const file = name ?? EMOJI_FILES[char];
   if (MEDAL_OF[file]) return <Medal metal={MEDAL_OF[file]} label={label} className={className} />;
-  if (!file) return <span className={className} aria-hidden={label ? undefined : true} aria-label={label}>{char}</span>;
-  return <img src={`/emoji/${file}.webp`} alt={label ?? ''} aria-hidden={label ? undefined : true} draggable={false} decoding="async"
-    className={cn('inline-block shrink-0 select-none object-contain', className)} />;
+  const Line = LINE_ICONS[file];
+  if (Line) return <Line className={cn('inline-block shrink-0', className)} strokeWidth={2} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} />;
+  return <span className={className} aria-hidden={label ? undefined : true} aria-label={label}>{char}</span>;
 }
 
 // Medals are drawn, not pictures: polished metal with a bevelled rim, a raised star and a dark ribbon, so the

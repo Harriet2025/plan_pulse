@@ -1,6 +1,6 @@
 import { ClipboardList, LayoutDashboard, LifeBuoy, NotebookPen, Settings, Users } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { Emoji, SECTION_EMOJI } from './ui';
+import { SectionIcon } from './ui';
 
 // Six fit on a phone: Categories is in the dashboard's filters, the Calendar opens from the Planner, and History
 // from the Journal page (and the dashboard's "View progress")
@@ -23,7 +23,7 @@ export default function BottomNav() {
           {ITEMS.map(({ id, label }) => (
             <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}
               className="tab relative flex flex-col items-center gap-1 rounded-xl px-0.5 py-2 text-[11px] font-bold">
-              <Emoji name={SECTION_EMOJI[id]} className="h-6 w-6" />{label}
+              <SectionIcon id={id} ring={view === id} className="h-7 w-7 rounded-lg" iconClassName="h-4 w-4" />{label}
               {id === 'partners' && unreadTotal > 0 && (
                 <span className="absolute right-1 top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-rust px-1 text-[10px] font-extrabold tabular-nums text-white" aria-label={`${unreadTotal} new`}>{unreadTotal}</span>
               )}

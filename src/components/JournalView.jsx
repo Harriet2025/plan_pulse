@@ -5,7 +5,7 @@ import { horizonOf } from '../lib/constants';
 import { cn, localDate, periodEnd, periodKey, periodLabel, periodPhrase, periodRange, periodStart, shiftPeriod } from '../lib/utils';
 import { EntryCard, MOODS, NoteEditor, PeriodReflection } from './JournalParts';
 import { cardShadow } from './ui';
-import { windDownDone, windKey } from './WindDown';
+import { windDownDone, windKey } from '../lib/winddown';
 
 const TABS = [['ALL', 'All'], ['WEEKLY', 'Week'], ['MONTHLY', 'Month'], ['YEARLY', 'Year']];
 const PAGE = 30;
